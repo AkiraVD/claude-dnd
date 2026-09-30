@@ -1,0 +1,13 @@
+{
+  "name": "@dnd/server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "dependencies": {
+    "@dnd/content": "*",
+    "@dnd/engine": "*",
+    "@dnd/mcp": "*",
+    "ws": "^8.18.0"
+  }
+}

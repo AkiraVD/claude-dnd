@@ -10,6 +10,7 @@ export default defineConfig({
     alias: {
       '@dnd/content': src('./packages/content/src/index.ts'),
       '@dnd/engine': src('./packages/engine/src/index.ts'),
+      '@dnd/mcp/db.js': src('./packages/mcp/src/db.ts'),
       '@dnd/mcp': src('./packages/mcp/src/index.ts'),
     },
   },

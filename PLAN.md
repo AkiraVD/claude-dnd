@@ -223,22 +223,44 @@ dnd-claude/
 
 ## Phases
 
-| # | Deliverable | Done when |
+| # | Deliverable | Status |
 |---|---|---|
-| 0 | Monorepo scaffold, SRD subset, vitest | `npm test` runs |
-| 1 | `dice.ts` + `checks.ts`, seeded | Advantage, `4d6kh3`, DC comparison correct |
-| 2 | `character.ts` + `combat.ts` | A scripted goblin fight resolves in tests |
-| 3 | MCP server + stdio config, played in the Claude Code terminal | **First playable.** Validates engine + DM prompt with zero UI work |
-| 4 | SQLite event log, campaign create/load/recap | Quit and resume mid-combat |
-| 5 | Server: `claude` child process, stream-json ↔ WebSocket | **Playable in the browser**, plain text log |
-| 6 | `/play-dnd` skill + character creation flow | New campaign from an empty DB, conversationally |
-| 7 | Rich rendering: dice cards, HP bars, sheet, initiative, slots | The screenshot above |
-| 8 | Progression, spells, conditions, rests in depth | Level 1→5 wizard casts, rests, recovers slots |
-| 9 | Polish: dice animation, encounter builder, xterm debug drawer | — |
+| 0 | Monorepo scaffold, SRD subset, vitest | **done** |
+| 1 | `dice.ts` + `checks.ts`, seeded | **done** |
+| 2 | `character.ts` + `combat.ts` | **done** — acceptance test runs a full goblin ambush |
+| 3 | MCP server + stdio config, played in the Claude Code terminal | **done** — first playable |
+| 4 | SQLite persistence, campaigns, recap | **done** — plus `undo`, which snapshots gave for free |
+| 5 | Server: `claude` child process, stream-json ↔ WebSocket | **done** |
+| 6 | `/play-dnd` skill + character creation flow | **done** |
+| 7 | Rich rendering: dice cards, HP bars, sheet, initiative, slots | **done** |
+| 8 | Classes, weapons, resources, rests, spells, levelling | **done** |
+| 9 | Polish | **partial** — dice land with an animation and HP bars tween; no encounter builder, no xterm drawer |
 
-Phase 3 stays in the plan even though the browser is the goal — playing in the terminal
-first proves the engine and the DM prompt before any UI exists, and it is nearly free once
-phases 1–2 are done. Phase 5 is where it becomes the thing you actually asked for.
+Two plan changes worth recording, both decided against the plan as written:
+
+**Phase 4 did not become pure event sourcing.** The plan said state would be a reduction
+over the event log. Deriving state by replaying events through a reducer means writing the
+rules twice — once in the engine, once in the reducer — and they drift until every bug is
+"which one is right?". State snapshots are the source of truth instead, with events as a
+journal beside them. Since a campaign is a few kilobytes of JSON, snapshotting per step is
+cheap and gives undo for nothing.
+
+**Phase 5 did not need MCP over HTTP.** The plan moved the MCP server to HTTP so it would
+outlive the model process. Once campaigns were in SQLite that stopped mattering: the stdio
+server can die with `claude` and reload from disk, and the web server reads the same file
+directly to hydrate a page. One fewer transport, one fewer thing to get wrong.
+
+## Not built, deliberately
+
+- **Positioning.** No grid, cover, flanking, reach or opportunity attacks. Theatre of the
+  mind, and the DM can hand out advantage for circumstance. The first playtest noted that
+  terrain ended up purely decorative; making it mechanical means committing to a spatial
+  model, which is a different project.
+- **Multiattack enforcement.** Two attacks on a turn is two calls with nothing checking
+  entitlement. Honour system from level 5.
+- **A spell catalogue.** `cast_spell` spends the slot and gives the save DC; what the spell
+  does is the DM's to adjudicate. Several hundred spell descriptions is its own undertaking.
+- **An encounter builder and an xterm debug drawer.** Phase 9 leftovers, both convenience.
 
 ---
 

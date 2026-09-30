@@ -1,10 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "types": ["vitest/globals", "node"],
+    "jsx": "react-jsx",
 
     "strict": true,
     "noUncheckedIndexedAccess": true,
@@ -21,7 +22,10 @@
     "paths": {
       "@dnd/content": ["packages/content/src/index.ts"],
       "@dnd/engine": ["packages/engine/src/index.ts"],
-      "@dnd/mcp": ["packages/mcp/src/index.ts"]
+      "@dnd/mcp": ["packages/mcp/src/index.ts"],
+      "@dnd/mcp/db.js": ["packages/mcp/src/db.ts"],
+      "@dnd/server/*": ["packages/server/src/*"],
+      "@dnd/web/*": ["packages/web/src/*"]
     }
   },
   "include": ["packages/*/src/**/*.ts", "vitest.config.ts"]

@@ -49,9 +49,14 @@ Then build the character with them:
 - Roll ability scores with `mcp__dnd__roll_dice` using `4d6kh3`, six times. Let them
   assign the results. If they would rather not roll, offer the standard array
   15, 14, 13, 12, 10, 8.
-- Settle on level 1 unless they ask otherwise, and work out HP, AC, saves, and skill
-  proficiencies for the class they chose.
-- Register them with `mcp__dnd__add_creature`, `kind: "pc"`.
+- Settle on level 1 unless they ask otherwise.
+- Register them with `mcp__dnd__add_creature`, `kind: "pc"`, and **pass `class_name`** — that
+  fills in the hit die, save proficiencies, hit dice and spell slots so you do not have to
+  work them out. Give them their `attacks` and their `armour` in the same call, with
+  `stealth_disadvantage: true` for anything heavy.
+- Add class features as resources with `mcp__dnd__add_resource`: Second Wind for a fighter,
+  ki for a monk, Channel Divinity for a cleric. Spell slots and hit dice come with the class
+  already.
 - Read the sheet back with `mcp__dnd__get_character_sheet` and confirm it looks right
   before playing. This is the one moment where showing the numbers is the point.
 

@@ -1,0 +1,52 @@
+import type { CombatState, Creature, GameEvent } from '@dnd/engine'
+
+/**
+ * What the browser and the server say to each other.
+ *
+ * Kept in one file both sides import, so a field cannot be renamed on one end
+ * only.
+ */
+export interface CampaignHeader {
+  id: number
+  name: string
+  steps: number
+  seed: number
+  lastPlayed: string
+}
+
+export interface TableState {
+  campaign: CampaignHeader
+  scene: string
+  creatures: Creature[]
+  combat: CombatState | null
+  events: GameEvent[]
+}
+
+export type ServerMessage =
+  | { type: 'hello'; model: string | null; sessionId: string | null; state: TableState }
+  | { type: 'state'; state: TableState }
+  | { type: 'status'; model: string | null; sessionId: string | null; mcp: Array<{ name: string; status: string }> }
+  | { type: 'turn-start' }
+  | { type: 'narration-delta'; text: string }
+  | { type: 'narration'; text: string }
+  | { type: 'thinking' }
+  | { type: 'roll'; call: ToolCallView }
+  | { type: 'tool'; call: ToolCallView }
+  | { type: 'turn-end'; costUsd: number | null }
+  | { type: 'notice'; message: string; level: 'info' | 'error' }
+  | { type: 'player'; text: string }
+
+export interface ToolCallView {
+  id: string
+  name: string
+  input: Record<string, unknown>
+  isError: boolean
+  /** The tool's own one-line summary. */
+  narration: string
+  /** Everything else the tool returned, for the card to render. */
+  data: Record<string, unknown> | null
+}
+
+export type ClientMessage =
+  | { type: 'say'; text: string }
+  | { type: 'refresh' }
