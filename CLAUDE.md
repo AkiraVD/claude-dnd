@@ -26,7 +26,7 @@ engine, not the prompt.
 |---|---|
 | `@dnd/engine` | The rules. Pure, seeded, zero I/O. Every function returns new state plus `GameEvent[]` |
 | `@dnd/content` | SRD 5.1 data: abilities, skills, conditions, damage types, 12 classes, slot tables |
-| `@dnd/mcp` | The engine as 44 MCP tools, campaigns in SQLite |
+| `@dnd/mcp` | The engine as 61 MCP tools, campaigns in SQLite |
 | `@dnd/server` | Runs `claude` as a child process, bridges stream-json to a WebSocket |
 | `@dnd/web` | React console and panels |
 
@@ -39,7 +39,7 @@ Data flow: browser ⇄ WebSocket ⇄ `@dnd/server` ⇄ stdin/stdout ⇄ `claude`
 npm run play        # build the UI and serve at localhost:5173
 npm run server      # serve without rebuilding
 npm run dev:web     # Vite dev server for UI work, alongside npm run server
-npm test            # 339 tests
+npm test            # 465 tests
 npm run typecheck   # strict TS across every package
 ```
 
@@ -56,6 +56,9 @@ npm run typecheck   # strict TS across every package
   faces you hand it, so tests assert exact outcomes instead of hunting for a seed. It throws
   if a value is out of range, so a rule that starts drawing a different number of dice fails
   loudly.
+- **Secrets are stripped at the server, not in React.** `packages/server/src/table.ts` is
+  the only spoiler boundary: an unrevealed profile note or story beat is never serialised,
+  so no rendering bug can leak one. `table.test.ts` asserts the negatives.
 - **Engine functions are pure and return events.** Mutating tools call `store.put(...)` then
   `store.commit(label, events)`. Forgetting `commit` loses the change on restart —
   `persistence.test.ts` enumerates every mutating tool and fails if one does not write

@@ -2,10 +2,12 @@ import {
   RulesError,
   SeededRng,
   randomSeed,
+  restoreCreature,
   type CombatState,
   type Creature,
   type CreatureId,
   type GameEvent,
+  type Story,
 } from '@dnd/engine'
 import type { CampaignDb, CampaignRow, CampaignSnapshot, StepRow } from './db.js'
 
@@ -35,6 +37,7 @@ export class GameStore {
   #creatures = new Map<CreatureId, Creature>()
   #combat: CombatState | null = null
   #scene = DEFAULT_SCENE
+  #story: Story | null = null
 
   private constructor(db: CampaignDb, campaign: CampaignRow) {
     this.#db = db
@@ -80,6 +83,7 @@ export class GameStore {
     this.#creatures = new Map()
     this.#combat = null
     this.#scene = DEFAULT_SCENE
+    this.#story = null
     return this.campaign
   }
 
@@ -128,6 +132,7 @@ export class GameStore {
     this.#creatures = new Map()
     this.#combat = null
     this.#scene = DEFAULT_SCENE
+    this.#story = null
     this.#rng = new SeededRng(randomSeed())
     this.commit('reset_campaign')
   }
@@ -148,6 +153,7 @@ export class GameStore {
       scene: this.#scene,
       creatures: this.all(),
       combat: this.#combat,
+      story: this.#story,
     }
   }
 
@@ -163,12 +169,18 @@ export class GameStore {
       this.#creatures = new Map()
       this.#combat = null
       this.#scene = DEFAULT_SCENE
+      this.#story = null
       return
     }
     this.#rng = SeededRng.fromState(snapshot.rngState)
     this.#scene = snapshot.scene
     this.#combat = snapshot.combat
-    this.#creatures = new Map(snapshot.creatures.map((creature) => [creature.id, creature]))
+    this.#story = snapshot.story ?? null
+    // Through restoreCreature, because a campaign saved before purses and
+    // profiles existed is missing those fields entirely.
+    this.#creatures = new Map(
+      snapshot.creatures.map((creature) => [creature.id, restoreCreature(creature)]),
+    )
   }
 
   // ── live state ───────────────────────────────────────────────────────────────
@@ -184,6 +196,24 @@ export class GameStore {
 
   setScene(scene: string): void {
     this.#scene = scene
+  }
+
+  get story(): Story | null {
+    return this.#story
+  }
+
+  setStory(story: Story | null): void {
+    this.#story = story
+  }
+
+  requireStory(): Story {
+    if (this.#story === null) {
+      throw new RulesError(
+        'this campaign has no backbone yet — call set_story before playing, so the ' +
+          'story survives a /clear',
+      )
+    }
+    return this.#story
   }
 
   get combat(): CombatState | null {

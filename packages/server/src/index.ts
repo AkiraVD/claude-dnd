@@ -4,12 +4,20 @@ import { extname, join, normalize, resolve } from 'node:path'
 import { CampaignDb } from '@dnd/mcp/db.js'
 import { WebSocketServer, type WebSocket } from 'ws'
 import { ClaudeSession, type SessionEvent } from './claude-session.js'
+import { readTable as readTableFrom } from './table.js'
 import type { ClientMessage, ServerMessage, TableState, ToolCallView } from './protocol.js'
 
 const ROOT = resolve(process.env['DND_ROOT'] ?? process.cwd())
 const DB_PATH = process.env['DND_DB'] ?? join(ROOT, 'campaign.db')
 const WEB_DIST = join(ROOT, 'packages/web/dist')
 const PORT = Number(process.env['PORT'] ?? 5173)
+/**
+ * Loopback by default. A page on this server can send arbitrary prompts to a
+ * `claude` child process running under your subscription, so it should not be
+ * reachable just because someone is on the same wifi. Put a tunnel or reverse
+ * proxy in front of it to share the table, or set HOST=0.0.0.0 deliberately.
+ */
+const HOST = process.env['HOST'] ?? '127.0.0.1'
 
 /**
  * The MCP server runs as a child of `claude`, not of this process, and persists
@@ -18,33 +26,6 @@ const PORT = Number(process.env['PORT'] ?? 5173)
  * live updates arrive from the claude stream.
  */
 const db = new CampaignDb(DB_PATH)
-
-function readTable(): TableState {
-  const campaign = db.mostRecentCampaign()
-  if (!campaign) {
-    return {
-      campaign: { id: 0, name: 'No campaign yet', steps: 0, seed: 0, lastPlayed: '' },
-      scene: 'No campaign yet. Say hello to begin.',
-      creatures: [],
-      combat: null,
-      events: [],
-    }
-  }
-  const snapshot = db.latestSnapshot(campaign.id)
-  return {
-    campaign: {
-      id: campaign.id,
-      name: campaign.name,
-      steps: campaign.steps,
-      seed: campaign.seed,
-      lastPlayed: campaign.updatedAt,
-    },
-    scene: snapshot?.scene ?? 'No scene set yet.',
-    creatures: snapshot?.creatures ?? [],
-    combat: snapshot?.combat ?? null,
-    events: db.recentEvents(campaign.id, 60),
-  }
-}
 
 // ── the DM process ─────────────────────────────────────────────────────────────
 
@@ -85,7 +66,7 @@ const ROLL_TOOLS = new Set([
 
 /** Tools after which the panels are stale and should be re-read. */
 const STATE_TOOLS =
-  /^(add_creature|remove_creature|apply_|heal|attack_roll|death_save|stabilise|kill|set_|remove_condition|start_c|next_turn|end_combat|remove_from_combat|cast_spell|spend_|short_rest|long_rest|award_xp|level_up|add_resource|concentration_save|undo|reset_campaign|new_campaign|load_campaign|rename_campaign)/
+  /^(add_creature|remove_creature|apply_|heal|attack_roll|death_save|stabilise|kill|set_|remove_condition|start_c|next_turn|end_combat|remove_from_combat|cast_spell|spend_|short_rest|long_rest|award_xp|level_up|add_resource|concentration_save|undo|reset_campaign|new_campaign|load_campaign|rename_campaign|earn_money|spend_money|give_item|take_item|buy|sell|update_npc|add_note|reveal_note|amend_story|beat)/
 
 session.on('event', (event: SessionEvent) => {
   switch (event.type) {
@@ -139,13 +120,13 @@ session.on('event', (event: SessionEvent) => {
       }
 
       broadcast({ type: ROLL_TOOLS.has(call.name) || event.isError ? 'roll' : 'tool', call: view })
-      if (STATE_TOOLS.test(call.name)) broadcast({ type: 'state', state: readTable() })
+      if (STATE_TOOLS.test(call.name)) broadcast({ type: 'state', state: readTableFrom(db) })
       return
     }
 
     case 'turn-end':
       broadcast({ type: 'turn-end', costUsd: event.costUsd })
-      broadcast({ type: 'state', state: readTable() })
+      broadcast({ type: 'state', state: readTableFrom(db) })
       return
 
     case 'notice':
@@ -182,7 +163,7 @@ function serveStatic(request: IncomingMessage, response: ServerResponse): void {
 
   if (url.pathname === '/api/state') {
     response.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
-    response.end(JSON.stringify(readTable()))
+    response.end(JSON.stringify(readTableFrom(db)))
     return
   }
 
@@ -215,7 +196,7 @@ wss.on('connection', (socket) => {
     type: 'hello',
     model,
     sessionId: session.sessionId,
-    state: readTable(),
+    state: readTableFrom(db),
   }
   socket.send(JSON.stringify(hello))
 
@@ -232,16 +213,16 @@ wss.on('connection', (socket) => {
       broadcast({ type: 'player', text: message.text })
       session.send(message.text)
     } else if (message.type === 'refresh') {
-      socket.send(JSON.stringify({ type: 'state', state: readTable() } satisfies ServerMessage))
+      socket.send(JSON.stringify({ type: 'state', state: readTableFrom(db) } satisfies ServerMessage))
     }
   })
 
   socket.on('close', () => clients.delete(socket))
 })
 
-http.listen(PORT, () => {
+http.listen(PORT, HOST, () => {
   console.log(`\n  dnd table ready\n`)
-  console.log(`  play at      http://localhost:${PORT}`)
+  console.log(`  play at      http://${HOST}:${PORT}`)
   console.log(`  campaigns    ${DB_PATH}`)
   console.log(`  project root ${ROOT}`)
   if (!existsSync(WEB_DIST)) {

@@ -211,6 +211,19 @@ describe('every mutating tool writes through', () => {
     ['next_turn', {}],
     ['remove_from_combat', { id: 'ogre' }],
     ['end_combat', {}],
+    ['earn_money', { id: 'brann', amount: '10 gp' }],
+    ['spend_money', { id: 'brann', amount: '2 sp' }],
+    ['give_item', { id: 'brann', name: 'Rope, 50 ft' }],
+    ['take_item', { id: 'brann', name: 'Rope, 50 ft' }],
+    ['give_item', { id: 'ogre', name: 'Torch', qty: 5, price: '1 cp' }],
+    ['buy', { buyer_id: 'brann', vendor_id: 'ogre', lines: [{ name: 'Torch', qty: 2 }] }],
+    ['sell', { seller_id: 'brann', vendor_id: 'ogre', lines: [{ name: 'Torch', unit_price: '1 cp' }] }],
+    ['update_npc', { id: 'ogre', race: 'ogre', attitude: 'hostile', presence: 'present' }],
+    ['add_note', { id: 'ogre', note: 'Keeps a locket it cannot open.' }],
+    ['reveal_note', { id: 'ogre', match: 'locket' }],
+    ['set_story', { premise: 'The tithe is late.', question: 'Who took it?', beats: ['The ledger is wrong.'] }],
+    ['amend_story', { truth: 'The reeve took it.' }],
+    ['beat', { match: 'ledger', op: 'reached' }],
   ]
 
   it('persists each one', async () => {
@@ -238,6 +251,9 @@ describe('every mutating tool writes through', () => {
     await play.call('get_combat_state')
     await play.call('recent_events')
     await play.call('recap')
+    await play.call('get_purse', { id: 'brann' })
+    await play.call('get_cast')
+    await play.call('offer_choice', { prompt: 'Which way?', options: ['left', 'right'] })
     const after = (await play.call('list_campaigns')).data!.campaigns[0].steps
 
     expect(after).toBe(before)

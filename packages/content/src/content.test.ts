@@ -3,6 +3,7 @@ import { ABILITIES, ABILITY_NAMES, isAbility } from './abilities.js'
 import { CONDITION_LIST, isCondition } from './conditions.js'
 import { DAMAGE_TYPES, isDamageType } from './damage-types.js'
 import { MAX_LEVEL, XP_THRESHOLDS, levelForXp, xpToNextLevel } from './progression.js'
+import { RACES, RACE_LIST, isRace, raceLabel } from './races.js'
 import { SKILLS, SKILL_LIST, isSkill } from './skills.js'
 
 describe('taxonomies are complete', () => {
@@ -63,5 +64,28 @@ describe('progression', () => {
 
   it('rejects negative xp', () => {
     expect(() => levelForXp(-1)).toThrow(/non-negative/)
+  })
+})
+
+describe('races', () => {
+  it('lists the nine SRD races', () => {
+    expect(RACE_LIST).toHaveLength(9)
+    expect(RACE_LIST).toContain('half-orc')
+  })
+
+  it('recognises a race whatever the casing', () => {
+    expect(isRace('Tiefling')).toBe(true)
+    expect(isRace('Ent')).toBe(false)
+  })
+
+  it('titles a hyphenated name for display', () => {
+    expect(raceLabel('half-elf')).toBe('Half-Elf')
+    expect(raceLabel('dwarf')).toBe('Dwarf')
+  })
+
+  it('gives every race a description for the picker', () => {
+    for (const race of RACE_LIST) {
+      expect(RACES[race].length).toBeGreaterThan(10)
+    }
   })
 })

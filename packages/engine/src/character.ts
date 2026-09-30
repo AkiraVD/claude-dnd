@@ -17,6 +17,7 @@ import {
   spellSlotResources,
   type Resource,
 } from './resources.js'
+import { parseCoin, type Item } from './wealth.js'
 
 export type CreatureId = string
 
@@ -58,6 +59,63 @@ export interface DeathState {
 
 export interface Concentration {
   spell: string
+}
+
+/** 5e's social scale. It moves, which is why the engine holds it and not the DM. */
+export type Attitude = 'hostile' | 'unfriendly' | 'indifferent' | 'friendly' | 'helpful'
+
+/** Whether they are in the scene. The cast persists either way. */
+export type Presence = 'present' | 'offscreen'
+
+/**
+ * One thing that is true about someone.
+ *
+ * `revealed` is the only thing standing between the DM's notes and the player's
+ * screen, so it is a field on the record rather than a convention. The server
+ * strips unrevealed notes before the browser ever sees the state; a bug in the
+ * UI cannot leak what was never sent.
+ */
+export interface ProfileNote {
+  readonly text: string
+  readonly revealed: boolean
+}
+
+/**
+ * Who someone is, as opposed to what they can survive.
+ *
+ * None of this is computed with — the engine only refuses to lose it. Without
+ * it a barkeep is a different person every time they are on screen, and after a
+ * `/clear` they never existed. `want` and unrevealed notes are the DM's alone.
+ */
+export interface CreatureProfile {
+  readonly race: string | null
+  readonly pronouns: string | null
+  readonly role: string | null
+  readonly appearance: string | null
+  readonly manner: string | null
+  readonly location: string | null
+  readonly attitude: Attitude | null
+  /**
+   * A key character in the backbone, carrying more than an ordinary NPC.
+   * Never sent to the browser: telling the player who matters is a spoiler.
+   */
+  readonly principal: boolean
+  /** What they are after. DM-only. */
+  readonly want: string | null
+  readonly notes: readonly ProfileNote[]
+}
+
+export const EMPTY_PROFILE: CreatureProfile = {
+  race: null,
+  pronouns: null,
+  role: null,
+  appearance: null,
+  manner: null,
+  location: null,
+  attitude: null,
+  principal: false,
+  want: null,
+  notes: [],
 }
 
 /**
@@ -115,6 +173,12 @@ export interface Creature {
   readonly hitDie: number
   readonly className: ClassName | null
   readonly xp: number
+  /** Coin carried, in copper. See `wealth.ts` for why it is one integer. */
+  readonly purse: number
+  /** A ledger of what they carry. Priced entries are what they will sell. */
+  readonly items: readonly Item[]
+  readonly profile: CreatureProfile
+  readonly presence: Presence
   /**
    * Whether dropping to 0 HP kills outright.
    *
@@ -155,7 +219,24 @@ export interface CreatureInput {
   resources?: readonly Resource[]
   hitDie?: number
   xp?: number
+  /** Coin carried. Accepts "12 gp 4 sp" or a number of copper. */
+  purse?: string | number
+  items?: readonly Item[]
+  profile?: Partial<CreatureProfile>
+  presence?: Presence
 }
+
+/**
+ * The SRD commoner, so recording an innkeeper costs you a name and nothing else.
+ * Without this every named NPC needs six ability scores invented for it, and the
+ * DM stops writing them down.
+ */
+export const COMMONER = {
+  scores: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 } as AbilityScores,
+  maxHp: 4,
+  ac: 10,
+  speed: 30,
+} as const
 
 const unique = <T>(values: readonly T[]): readonly T[] => [...new Set(values)]
 
@@ -178,7 +259,12 @@ export function createCreature(input: CreatureInput): Creature {
     armour = null,
     className,
     xp = 0,
+    items = [],
+    presence = 'present',
   } = input
+
+  const purse = input.purse === undefined ? 0 : parseCoin(input.purse)
+  const profile: CreatureProfile = { ...EMPTY_PROFILE, ...(input.profile ?? {}) }
 
   const definition = className === undefined ? null : CLASSES[className]
   const hitDie = input.hitDie ?? definition?.hitDie ?? 8
@@ -274,7 +360,30 @@ export function createCreature(input: CreatureInput): Creature {
     hitDie,
     className: className ?? null,
     xp,
+    purse,
+    items: [...items],
+    profile,
+    presence,
     diesAtZero,
+  }
+}
+
+/**
+ * Fills in fields a snapshot predates.
+ *
+ * Campaigns are stored as JSON snapshots, so a save written before purses and
+ * profiles existed deserialises into a creature missing them, and the first
+ * `formatCoin(undefined)` takes the session down. Every load goes through here.
+ */
+export function restoreCreature(stored: Creature): Creature {
+  const profile = stored.profile as Partial<CreatureProfile> | undefined
+
+  return {
+    ...stored,
+    purse: stored.purse ?? 0,
+    items: stored.items ?? [],
+    presence: stored.presence ?? 'present',
+    profile: { ...EMPTY_PROFILE, ...(profile ?? {}), notes: profile?.notes ?? [] },
   }
 }
 

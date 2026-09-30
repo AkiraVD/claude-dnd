@@ -1,5 +1,5 @@
 import { DatabaseSync } from 'node:sqlite'
-import type { CombatState, Creature, GameEvent } from '@dnd/engine'
+import type { CombatState, Creature, GameEvent, Story } from '@dnd/engine'
 
 /**
  * How a campaign is stored, and why it is stored this way.
@@ -20,6 +20,8 @@ export interface CampaignSnapshot {
   scene: string
   creatures: Creature[]
   combat: CombatState | null
+  /** Absent in campaigns saved before the backbone existed. */
+  story?: Story | null
 }
 
 export interface CampaignRow {

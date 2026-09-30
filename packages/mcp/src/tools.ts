@@ -48,8 +48,30 @@ import {
   spellcasting,
   spendHitDie,
   spendResource,
+  COMMONER,
+  abandonBeat,
+  addBeat,
+  addNote,
+  amendStory,
+  beatsAhead,
+  buy,
+  createStory,
+  earn,
+  formatCoin,
+  giveItem,
+  reachBeat,
+  revealBeat,
+  revealNote,
+  sell,
+  setPresence,
+  spend,
+  stockFor,
+  takeItem,
+  updateProfile,
   type Advantage,
   type D20TestResult,
+  type Creature,
+  type GameEvent,
 } from '@dnd/engine'
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
@@ -65,6 +87,32 @@ const abilityEnum = z.enum(ABILITIES)
 const damageTypeEnum = z.enum(DAMAGE_TYPES)
 const advantageEnum = z.enum(['none', 'advantage', 'disadvantage'])
 const classEnum = z.enum(CLASS_LIST as [ClassName, ...ClassName[]])
+const attitudeEnum = z.enum(['hostile', 'unfriendly', 'indifferent', 'friendly', 'helpful'])
+
+/** Coin and goods, with the copper total spelled out so nobody has to divide. */
+function purseView(creature: Creature) {
+  return {
+    purse: formatCoin(creature.purse),
+    purseCopper: creature.purse,
+    items: creature.items.map((item) => ({
+      name: item.name,
+      qty: item.qty,
+      ...(item.notes === undefined ? {} : { notes: item.notes }),
+      ...(item.price === undefined ? {} : { price: formatCoin(item.price), forSale: true }),
+    })),
+  }
+}
+
+/** The whole profile, hidden notes included. Only the DM ever calls this. */
+function profileView(creature: Creature) {
+  const { notes, ...rest } = creature.profile
+  return {
+    ...rest,
+    presence: creature.presence,
+    known: notes.filter((note) => note.revealed).map((note) => note.text),
+    hidden: notes.filter((note) => !note.revealed).map((note) => note.text),
+  }
+}
 
 function ok(narration: string, data: Record<string, unknown> = {}): CallToolResult {
   return {
@@ -160,21 +208,23 @@ export function registerTools(server: McpServer, store: GameStore): void {
       title: 'Add a creature',
       description:
         'Put a player character, NPC, or monster into the scene. Ability scores are the raw ' +
-        '1-30 values; modifiers, saves, and skill bonuses are derived from them.',
+        '1-30 values; modifiers, saves, and skill bonuses are derived from them. Leave the ' +
+        'scores, HP and AC out for a non-combatant and they get the SRD commoner block \u2014 ' +
+        'record the innkeeper, it costs you a name.',
       inputSchema: {
         id: z.string().describe('Short stable id, e.g. "brann" or "goblin-a"'),
         name: z.string(),
         kind: z.enum(['pc', 'npc']).optional().describe('Defaults to npc'),
         level: z.number().int().min(1).max(20).optional().describe('Defaults to 1'),
-        str: z.number().int().min(1).max(30),
-        dex: z.number().int().min(1).max(30),
-        con: z.number().int().min(1).max(30),
-        int: z.number().int().min(1).max(30),
-        wis: z.number().int().min(1).max(30),
-        cha: z.number().int().min(1).max(30),
-        max_hp: z.number().int().min(1),
+        str: z.number().int().min(1).max(30).optional(),
+        dex: z.number().int().min(1).max(30).optional(),
+        con: z.number().int().min(1).max(30).optional(),
+        int: z.number().int().min(1).max(30).optional(),
+        wis: z.number().int().min(1).max(30).optional(),
+        cha: z.number().int().min(1).max(30).optional(),
+        max_hp: z.number().int().min(1).optional(),
         hp: z.number().int().min(0).optional().describe('Current HP; defaults to max'),
-        ac: z.number().int().min(0),
+        ac: z.number().int().min(0).optional(),
         speed: z.number().int().min(0).optional().describe('Defaults to 30'),
         save_proficiencies: z.array(abilityEnum).optional(),
         skill_proficiencies: z.array(skillEnum).optional(),
@@ -189,6 +239,12 @@ export function registerTools(server: McpServer, store: GameStore): void {
               'Anything you pass explicitly wins over the class default.',
           ),
         xp: z.number().int().min(0).optional(),
+        purse: z.string().optional().describe('Coin carried, e.g. "8 gp 4 sp"'),
+        race: z.string().optional(),
+        pronouns: z.string().optional(),
+        role: z.string().optional().describe('e.g. "quartermaster"'),
+        attitude: attitudeEnum.optional(),
+
         armour: z
           .object({
             name: z.string(),
@@ -239,17 +295,19 @@ export function registerTools(server: McpServer, store: GameStore): void {
           name: args.name,
           ...(args.kind === undefined ? {} : { kind: args.kind }),
           ...(args.level === undefined ? {} : { level: args.level }),
+          // Anything left out falls back to the SRD commoner, so writing down an
+          // innkeeper costs a name rather than six invented ability scores.
           scores: {
-            str: args.str,
-            dex: args.dex,
-            con: args.con,
-            int: args.int,
-            wis: args.wis,
-            cha: args.cha,
+            str: args.str ?? COMMONER.scores.str,
+            dex: args.dex ?? COMMONER.scores.dex,
+            con: args.con ?? COMMONER.scores.con,
+            int: args.int ?? COMMONER.scores.int,
+            wis: args.wis ?? COMMONER.scores.wis,
+            cha: args.cha ?? COMMONER.scores.cha,
           },
-          maxHp: args.max_hp,
+          maxHp: args.max_hp ?? COMMONER.maxHp,
           ...(args.hp === undefined ? {} : { hp: args.hp }),
-          ac: args.ac,
+          ac: args.ac ?? COMMONER.ac,
           ...(args.speed === undefined ? {} : { speed: args.speed }),
           proficiencies: {
             saves: args.save_proficiencies ?? [],
@@ -264,6 +322,13 @@ export function registerTools(server: McpServer, store: GameStore): void {
           ...(args.dies_at_zero === undefined ? {} : { diesAtZero: args.dies_at_zero }),
           ...(args.class_name === undefined ? {} : { className: args.class_name }),
           ...(args.xp === undefined ? {} : { xp: args.xp }),
+          ...(args.purse === undefined ? {} : { purse: args.purse }),
+          profile: {
+            ...(args.race === undefined ? {} : { race: args.race }),
+            ...(args.pronouns === undefined ? {} : { pronouns: args.pronouns }),
+            ...(args.role === undefined ? {} : { role: args.role }),
+            ...(args.attitude === undefined ? {} : { attitude: args.attitude }),
+          },
           ...(args.armour === undefined
             ? {}
             : {
@@ -1104,6 +1169,17 @@ export function registerCampaignTools(server: McpServer, store: GameStore): void
           `"${campaign.name}" — ${campaign.steps} step(s), last played ${campaign.updatedAt}`,
           {
             campaign: { id: campaign.id, name: campaign.name },
+            // The backbone and the full cast, hidden notes included. This is the
+            // whole point of recap: after a /clear it is the only thing that
+            // stops the story becoming a different story.
+            story: store.story,
+            ahead: store.story === null ? [] : beatsAhead(store.story),
+            cast: store.all().map((creature) => ({
+              id: creature.id,
+              name: creature.name,
+              kind: creature.kind,
+              ...profileView(creature),
+            })),
             ...stateSummary(store),
             events: store.recentEvents(limit ?? 30),
           },
@@ -1492,6 +1568,547 @@ export function registerProgressionTools(server: McpServer, store: GameStore): v
         store.commit('kill', outcome.events)
         return ok(`${outcome.creature.name} dies: ${reason}`, {
           creature: brief(outcome.creature),
+        })
+      }),
+  )
+
+  // ── coin and goods ───────────────────────────────────────────────────────────
+
+  server.registerTool(
+    'get_purse',
+    {
+      title: 'Read a purse and pack',
+      description:
+        'What someone is carrying: coin, and every item in their pack with the price on ' +
+        'anything they will sell. Read this instead of recalling a total from earlier in the ' +
+        'conversation — money is the first thing a session loses track of.',
+      inputSchema: { id: z.string() },
+    },
+    ({ id }) =>
+      guard(() => {
+        const creature = store.creature(id)
+        return ok(
+          `${creature.name} is carrying ${formatCoin(creature.purse)}`,
+          purseView(creature),
+        )
+      }),
+  )
+
+  server.registerTool(
+    'earn_money',
+    {
+      title: 'Give coin',
+      description:
+        'Add coin to a purse: payment, a reward, loot counted out. Amounts read as "12 gp 4 sp", ' +
+        '"5 gold", or a plain number of copper.',
+      inputSchema: {
+        id: z.string(),
+        amount: z.string().describe('e.g. "12 gp 4 sp" or "250" (copper)'),
+        reason: z.string().optional().describe('Recorded in the log'),
+      },
+    },
+    ({ id, amount, reason }) =>
+      guard(() => {
+        const outcome = earn(store.creature(id), amount, reason)
+        store.put(outcome.creature)
+        store.commit('earn_money', outcome.events)
+        return ok(
+          `${outcome.creature.name} gains ${formatCoin(outcome.delta)} — now ${formatCoin(outcome.balance)}`,
+          purseView(outcome.creature),
+        )
+      }),
+  )
+
+  server.registerTool(
+    'spend_money',
+    {
+      title: 'Take coin',
+      description:
+        'Remove coin from a purse: a bribe, a toll, a night at the inn. Refuses if the purse ' +
+        'is short, which is the point — do not narrate a payment this rejects.',
+      inputSchema: {
+        id: z.string(),
+        amount: z.string(),
+        reason: z.string().optional(),
+      },
+    },
+    ({ id, amount, reason }) =>
+      guard(() => {
+        const outcome = spend(store.creature(id), amount, reason)
+        store.put(outcome.creature)
+        store.commit('spend_money', outcome.events)
+        return ok(
+          `${outcome.creature.name} pays ${formatCoin(-outcome.delta)} — ${formatCoin(outcome.balance)} left`,
+          purseView(outcome.creature),
+        )
+      }),
+  )
+
+  server.registerTool(
+    'give_item',
+    {
+      title: 'Put something in a pack',
+      description:
+        'Add an item to someone’s inventory, stacking onto a matching name. Setting a price ' +
+        'marks it as stock the holder will sell, which is how a vendor’s shelf is built. ' +
+        'Inventory is a ledger, not equipment: this does not create an attack.',
+      inputSchema: {
+        id: z.string(),
+        name: z.string(),
+        qty: z.number().int().min(1).optional().describe('Defaults to 1'),
+        notes: z.string().optional(),
+        price: z.string().optional().describe('What they sell it for, e.g. "1 gp". Omit if not for sale.'),
+      },
+    },
+    ({ id, name, qty, notes, price }) =>
+      guard(() => {
+        const outcome = giveItem(store.creature(id), {
+          name,
+          ...(qty === undefined ? {} : { qty }),
+          ...(notes === undefined ? {} : { notes }),
+          ...(price === undefined ? {} : { price }),
+        })
+        store.put(outcome.creature)
+        store.commit('give_item', outcome.events)
+        return ok(
+          `${outcome.creature.name} now has ${outcome.item.qty} × ${outcome.item.name}`,
+          purseView(outcome.creature),
+        )
+      }),
+  )
+
+  server.registerTool(
+    'take_item',
+    {
+      title: 'Take something out of a pack',
+      description:
+        'Remove an item: used up, stolen, given away, broken. Refuses if they are not carrying ' +
+        'it or do not have that many.',
+      inputSchema: {
+        id: z.string(),
+        name: z.string(),
+        qty: z.number().int().min(1).optional().describe('Defaults to 1'),
+      },
+    },
+    ({ id, name, qty }) =>
+      guard(() => {
+        const outcome = takeItem(store.creature(id), name, qty ?? 1)
+        store.put(outcome.creature)
+        store.commit('take_item', outcome.events)
+        return ok(`${outcome.creature.name}: ${name} removed`, purseView(outcome.creature))
+      }),
+  )
+
+  server.registerTool(
+    'buy',
+    {
+      title: 'Buy from a vendor',
+      description:
+        'Move a whole basket at once: goods one way, coin the other. Checked before anything ' +
+        'moves, so a purchase can never half-happen. Omit unit_price to use what the vendor has ' +
+        'listed; pass it to record a haggled price. Omit vendor_id for an untracked shopkeeper.',
+      inputSchema: {
+        buyer_id: z.string(),
+        vendor_id: z.string().optional(),
+        lines: z
+          .array(
+            z.object({
+              name: z.string(),
+              qty: z.number().int().min(1).optional(),
+              unit_price: z.string().optional().describe('Per unit, e.g. "1 gp"'),
+            }),
+          )
+          .min(1),
+      },
+    },
+    ({ buyer_id, vendor_id, lines }) =>
+      guard(() => {
+        const vendor = vendor_id === undefined ? null : store.creature(vendor_id)
+        const outcome = buy(
+          store.creature(buyer_id),
+          vendor,
+          lines.map((line) => ({
+            name: line.name,
+            ...(line.qty === undefined ? {} : { qty: line.qty }),
+            ...(line.unit_price === undefined ? {} : { unitPrice: line.unit_price }),
+          })),
+        )
+        store.put(outcome.buyer)
+        if (outcome.vendor !== null) store.put(outcome.vendor)
+        store.commit('buy', outcome.events)
+        return ok(
+          `${outcome.buyer.name} pays ${formatCoin(outcome.total)}, ${formatCoin(outcome.buyer.purse)} left`,
+          purseView(outcome.buyer),
+        )
+      }),
+  )
+
+  server.registerTool(
+    'sell',
+    {
+      title: 'Sell to a vendor',
+      description:
+        'The same counter from the other side: goods out of the pack, coin in. unit_price is ' +
+        'what the vendor pays, not what they would charge. Refuses if the vendor cannot cover it.',
+      inputSchema: {
+        seller_id: z.string(),
+        vendor_id: z.string().optional(),
+        lines: z
+          .array(
+            z.object({
+              name: z.string(),
+              qty: z.number().int().min(1).optional(),
+              unit_price: z.string().describe('What the vendor pays, per unit'),
+            }),
+          )
+          .min(1),
+      },
+    },
+    ({ seller_id, vendor_id, lines }) =>
+      guard(() => {
+        const vendor = vendor_id === undefined ? null : store.creature(vendor_id)
+        const outcome = sell(
+          store.creature(seller_id),
+          vendor,
+          lines.map((line) => ({
+            name: line.name,
+            ...(line.qty === undefined ? {} : { qty: line.qty }),
+            unitPrice: line.unit_price,
+          })),
+        )
+        store.put(outcome.buyer)
+        if (outcome.vendor !== null) store.put(outcome.vendor)
+        store.commit('sell', outcome.events)
+        return ok(
+          `${outcome.buyer.name} takes ${formatCoin(outcome.total)} — now ${formatCoin(outcome.buyer.purse)}`,
+          purseView(outcome.buyer),
+        )
+      }),
+  )
+
+  // ── who people are ───────────────────────────────────────────────────────────
+
+  server.registerTool(
+    'update_npc',
+    {
+      title: 'Record who someone is',
+      description:
+        'Write down race, manner, attitude and the rest, so they are the same person next time ' +
+        'and still exist after a /clear. Everything is optional and nothing is wiped by leaving ' +
+        'it out. `want` is yours alone and never reaches the player.',
+      inputSchema: {
+        id: z.string(),
+        race: z.string().optional(),
+        pronouns: z.string().optional(),
+        role: z.string().optional().describe('e.g. "quartermaster", "priest of the Hollow"'),
+        appearance: z.string().optional(),
+        manner: z.string().optional().describe('How they talk and carry themselves'),
+        location: z.string().optional().describe('Where they are usually found'),
+        attitude: attitudeEnum.optional().describe('Toward the party. Changes with events.'),
+        principal: z
+          .boolean()
+          .optional()
+          .describe(
+            'A key character in the backbone. Never shown to the player: telling them who ' +
+              'matters is a spoiler.',
+          ),
+        want: z.string().optional().describe('What they are after. DM-only, always.'),
+        presence: z
+          .enum(['present', 'offscreen'])
+          .optional()
+          .describe('Whether they are in the scene. The cast persists either way.'),
+      },
+    },
+    (input) =>
+      guard(() => {
+        const { id, presence, ...fields } = input
+        const patch = Object.fromEntries(
+          Object.entries(fields).filter(([, value]) => value !== undefined),
+        )
+
+        let outcome = updateProfile(store.creature(id), patch)
+        const events = [...outcome.events]
+
+        if (presence !== undefined) {
+          const moved = setPresence(outcome.creature, presence)
+          outcome = moved
+          events.push(...moved.events)
+        }
+
+        store.put(outcome.creature)
+        store.commit('update_npc', events)
+        return ok(`${outcome.creature.name} recorded`, { profile: profileView(outcome.creature) })
+      }),
+  )
+
+  server.registerTool(
+    'add_note',
+    {
+      title: 'Write something down about someone',
+      description:
+        'One true thing about an NPC: what they know, what they are hiding, what they let slip. ' +
+        'Hidden by default. A hidden note is never sent to the browser at all, so write freely ' +
+        'and reveal it with reveal_note when it comes out in play.',
+      inputSchema: {
+        id: z.string(),
+        note: z.string(),
+        revealed: z
+          .boolean()
+          .optional()
+          .describe('True only if the player already knows it. Defaults to false.'),
+      },
+    },
+    ({ id, note, revealed }) =>
+      guard(() => {
+        const outcome = addNote(store.creature(id), note, revealed ?? false)
+        store.put(outcome.creature)
+        store.commit('add_note', outcome.events)
+        return ok(
+          `Noted on ${outcome.creature.name}${revealed === true ? '' : ' (hidden)'}`,
+          { profile: profileView(outcome.creature) },
+        )
+      }),
+  )
+
+  server.registerTool(
+    'reveal_note',
+    {
+      title: 'The player has learned this',
+      description:
+        'Mark a hidden note as known, once it has actually come out in play. Call this in the ' +
+        'same turn you narrate it — the player’s character panel is built from these, and if ' +
+        'you forget, their journal silently stops growing. Match on any distinctive part of the ' +
+        'text; an ambiguous match is refused rather than guessed.',
+      inputSchema: {
+        id: z.string(),
+        match: z.string().describe('Any distinctive phrase from the note'),
+      },
+    },
+    ({ id, match }) =>
+      guard(() => {
+        const outcome = revealNote(store.creature(id), match)
+        store.put(outcome.creature)
+        store.commit('reveal_note', outcome.events)
+        return ok(`Revealed on ${outcome.creature.name}`, {
+          profile: profileView(outcome.creature),
+        })
+      }),
+  )
+
+  server.registerTool(
+    'get_cast',
+    {
+      title: 'Everyone this campaign remembers',
+      description:
+        'The full cast with everything recorded about them, hidden notes included. Read this ' +
+        'before speaking as anyone you have met before, and always at the start of a session.',
+      inputSchema: {},
+    },
+    () =>
+      guard(() =>
+        ok(`${store.all().length} in the cast`, {
+          cast: store.all().map((creature) => ({
+            id: creature.id,
+            name: creature.name,
+            kind: creature.kind,
+            ...profileView(creature),
+          })),
+        }),
+      ),
+  )
+
+  // ── the backbone ─────────────────────────────────────────────────────────────
+
+  server.registerTool(
+    'set_story',
+    {
+      title: 'Write the campaign backbone',
+      description:
+        'Before the first scene: the premise, the question under it, what is actually going on, ' +
+        'and the beats that happen if nothing disturbs them. This is what stops the story ' +
+        'wandering after a /clear — recap reads it back every session. Beats are not a rail: ' +
+        'when the player goes elsewhere, abandon_beat and rewrite the rest.',
+      inputSchema: {
+        premise: z.string().describe('A sentence or two the player knows from the first scene'),
+        question: z.string().describe('The question the campaign is asking'),
+        truth: z.string().optional().describe('What is actually going on. Yours alone, always.'),
+        beats: z
+          .array(z.string())
+          .optional()
+          .describe('What happens if nothing disturbs it, in rough order. Hidden by default.'),
+      },
+    },
+    ({ premise, question, truth, beats }) =>
+      guard(() => {
+        const outcome = createStory({
+          premise,
+          question,
+          ...(truth === undefined ? {} : { truth }),
+          ...(beats === undefined ? {} : { beats }),
+        })
+        store.setStory(outcome.story)
+        store.commit('set_story', outcome.events)
+        return ok('Backbone written', { story: outcome.story })
+      }),
+  )
+
+  server.registerTool(
+    'get_story',
+    {
+      title: 'Read the backbone',
+      description:
+        'The whole backbone including the truth and every unrevealed beat. Read it whenever you ' +
+        'are deciding where the scene goes, and before dropping a hint.',
+      inputSchema: {},
+    },
+    () =>
+      guard(() => {
+        const story = store.requireStory()
+        return ok(story.premise, { story, ahead: beatsAhead(story) })
+      }),
+  )
+
+  server.registerTool(
+    'amend_story',
+    {
+      title: 'Rewrite part of the backbone',
+      description:
+        'The story moved. Change the premise, the question, or the truth, or add a beat the ' +
+        'campaign grew. Expected to happen often — the beats were a guess about a story the ' +
+        'player had not walked through yet.',
+      inputSchema: {
+        premise: z.string().optional(),
+        question: z.string().optional(),
+        truth: z.string().optional(),
+        add_beat: z.string().optional(),
+      },
+    },
+    ({ premise, question, truth, add_beat }) =>
+      guard(() => {
+        let story = store.requireStory()
+        const events: GameEvent[] = []
+
+        const patch = {
+          ...(premise === undefined ? {} : { premise }),
+          ...(question === undefined ? {} : { question }),
+          ...(truth === undefined ? {} : { truth }),
+        }
+        if (Object.keys(patch).length > 0) {
+          const outcome = amendStory(story, patch)
+          story = outcome.story
+          events.push(...outcome.events)
+        }
+        if (add_beat !== undefined) {
+          const outcome = addBeat(story, add_beat)
+          story = outcome.story
+          events.push(...outcome.events)
+        }
+
+        store.setStory(story)
+        store.commit('amend_story', events)
+        return ok('Backbone amended', { story })
+      }),
+  )
+
+  server.registerTool(
+    'beat',
+    {
+      title: 'Move a beat',
+      description:
+        'reached: it happened, and the player was there, so it becomes part of their journal. ' +
+        'revealed: they have learned it is coming without reaching it. abandoned: they went ' +
+        'somewhere else and it never will — kept rather than deleted, so you can see what the ' +
+        'story was going to be while you rewrite the rest.',
+      inputSchema: {
+        match: z.string().describe('Any distinctive phrase from the beat'),
+        op: z.enum(['reached', 'revealed', 'abandoned']),
+      },
+    },
+    ({ match, op }) =>
+      guard(() => {
+        const story = store.requireStory()
+        const outcome =
+          op === 'reached'
+            ? reachBeat(story, match)
+            : op === 'revealed'
+              ? revealBeat(story, match)
+              : abandonBeat(story, match)
+
+        store.setStory(outcome.story)
+        store.commit('beat', outcome.events)
+        return ok(`Beat ${op}`, { story: outcome.story, ahead: beatsAhead(outcome.story) })
+      }),
+  )
+
+  // ── asking the browser ───────────────────────────────────────────────────────
+
+  server.registerTool(
+    'offer_choice',
+    {
+      title: 'Offer the player some options',
+      description:
+        'Puts a row of options above the composer in the browser. The player can click one or ' +
+        'ignore it and type anything else, so this is a shortcut and never a cage — offer ' +
+        'obvious options only, and keep narrating as if they might do something else entirely. ' +
+        'Do not use it for every fork; use it where the options are genuinely discrete.',
+      inputSchema: {
+        prompt: z.string().describe('The question, one short line'),
+        options: z.array(z.string()).min(2).max(6).describe('What they might do, in their words'),
+      },
+    },
+    ({ prompt, options }) => ok(prompt, { choice: { prompt, options } }),
+  )
+
+  server.registerTool(
+    'open_shop',
+    {
+      title: 'Open a shop, tavern or trade',
+      description:
+        'Shows the vendor’s stock in the browser with the player’s purse beside it. Stock is ' +
+        'the vendor’s own inventory — add it with give_item and a price, and it stays sold ' +
+        'when they buy it. The player picks, and their choice comes back as an ordinary message ' +
+        'for you to put through buy or sell.',
+      inputSchema: {
+        vendor_id: z.string(),
+        buyer_id: z.string(),
+        can_trade_in: z
+          .boolean()
+          .optional()
+          .describe('Whether the vendor will take goods as well as coin. Defaults to true.'),
+      },
+    },
+    ({ vendor_id, buyer_id, can_trade_in }) =>
+      guard(() => {
+        const vendor = store.creature(vendor_id)
+        const buyer = store.creature(buyer_id)
+        const stock = stockFor(vendor)
+
+        if (stock.length === 0) {
+          throw new RulesError(
+            `${vendor.name} has nothing priced for sale — give_item with a price first`,
+          )
+        }
+
+        return ok(`${vendor.name} opens up shop`, {
+          shop: {
+            vendor: {
+              id: vendor.id,
+              name: vendor.name,
+              race: vendor.profile.race,
+              role: vendor.profile.role,
+              location: vendor.profile.location,
+              attitude: vendor.profile.attitude,
+            },
+            buyer: { id: buyer.id, name: buyer.name, purse: buyer.purse },
+            stock: stock.map((item) => ({
+              name: item.name,
+              qty: item.qty,
+              price: item.price ?? 0,
+              ...(item.notes === undefined ? {} : { notes: item.notes }),
+            })),
+            pack: buyer.items.map((item) => ({ name: item.name, qty: item.qty })),
+            canTradeIn: can_trade_in ?? true,
+          },
         })
       }),
   )

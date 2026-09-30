@@ -1,4 +1,4 @@
-import type { CombatState, Creature, GameEvent } from '@dnd/engine'
+import type { CombatState, Creature, GameEvent, Story } from '@dnd/engine'
 
 /**
  * What the browser and the server say to each other.
@@ -17,8 +17,11 @@ export interface CampaignHeader {
 export interface TableState {
   campaign: CampaignHeader
   scene: string
+  /** Already redacted: see readTable in the server. */
   creatures: Creature[]
   combat: CombatState | null
+  /** Premise, question, and only the beats the player has learned. */
+  story: Story | null
   events: GameEvent[]
 }
 

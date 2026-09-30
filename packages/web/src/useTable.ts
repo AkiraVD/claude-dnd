@@ -30,6 +30,28 @@ export interface NoticeEntry {
 
 export type LogEntry = NarrationEntry | PlayerEntry | RollEntry | NoticeEntry
 
+/** A row of options the DM offered, from `offer_choice`. */
+export interface Choice {
+  prompt: string
+  options: string[]
+}
+
+/** A vendor's counter, from `open_shop`. */
+export interface Shop {
+  vendor: {
+    id: string
+    name: string
+    race: string | null
+    role: string | null
+    location: string | null
+    attitude: string | null
+  }
+  buyer: { id: string; name: string; purse: number }
+  stock: Array<{ name: string; qty: number; price: number; notes?: string }>
+  pack: Array<{ name: string; qty: number }>
+  canTradeIn: boolean
+}
+
 export interface Table {
   connected: boolean
   thinking: boolean
@@ -37,7 +59,13 @@ export interface Table {
   state: TableState | null
   log: LogEntry[]
   costUsd: number | null
+  /** The options above the composer, until something is sent. */
+  choice: Choice | null
+  /** The open counter, or null. */
+  shop: Shop | null
   say: (text: string) => void
+  dismissChoice: () => void
+  closeShop: () => void
 }
 
 let counter = 0
@@ -58,6 +86,8 @@ export function useTable(): Table {
   const [state, setState] = useState<TableState | null>(null)
   const [log, setLog] = useState<LogEntry[]>([])
   const [costUsd, setCostUsd] = useState<number | null>(null)
+  const [choice, setChoice] = useState<Choice | null>(null)
+  const [shop, setShop] = useState<Shop | null>(null)
 
   useEffect(() => {
     const url = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`
@@ -135,7 +165,16 @@ export function useTable(): Table {
           ])
           return
 
-        case 'tool':
+        case 'tool': {
+          // Two tools exist only to drive this UI; their payload is the panel.
+          const data = message.call.data
+          if (!message.call.isError && data !== null) {
+            const offered = data['choice'] as Choice | undefined
+            if (offered !== undefined) setChoice(offered)
+            const counter = data['shop'] as Shop | undefined
+            if (counter !== undefined) setShop(counter)
+          }
+
           // Bookkeeping calls do not earn a card; only failures surface.
           if (message.call.isError) {
             setLog((entries) => [
@@ -144,6 +183,7 @@ export function useTable(): Table {
             ])
           }
           return
+        }
 
         case 'turn-end':
           setThinking(false)
@@ -170,9 +210,27 @@ export function useTable(): Table {
     if (ws === null || ws.readyState !== WebSocket.OPEN) return
     ws.send(JSON.stringify({ type: 'say', text }))
     setThinking(true)
+    // Both panels are answers to a question that has now been answered.
+    setChoice(null)
+    setShop(null)
   }, [])
 
-  return { connected, thinking, model, state, log, costUsd, say }
+  const dismissChoice = useCallback(() => setChoice(null), [])
+  const closeShop = useCallback(() => setShop(null), [])
+
+  return {
+    connected,
+    thinking,
+    model,
+    state,
+    log,
+    costUsd,
+    choice,
+    shop,
+    say,
+    dismissChoice,
+    closeShop,
+  }
 }
 
 /** Close off a streaming narration entry so the next one starts fresh. */

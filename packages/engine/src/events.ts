@@ -1,5 +1,5 @@
 import type { DamageType } from '@dnd/content'
-import type { CreatureId, SimpleCondition } from './character.js'
+import type { Attitude, CreatureId, Presence, SimpleCondition } from './character.js'
 
 export type Mitigation = 'none' | 'resisted' | 'vulnerable' | 'immune'
 
@@ -81,6 +81,40 @@ export type GameEvent =
   | { t: 'spell'; caster: CreatureId; spell: string; level: number; slotLevel: number | null }
   | { t: 'level-up'; target: CreatureId; level: number; hpGained: number }
   | { t: 'xp'; target: CreatureId; amount: number; total: number; level: number }
+  | {
+      t: 'coin'
+      target: CreatureId
+      /** Copper moved. Positive when gained, negative when spent. */
+      delta: number
+      balance: number
+      reason?: string
+    }
+  | {
+      t: 'item'
+      target: CreatureId
+      item: string
+      /** Positive when gained, negative when given up. */
+      delta: number
+      /** What is left in the pack afterwards. */
+      qty: number
+    }
+  | {
+      t: 'trade'
+      /** Null when that side of the counter is not a tracked creature. */
+      buyer: CreatureId | null
+      vendor: CreatureId | null
+      total: number
+      lines: readonly { name: string; qty: number; unitPrice: number }[]
+    }
+  | { t: 'attitude'; target: CreatureId; attitude: Attitude }
+  | { t: 'presence'; target: CreatureId; presence: Presence }
+  | {
+      t: 'reveal'
+      /** The creature whose profile it belongs to, or null for a story beat. */
+      target: CreatureId | null
+      note: string
+    }
+  | { t: 'story'; op: 'set' | 'amend'; summary: string }
   | { t: 'roll'; notation: string; total: number; purpose?: string }
   | {
       t: 'check'

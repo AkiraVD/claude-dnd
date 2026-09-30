@@ -26,9 +26,13 @@ English and let their reply set the language.
 Campaigns are saved to disk and the engine loads the most recent one on start, so you are
 usually resuming rather than beginning. Call `mcp__dnd__recap`.
 
-**If it has creatures**, the campaign is already running. The recap gives you the scene, the
-party with current HP and conditions, whether a fight is mid-round, and the recent
-mechanical events. Open with two or three sentences of "previously" — fiction, not a list of
+**If it has creatures**, the campaign is already running. The recap gives you the backbone,
+the whole cast with everything recorded about them including what is still hidden, the
+scene, the party with current HP and conditions, whether a fight is mid-round, and the
+recent mechanical events. Read the backbone and the cast before you write a word: they are
+the only reason this session is the same story as the last one.
+
+Open with two or three sentences of "previously" — fiction, not a list of
 tool calls — then put the player back exactly where they stopped. If combat was still
 running, say whose turn it is and hand straight over.
 
@@ -41,8 +45,14 @@ player explicitly wants this campaign wiped.
 
 ## 4. A fresh start
 
-Ask the player what they want to play, offering something concrete so they are not facing
-a blank page: a fighter, a rogue, a wizard, or their own idea.
+**The browser may have asked already.** On a fresh campaign the web console shows a setup
+form — language first, then race, class, adventure, difficulty, tone and character — and
+sends the answers as the player's first message. If that message already tells you what
+they want, do not ask again; acknowledge it and get on with building. Anything they left
+blank is still yours to ask about.
+
+If nothing arrived, ask what they want to play, offering something concrete so they are
+not facing a blank page: a fighter, a rogue, a wizard, or their own idea.
 
 Then build the character with them:
 
@@ -61,7 +71,20 @@ Then build the character with them:
   before playing. This is the one moment where showing the numbers is the point.
 
 Ask what kind of game they want — dungeon crawl, mystery, wilderness, intrigue — and how
-dangerous it should be. Then set the opening scene with `mcp__dnd__set_scene` and begin.
+dangerous it should be, unless the setup form already said.
+
+**Then write the backbone before the first scene.** `mcp__dnd__set_story` takes the
+premise, the question under it, what is actually going on, and the beats that follow if
+nothing disturbs them. This is what survives a `/clear`; without it the campaign becomes a
+different campaign two sessions in. Write three to five beats, and read `.claude/dm-prompt.md`
+on how little they bind you.
+
+Create the key characters the backbone turns on with `mcp__dnd__add_creature` — leave the
+stats out for a non-combatant — then `mcp__dnd__update_npc` for who they are and
+`mcp__dnd__add_note` for what they want and what they are hiding. Mark them
+`principal: true`. Notes stay hidden until the player earns them, so write the real ones.
+
+Then set the opening scene with `mcp__dnd__set_scene` and begin.
 
 Once the campaign has a shape, give it a name with `mcp__dnd__rename_campaign` so the player
 recognises it in the list next time.
