@@ -1,13 +1,22 @@
 import {
+  CLASSES,
   MAX_EXHAUSTION,
+  spellSlotsFor,
   type Ability,
   type AbilityScores,
+  type ClassName,
   type Condition,
   type DamageType,
   type Skill,
 } from '@dnd/content'
 import { abilityModifier, proficiencyBonus, skillAbility, type Advantage } from './checks.js'
 import { RulesError } from './errors.js'
+import {
+  hitDiceResource,
+  pactSlotResource,
+  spellSlotResources,
+  type Resource,
+} from './resources.js'
 
 export type CreatureId = string
 
@@ -51,6 +60,40 @@ export interface Concentration {
   spell: string
 }
 
+/**
+ * A weapon or attack the creature can make, defined once and referenced by name.
+ *
+ * The playtest retyped `1d8` / `str` / `+3` / `slashing` on every swing, six
+ * chances to mistype a damage bonus with nothing to catch it. Defining the
+ * weapon on the creature removes that entirely, and `damageBonus` defaults to
+ * the governing ability modifier, which is the 5e rule and one less thing to get
+ * wrong.
+ */
+export interface CreatureAttack {
+  name: string
+  ability: Ability
+  damage: string
+  damageType: DamageType
+  proficient?: boolean
+  /** Defaults to the ability modifier. */
+  damageBonus?: number
+  attackBonus?: number
+  range?: 'melee' | 'ranged'
+  critOn?: number
+  /** Informational, e.g. "finesse", "versatile (1d10)", "reach". */
+  notes?: string
+}
+
+/**
+ * Worn armour. Only what the rules key off mechanically: heavy armour imposes
+ * disadvantage on Stealth, which the playtest narrated and then failed to apply
+ * because nothing knew what Brann was wearing.
+ */
+export interface Armour {
+  name: string
+  stealthDisadvantage?: boolean
+}
+
 export interface Creature {
   readonly id: CreatureId
   readonly name: string
@@ -65,6 +108,13 @@ export interface Creature {
   readonly conditions: ConditionState
   readonly death: DeathState
   readonly concentration: Concentration | null
+  readonly attacks: readonly CreatureAttack[]
+  readonly armour: Armour | null
+  readonly resources: readonly Resource[]
+  /** Die size for hit dice, from the class. */
+  readonly hitDie: number
+  readonly className: ClassName | null
+  readonly xp: number
   /**
    * Whether dropping to 0 HP kills outright.
    *
@@ -94,6 +144,17 @@ export interface CreatureInput {
   defenses?: Partial<Defenses>
   /** Defaults to false for `pc` and true for `npc`. */
   diesAtZero?: boolean
+  attacks?: readonly CreatureAttack[]
+  armour?: Armour | null
+  /**
+   * Naming a class fills in the hit die, save proficiencies, hit dice, and spell
+   * slots for the level. Anything passed explicitly wins.
+   */
+  className?: ClassName
+  /** Extra resources beyond what the class provides. */
+  resources?: readonly Resource[]
+  hitDie?: number
+  xp?: number
 }
 
 const unique = <T>(values: readonly T[]): readonly T[] => [...new Set(values)]
@@ -113,7 +174,14 @@ export function createCreature(input: CreatureInput): Creature {
     proficiencies = {},
     defenses = {},
     diesAtZero = kind !== 'pc',
+    attacks = [],
+    armour = null,
+    className,
+    xp = 0,
   } = input
+
+  const definition = className === undefined ? null : CLASSES[className]
+  const hitDie = input.hitDie ?? definition?.hitDie ?? 8
 
   if (id.trim() === '') throw new RulesError('creature id cannot be empty')
   if (name.trim() === '') throw new RulesError(`creature ${id} needs a name`)
@@ -141,6 +209,16 @@ export function createCreature(input: CreatureInput): Creature {
     throw new RulesError(`${name}: speed must be a non-negative integer, got ${speed}`)
   }
 
+  if (!Number.isInteger(hitDie) || hitDie < 1) {
+    throw new RulesError(`${name}: hit die must be a positive integer, got ${hitDie}`)
+  }
+  if (!Number.isInteger(xp) || xp < 0) {
+    throw new RulesError(`${name}: xp cannot be negative, got ${xp}`)
+  }
+  for (const attack of attacks) {
+    if (attack.name.trim() === '') throw new RulesError(`${name}: an attack needs a name`)
+  }
+
   const skills = unique(proficiencies.skills ?? [])
   const expertise = unique(proficiencies.expertise ?? [])
   for (const skill of expertise) {
@@ -148,6 +226,29 @@ export function createCreature(input: CreatureInput): Creature {
       throw new RulesError(`${name}: expertise in ${skill} requires proficiency in it`)
     }
   }
+
+  // A class implies its saves unless the caller listed their own.
+  const saves = unique(proficiencies.saves ?? definition?.saves ?? [])
+
+  const classResources: Resource[] = []
+  if (definition !== null) {
+    classResources.push(hitDiceResource(level, hitDie))
+    if (definition.casterType === 'pact') {
+      const slots = spellSlotsFor(className!, level)
+      for (const [slotLevel, count] of Object.entries(slots)) {
+        classResources.push(pactSlotResource(Number(slotLevel), count))
+      }
+    } else if (definition.casterType !== 'none') {
+      classResources.push(...spellSlotResources(spellSlotsFor(className!, level)))
+    }
+  }
+
+  // Caller-supplied resources override same-named class ones.
+  const supplied = input.resources ?? []
+  const resources = [
+    ...classResources.filter((r) => !supplied.some((s) => s.name === r.name)),
+    ...supplied,
+  ]
 
   return {
     id,
@@ -158,7 +259,7 @@ export function createCreature(input: CreatureInput): Creature {
     hp: { current: hp, max: maxHp, temp: tempHp },
     ac,
     speed,
-    proficiencies: { saves: unique(proficiencies.saves ?? []), skills, expertise },
+    proficiencies: { saves, skills, expertise },
     defenses: {
       resistances: unique(defenses.resistances ?? []),
       vulnerabilities: unique(defenses.vulnerabilities ?? []),
@@ -167,7 +268,41 @@ export function createCreature(input: CreatureInput): Creature {
     conditions: { active: [], exhaustion: 0 },
     death: { successes: 0, failures: 0, stable: false, dead: false },
     concentration: null,
+    attacks: [...attacks],
+    armour,
+    resources,
+    hitDie,
+    className: className ?? null,
+    xp,
     diesAtZero,
+  }
+}
+
+export function findAttack(creature: Creature, name: string): CreatureAttack {
+  const wanted = name.trim().toLowerCase()
+  const attack = creature.attacks.find((a) => a.name.toLowerCase() === wanted)
+  if (!attack) {
+    const known = creature.attacks.map((a) => a.name)
+    throw new RulesError(
+      `${creature.name} has no attack called "${name}". Has: ${known.length > 0 ? known.join(', ') : '(none defined)'}`,
+    )
+  }
+  return attack
+}
+
+/** The spell save DC and attack bonus for a caster, from its class. */
+export function spellcasting(
+  creature: Creature,
+): { ability: Ability; saveDc: number; attackBonus: number } | null {
+  if (creature.className === null) return null
+  const ability = CLASSES[creature.className].spellcastingAbility
+  if (ability === null) return null
+
+  const modifier = abilityModifier(creature.scores[ability])
+  return {
+    ability,
+    saveDc: 8 + proficiencyBonus(creature.level) + modifier,
+    attackBonus: proficiencyBonus(creature.level) + modifier,
   }
 }
 
@@ -191,6 +326,21 @@ export function skillModifier(creature: Creature, skill: Skill): number {
   if (!creature.proficiencies.skills.includes(skill)) return base
   const multiplier = creature.proficiencies.expertise.includes(skill) ? 2 : 1
   return base + profBonus(creature) * multiplier
+}
+
+/**
+ * Advantage or disadvantage a skill check inherits from the creature itself:
+ * heavy armour on Stealth, exhaustion on everything.
+ */
+export function skillConditionAdvantage(creature: Creature, skill: Skill): Advantage[] {
+  const sources: Advantage[] = []
+  if (skill === 'stealth' && creature.armour?.stealthDisadvantage === true) {
+    sources.push('disadvantage')
+  }
+  // Exhaustion 1 and up: disadvantage on ability checks.
+  if (creature.conditions.exhaustion >= 1) sources.push('disadvantage')
+  if (hasCondition(creature, 'poisoned')) sources.push('disadvantage')
+  return sources
 }
 
 export function passiveSkill(creature: Creature, skill: Skill, advantage: Advantage = 'none'): number {

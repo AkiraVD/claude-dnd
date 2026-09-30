@@ -1,6 +1,7 @@
 import type { Ability, DamageType } from '@dnd/content'
 import {
   abilityMod,
+  findAttack,
   hasCondition,
   initiativeModifier,
   isDead,
@@ -202,6 +203,8 @@ export interface AttackOptions {
   target: Creature
   /** Ability the attack uses: `str` for a longsword, `dex` for a bow. */
   ability: Ability
+  /** Name of the attack used, when it came from the creature's own list. */
+  attackName?: string
   /** Adds the proficiency bonus to the attack roll. */
   proficient?: boolean
   /** Magic weapon bonuses and the like, on the attack roll. */
@@ -234,6 +237,8 @@ export type AttackReason =
   | 'below-ac'
 
 export interface AttackOutcome {
+  /** The weapon used, when the attack came off the creature's sheet. */
+  attackName: string | null
   roll: D20TestResult
   hit: boolean
   critical: boolean
@@ -269,6 +274,41 @@ export function attackModifier(
  *  - a critical doubles the damage dice, never the flat modifier;
  *  - a melee hit on a paralyzed or unconscious target is automatically critical.
  */
+/**
+ * Resolve a named attack off the creature's own sheet.
+ *
+ * `damageBonus` defaults to the governing ability modifier — the 5e rule, and one
+ * fewer number to retype correctly on every swing.
+ */
+export function attackWith(
+  attacker: Creature,
+  target: Creature,
+  name: string,
+  rng: Rng,
+  overrides: Partial<Pick<AttackOptions, 'advantage' | 'range' | 'lethal' | 'ignoreConditions'>> = {},
+): AttackOutcome {
+  const weapon = findAttack(attacker, name)
+  return attack({
+    attacker,
+    target,
+    attackName: weapon.name,
+    ability: weapon.ability,
+    damage: weapon.damage,
+    damageType: weapon.damageType,
+    proficient: weapon.proficient ?? true,
+    damageBonus: weapon.damageBonus ?? abilityMod(attacker, weapon.ability),
+    ...(weapon.attackBonus === undefined ? {} : { attackBonus: weapon.attackBonus }),
+    range: overrides.range ?? weapon.range ?? 'melee',
+    ...(weapon.critOn === undefined ? {} : { critOn: weapon.critOn }),
+    ...(overrides.advantage === undefined ? {} : { advantage: overrides.advantage }),
+    ...(overrides.lethal === undefined ? {} : { lethal: overrides.lethal }),
+    ...(overrides.ignoreConditions === undefined
+      ? {}
+      : { ignoreConditions: overrides.ignoreConditions }),
+    rng,
+  })
+}
+
 export function attack(options: AttackOptions): AttackOutcome {
   const {
     attacker,
@@ -351,6 +391,7 @@ export function attack(options: AttackOptions): AttackOutcome {
 
   if (!hit) {
     return {
+      attackName: options.attackName ?? null,
       roll,
       hit,
       critical,
@@ -383,6 +424,7 @@ export function attack(options: AttackOptions): AttackOutcome {
   else if (outcome.droppedToZero) parts.push('knocked unconscious')
 
   return {
+    attackName: options.attackName ?? null,
     roll,
     hit,
     critical,

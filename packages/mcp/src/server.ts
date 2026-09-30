@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { CampaignDb } from './db.js'
 import { GameStore } from './store.js'
-import { registerCampaignTools, registerTools } from './tools.js'
+import { registerCampaignTools, registerProgressionTools, registerTools } from './tools.js'
 
 export interface BuildOptions {
   /** SQLite file, or ':memory:' for a throwaway campaign. */
@@ -28,5 +28,6 @@ export function buildServer(options: BuildOptions = {}): {
   const server = new McpServer({ name: 'dnd', version: '0.0.0' })
   registerTools(server, store)
   registerCampaignTools(server, store)
+  registerProgressionTools(server, store)
   return { server, store, db }
 }

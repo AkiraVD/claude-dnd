@@ -66,6 +66,21 @@ export type GameEvent =
   | { t: 'creature-added'; id: CreatureId; name: string; kind: 'pc' | 'npc' }
   | { t: 'creature-removed'; id: CreatureId; name: string }
   | { t: 'scene'; scene: string }
+  | {
+      t: 'resource'
+      target: CreatureId
+      resource: string
+      label: string
+      /** Positive when spent, negative when restored. */
+      spent: number
+      remaining: number
+      max: number
+    }
+  | { t: 'rest'; target: CreatureId; kind: 'short' | 'long' }
+  | { t: 'killed'; target: CreatureId; reason: string }
+  | { t: 'spell'; caster: CreatureId; spell: string; level: number; slotLevel: number | null }
+  | { t: 'level-up'; target: CreatureId; level: number; hpGained: number }
+  | { t: 'xp'; target: CreatureId; amount: number; total: number; level: number }
   | { t: 'roll'; notation: string; total: number; purpose?: string }
   | {
       t: 'check'

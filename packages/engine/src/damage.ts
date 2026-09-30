@@ -10,7 +10,7 @@ import {
   withHp,
   type Creature,
 } from './character.js'
-import { d20Test, type D20TestResult } from './checks.js'
+import { d20Test, type Advantage, type D20TestResult } from './checks.js'
 import { RulesError } from './errors.js'
 import type { DeathSaveOutcome, GameEvent, Mitigation } from './events.js'
 import type { Rng } from './rng.js'
@@ -299,7 +299,17 @@ export interface DeathSaveResult {
  * not really a Constitution save. A natural 20 brings the creature back up at
  * 1 HP; a natural 1 counts as two failures.
  */
-export function deathSave(creature: Creature, rng: Rng): DeathSaveResult {
+export interface DeathSaveOptions {
+  /** Drowning, a hostile aura, a healer's presence — the DM's ruling. */
+  advantage?: Advantage
+  bonus?: number
+}
+
+export function deathSave(
+  creature: Creature,
+  rng: Rng,
+  options: DeathSaveOptions = {},
+): DeathSaveResult {
   if (isDead(creature)) {
     throw new RulesError(`${creature.name} is already dead`)
   }
@@ -311,7 +321,12 @@ export function deathSave(creature: Creature, rng: Rng): DeathSaveResult {
   }
 
   const events: GameEvent[] = []
-  const roll = d20Test({ modifier: 0, dc: 10, rng })
+  const roll = d20Test({
+    modifier: options.bonus ?? 0,
+    ...(options.advantage === undefined ? {} : { advantage: options.advantage }),
+    dc: 10,
+    rng,
+  })
 
   let successes = creature.death.successes
   let failures = creature.death.failures
@@ -353,6 +368,30 @@ export function deathSave(creature: Creature, rng: Rng): DeathSaveResult {
   if (outcome === 'dead') events.push({ t: 'death', target: creature.id, cause: 'death-saves' })
 
   return { creature: next, roll, outcome, events }
+}
+
+/**
+ * Declare a creature dead because the fiction says so: drowned while unconscious,
+ * thrown off a cliff, executed.
+ *
+ * The playtest had no lever for this and nearly fudged a drowning as bludgeoning
+ * damage. An explicit tool is more honest than a made-up damage roll, and it puts
+ * the real reason in the log.
+ */
+export function kill(
+  creature: Creature,
+  reason: string,
+): { creature: Creature; events: GameEvent[] } {
+  if (isDead(creature)) {
+    throw new RulesError(`${creature.name} is already dead`)
+  }
+  if (reason.trim() === '') {
+    throw new RulesError('killing a creature outright needs a reason, for the log')
+  }
+  return {
+    creature: withHp(withDeath(creature, { dead: true }), { current: 0, temp: 0 }),
+    events: [{ t: 'killed', target: creature.id, reason }],
+  }
 }
 
 /** Bring a dying creature to stable without healing it: no more death saves. */

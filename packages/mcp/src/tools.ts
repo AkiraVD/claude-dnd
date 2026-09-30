@@ -1,8 +1,10 @@
 import {
   ABILITIES,
+  CLASS_LIST,
   CONDITION_LIST,
   DAMAGE_TYPES,
   SKILL_LIST,
+  type ClassName,
   type Condition,
   type Skill,
 } from '@dnd/content'
@@ -33,6 +35,20 @@ import {
   stabilise,
   startCombat,
   startConcentration,
+  attackWith,
+  availableSlots,
+  awardXp,
+  castSpell,
+  combineAdvantage,
+  kill,
+  levelUp,
+  longRest,
+  shortRest,
+  skillConditionAdvantage,
+  spellcasting,
+  spendHitDie,
+  spendResource,
+  type Advantage,
   type D20TestResult,
 } from '@dnd/engine'
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
@@ -48,6 +64,7 @@ const skillEnum = z.enum(SKILL_LIST as [Skill, ...Skill[]])
 const abilityEnum = z.enum(ABILITIES)
 const damageTypeEnum = z.enum(DAMAGE_TYPES)
 const advantageEnum = z.enum(['none', 'advantage', 'disadvantage'])
+const classEnum = z.enum(CLASS_LIST as [ClassName, ...ClassName[]])
 
 function ok(narration: string, data: Record<string, unknown> = {}): CallToolResult {
   return {
@@ -165,6 +182,46 @@ export function registerTools(server: McpServer, store: GameStore): void {
         resistances: z.array(damageTypeEnum).optional(),
         vulnerabilities: z.array(damageTypeEnum).optional(),
         immunities: z.array(damageTypeEnum).optional(),
+        class_name: classEnum
+          .optional()
+          .describe(
+            'Fills in hit die, save proficiencies, hit dice, and spell slots for the level. ' +
+              'Anything you pass explicitly wins over the class default.',
+          ),
+        xp: z.number().int().min(0).optional(),
+        armour: z
+          .object({
+            name: z.string(),
+            stealth_disadvantage: z
+              .boolean()
+              .optional()
+              .describe('True for heavy armour. Applied automatically to stealth checks.'),
+          })
+          .optional(),
+        attacks: z
+          .array(
+            z.object({
+              name: z.string().describe('What the player calls it, e.g. "longsword"'),
+              ability: abilityEnum,
+              damage: z.string().describe('Dice only, e.g. "1d8"'),
+              damage_type: damageTypeEnum,
+              proficient: z.boolean().optional().describe('Defaults to true'),
+              damage_bonus: z
+                .number()
+                .int()
+                .optional()
+                .describe('Defaults to the ability modifier, which is the usual rule'),
+              attack_bonus: z.number().int().optional().describe('Magic weapon bonus'),
+              range: z.enum(['melee', 'ranged']).optional(),
+              crit_on: z.number().int().min(2).max(20).optional(),
+              notes: z.string().optional().describe('Informational, e.g. "finesse, versatile (1d10)"'),
+            }),
+          )
+          .optional()
+          .describe(
+            'Define weapons once here, then use them by name with attack_roll. Far less error ' +
+              'prone than retyping the dice and bonus on every swing.',
+          ),
         dies_at_zero: z
           .boolean()
           .optional()
@@ -205,6 +262,30 @@ export function registerTools(server: McpServer, store: GameStore): void {
             immunities: args.immunities ?? [],
           },
           ...(args.dies_at_zero === undefined ? {} : { diesAtZero: args.dies_at_zero }),
+          ...(args.class_name === undefined ? {} : { className: args.class_name }),
+          ...(args.xp === undefined ? {} : { xp: args.xp }),
+          ...(args.armour === undefined
+            ? {}
+            : {
+                armour: {
+                  name: args.armour.name,
+                  ...(args.armour.stealth_disadvantage === undefined
+                    ? {}
+                    : { stealthDisadvantage: args.armour.stealth_disadvantage }),
+                },
+              }),
+          attacks: (args.attacks ?? []).map((a) => ({
+            name: a.name,
+            ability: a.ability,
+            damage: a.damage,
+            damageType: a.damage_type,
+            ...(a.proficient === undefined ? {} : { proficient: a.proficient }),
+            ...(a.damage_bonus === undefined ? {} : { damageBonus: a.damage_bonus }),
+            ...(a.attack_bonus === undefined ? {} : { attackBonus: a.attack_bonus }),
+            ...(a.range === undefined ? {} : { range: a.range }),
+            ...(a.crit_on === undefined ? {} : { critOn: a.crit_on }),
+            ...(a.notes === undefined ? {} : { notes: a.notes }),
+          })),
         })
         store.add(creature)
         store.commit('add_creature', [
@@ -322,19 +403,48 @@ export function registerTools(server: McpServer, store: GameStore): void {
     ({ id, skill, dc, advantage, bonus }) =>
       guard(() => {
         const creature = store.creature(id)
+        const proficient = creature.proficiencies.skills.includes(skill)
+        const expertise = creature.proficiencies.expertise.includes(skill)
+
+        // Heavy armour on stealth, exhaustion, poisoned — things the creature
+        // carries with it. The playtest narrated chain mail and then rolled a
+        // straight check, because nothing knew what it was wearing.
+        const fromCreature = skillConditionAdvantage(creature, skill)
+        const effective = combineAdvantage([
+          ...(advantage === undefined ? [] : [advantage as Advantage]),
+          ...fromCreature,
+        ])
+
         const test = skillCheck({
           skill,
           scores: creature.scores,
           profBonus: profBonus(creature),
-          proficient: creature.proficiencies.skills.includes(skill),
-          expertise: creature.proficiencies.expertise.includes(skill),
+          proficient,
+          expertise,
           ...(bonus === undefined ? {} : { bonus }),
-          ...(advantage === undefined ? {} : { advantage }),
+          advantage: effective,
           ...(dc === undefined ? {} : { dc }),
           rng: store.rng,
         })
         commitTest(store, 'skill_check', creature.id, `${skill} check`, test)
-        return ok(describeTest(`${creature.name} ${skill} check`, test), { test })
+
+        // Spell out where the modifier came from: "+2" alone does not tell the DM
+        // whether proficiency applied or whether something was mistyped.
+        const source = expertise
+          ? 'ability + double proficiency (expertise)'
+          : proficient
+            ? 'ability + proficiency'
+            : 'ability only, not proficient'
+
+        return ok(describeTest(`${creature.name} ${skill} check`, test), {
+          test,
+          proficient,
+          expertise,
+          modifierFrom: source,
+          ...(fromCreature.length > 0
+            ? { advantageFromCreature: fromCreature, armour: creature.armour?.name ?? null }
+            : {}),
+        })
       }),
   )
 
@@ -383,9 +493,22 @@ export function registerTools(server: McpServer, store: GameStore): void {
       inputSchema: {
         attacker: z.string(),
         target: z.string(),
-        ability: abilityEnum.describe('str for a longsword, dex for a bow or finesse weapon'),
-        damage: z.string().describe('Damage dice only, e.g. "1d8". The flat bonus goes in damage_bonus'),
-        damage_type: damageTypeEnum,
+        weapon: z
+          .string()
+          .optional()
+          .describe(
+            'Name of an attack defined on the attacker. Prefer this: it takes the dice, ' +
+              'ability, proficiency and bonus off the sheet. Omit only for an improvised ' +
+              'attack, and then pass ability, damage and damage_type instead.',
+          ),
+        ability: abilityEnum
+          .optional()
+          .describe('str for a longsword, dex for a bow or finesse weapon. Ignored when weapon is given'),
+        damage: z
+          .string()
+          .optional()
+          .describe('Damage dice only, e.g. "1d8". The flat bonus goes in damage_bonus'),
+        damage_type: damageTypeEnum.optional(),
         proficient: z.boolean().optional().describe('Defaults to false; true for a weapon the attacker is trained in'),
         attack_bonus: z.number().int().optional().describe('Magic weapon bonus etc.'),
         damage_bonus: z.number().int().optional().describe('Usually the ability modifier. Never doubled on a crit'),
@@ -405,26 +528,46 @@ export function registerTools(server: McpServer, store: GameStore): void {
       guard(() => {
         const attacker = store.creature(args.attacker)
         const target = store.creature(args.target)
-        const outcome = attack({
-          attacker,
-          target,
-          ability: args.ability,
-          damage: args.damage,
-          damageType: args.damage_type,
-          ...(args.proficient === undefined ? {} : { proficient: args.proficient }),
-          ...(args.attack_bonus === undefined ? {} : { attackBonus: args.attack_bonus }),
-          ...(args.damage_bonus === undefined ? {} : { damageBonus: args.damage_bonus }),
-          ...(args.range === undefined ? {} : { range: args.range }),
-          ...(args.advantage === undefined ? {} : { advantage: args.advantage }),
-          ...(args.crit_on === undefined ? {} : { critOn: args.crit_on }),
-          ...(args.lethal === undefined ? {} : { lethal: args.lethal }),
-          rng: store.rng,
-        })
+
+        const outcome =
+          args.weapon !== undefined
+            ? attackWith(attacker, target, args.weapon, store.rng, {
+                ...(args.advantage === undefined ? {} : { advantage: args.advantage }),
+                ...(args.range === undefined ? {} : { range: args.range }),
+                ...(args.lethal === undefined ? {} : { lethal: args.lethal }),
+              })
+            : (() => {
+                if (args.ability === undefined || args.damage === undefined || args.damage_type === undefined) {
+                  throw new RulesError(
+                    'pass either weapon (the name of an attack on the attacker) or all of ' +
+                      'ability, damage and damage_type',
+                  )
+                }
+                return attack({
+                  attacker,
+                  target,
+                  ability: args.ability,
+                  damage: args.damage,
+                  damageType: args.damage_type,
+                  ...(args.proficient === undefined ? {} : { proficient: args.proficient }),
+                  ...(args.attack_bonus === undefined ? {} : { attackBonus: args.attack_bonus }),
+                  ...(args.damage_bonus === undefined ? {} : { damageBonus: args.damage_bonus }),
+                  ...(args.range === undefined ? {} : { range: args.range }),
+                  ...(args.advantage === undefined ? {} : { advantage: args.advantage }),
+                  ...(args.crit_on === undefined ? {} : { critOn: args.crit_on }),
+                  ...(args.lethal === undefined ? {} : { lethal: args.lethal }),
+                  rng: store.rng,
+                })
+              })()
 
         store.put(outcome.target)
         store.commit('attack_roll', outcome.events)
 
-        return ok(`${attacker.name} → ${target.name}: ${outcome.narrationHint}`, {
+        return ok(
+          `${attacker.name}${outcome.attackName === null ? '' : ` (${outcome.attackName})`}` +
+            ` → ${target.name}: ${outcome.narrationHint}`,
+          {
+          weapon: outcome.attackName,
           attackRoll: {
             natural: outcome.roll.natural,
             modifier: signed(outcome.roll.modifier),
@@ -447,7 +590,8 @@ export function registerTools(server: McpServer, store: GameStore): void {
               }
             : {}),
           target: brief(outcome.target),
-        })
+          },
+        )
       }),
   )
 
@@ -553,11 +697,24 @@ export function registerTools(server: McpServer, store: GameStore): void {
       description:
         'A flat d20 against DC 10 for a creature at 0 HP. Three successes stabilise; three ' +
         'failures kill. A natural 20 brings them up at 1 HP; a natural 1 counts as two failures.',
-      inputSchema: { id: z.string() },
+      inputSchema: {
+        id: z.string(),
+        advantage: advantageEnum
+          .optional()
+          .describe(
+            'For a ruling the engine cannot see: drowning while unconscious, a healer at ' +
+              'their side, a hostile aura. Records the ruling instead of leaving the log at ' +
+              'odds with the fiction.',
+          ),
+        bonus: z.number().int().optional(),
+      },
     },
-    ({ id }) =>
+    ({ id, advantage, bonus }) =>
       guard(() => {
-        const outcome = deathSave(store.creature(id), store.rng)
+        const outcome = deathSave(store.creature(id), store.rng, {
+          ...(advantage === undefined ? {} : { advantage }),
+          ...(bonus === undefined ? {} : { bonus }),
+        })
         store.put(outcome.creature)
         store.commit('death_save', outcome.events)
         return ok(
@@ -1007,6 +1164,334 @@ export function registerCampaignTools(server: McpServer, store: GameStore): void
         const deleted = store.deleteCampaign(id)
         return ok(`Deleted campaign ${deleted.id} "${deleted.name}" permanently.`, {
           nowLoaded: store.campaign.id,
+        })
+      }),
+  )
+}
+
+/**
+ * Rests, spell slots, limited-use abilities, and levelling.
+ *
+ * These are what the first playtest missed most: a fighter finished a fight at
+ * 20/28 and the likeliest next action — "I use Second Wind" — had no tool behind
+ * it, so nothing would have stopped them doing it four times running.
+ */
+export function registerProgressionTools(server: McpServer, store: GameStore): void {
+  server.registerTool(
+    'list_resources',
+    {
+      title: 'List limited-use abilities',
+      description:
+        'Spell slots, hit dice, Second Wind, ki, Channel Divinity — everything with uses and a ' +
+        'recharge. Read this before telling the player what they can still do.',
+      inputSchema: { id: z.string() },
+    },
+    ({ id }) =>
+      guard(() => {
+        const creature = store.creature(id)
+        const casting = spellcasting(creature)
+        return ok(
+          creature.resources.length === 0
+            ? `${creature.name} has no limited-use abilities`
+            : creature.resources
+                .map((r) => `${r.label} ${r.current}/${r.max}`)
+                .join(' · '),
+          {
+            resources: creature.resources.map((r) => ({
+              name: r.name,
+              label: r.label,
+              remaining: r.current,
+              max: r.max,
+              recharge: r.recharge,
+            })),
+            spellSlots: availableSlots(creature),
+            ...(casting === null
+              ? {}
+              : { spellSaveDc: casting.saveDc, spellAttackBonus: casting.attackBonus }),
+          },
+        )
+      }),
+  )
+
+  server.registerTool(
+    'add_resource',
+    {
+      title: 'Define a limited-use ability',
+      description:
+        'Give a creature something with uses and a recharge: Second Wind, Action Surge, ki ' +
+        'points, three charges of a wand, two potions. Naming a class already supplies hit dice ' +
+        'and spell slots, so this is for everything else.',
+      inputSchema: {
+        id: z.string(),
+        name: z.string().describe('Stable id, e.g. "second-wind"'),
+        label: z.string().describe('What the player sees, e.g. "Second Wind"'),
+        max: z.number().int().min(1),
+        recharge: z.enum(['short-rest', 'long-rest', 'dawn', 'never']),
+      },
+    },
+    ({ id, name, label, max, recharge }) =>
+      guard(() => {
+        const creature = store.creature(id)
+        if (creature.resources.some((r) => r.name === name)) {
+          return fail(`${creature.name} already has a resource called "${name}"`)
+        }
+        const updated = {
+          ...creature,
+          resources: [...creature.resources, { name, label, max, current: max, recharge }],
+        }
+        store.put(updated)
+        store.commit('add_resource')
+        return ok(`${creature.name} gains ${label} (${max} use(s), back on ${recharge})`, {
+          resources: updated.resources.map((r) => `${r.label} ${r.current}/${r.max}`),
+        })
+      }),
+  )
+
+  server.registerTool(
+    'spend_resource',
+    {
+      title: 'Spend a limited-use ability',
+      description:
+        'Use one up. Fails when there are none left, which is the point — nothing else stops a ' +
+        'player using Second Wind twice in a fight.',
+      inputSchema: {
+        id: z.string(),
+        resource: z.string().describe('The resource name, from list_resources'),
+        amount: z.number().int().min(1).optional().describe('Defaults to 1'),
+      },
+    },
+    ({ id, resource, amount }) =>
+      guard(() => {
+        const outcome = spendResource(store.creature(id), resource, amount ?? 1)
+        store.put(outcome.creature)
+        store.commit('spend_resource', outcome.events)
+        return ok(
+          `${outcome.creature.name} spends ${resource} — ${outcome.resource.current}/${outcome.resource.max} left`,
+          { remaining: outcome.resource.current, max: outcome.resource.max },
+        )
+      }),
+  )
+
+  server.registerTool(
+    'cast_spell',
+    {
+      title: 'Cast a spell',
+      description:
+        'Spend the slot and get the save DC. The engine does not know what any spell does — ' +
+        'that is yours to adjudicate — but it does enforce that the slot existed and is now ' +
+        'gone, which is the part nobody can track across three hours. Roll damage with ' +
+        'roll_dice and apply it with apply_damage or saving_throw as the spell requires. ' +
+        'Cantrips are level 0 and cost nothing.',
+      inputSchema: {
+        id: z.string(),
+        spell: z.string(),
+        level: z.number().int().min(0).max(9).describe("The spell's own level; 0 for a cantrip"),
+        slot_level: z
+          .number()
+          .int()
+          .min(0)
+          .max(9)
+          .optional()
+          .describe('Upcast by spending a higher slot. Defaults to the spell level'),
+      },
+    },
+    ({ id, spell, level, slot_level }) =>
+      guard(() => {
+        const outcome = castSpell(store.creature(id), {
+          spell,
+          level,
+          ...(slot_level === undefined ? {} : { slotLevel: slot_level }),
+        })
+        store.put(outcome.creature)
+        store.commit('cast_spell', outcome.events)
+
+        const parts = [`${outcome.creature.name} casts ${spell}`]
+        if (outcome.slotLevel === null) parts.push('cantrip, no slot spent')
+        else parts.push(`level ${outcome.slotLevel} slot spent`)
+        if (outcome.saveDc !== null) parts.push(`spell save DC ${outcome.saveDc}`)
+
+        return ok(parts.join(' · '), {
+          slotLevel: outcome.slotLevel,
+          saveDc: outcome.saveDc,
+          spellAttackBonus: outcome.spellAttackBonus,
+          slotsRemaining: outcome.slotsRemaining,
+        })
+      }),
+  )
+
+  server.registerTool(
+    'spend_hit_die',
+    {
+      title: 'Spend a hit die',
+      description:
+        'Heal during a short rest: roll one hit die and add the Constitution modifier. One die ' +
+        'per call, so the player chooses how many to burn. Hit dice come back at half rate on a ' +
+        'long rest.',
+      inputSchema: { id: z.string() },
+    },
+    ({ id }) =>
+      guard(() => {
+        const outcome = spendHitDie(store.creature(id), store.rng)
+        store.put(outcome.creature)
+        store.commit('spend_hit_die', outcome.events)
+        return ok(
+          `${outcome.creature.name} spends a hit die: ${formatDiceResult(outcome.roll)} + CON, ` +
+            `heals ${outcome.healed} to ${outcome.creature.hp.current}/${outcome.creature.hp.max} ` +
+            `(${outcome.remaining} hit dice left)`,
+          {
+            healed: outcome.healed,
+            hitDiceRemaining: outcome.remaining,
+            creature: brief(outcome.creature),
+          },
+        )
+      }),
+  )
+
+  server.registerTool(
+    'short_rest',
+    {
+      title: 'Take a short rest',
+      description:
+        'An hour. Abilities that recharge on a short rest come back. Hit points do NOT — the ' +
+        'player spends hit dice for those, with spend_hit_die, as many as they choose.',
+      inputSchema: { id: z.string() },
+    },
+    ({ id }) =>
+      guard(() => {
+        const outcome = shortRest(store.creature(id))
+        store.put(outcome.creature)
+        store.commit('short_rest', outcome.events)
+        return ok(
+          outcome.restored.length === 0
+            ? `${outcome.creature.name} rests an hour. Nothing to recover.`
+            : `${outcome.creature.name} rests an hour and recovers ` +
+              outcome.restored.map((r) => `${r.label} (${r.to}/${r.max})`).join(', '),
+          { restored: outcome.restored, creature: brief(outcome.creature) },
+        )
+      }),
+  )
+
+  server.registerTool(
+    'long_rest',
+    {
+      title: 'Take a long rest',
+      description:
+        'Eight hours. Hit points to full, hit dice back at half rate, one level of exhaustion ' +
+        'lifted, everything else recharged. A creature at 0 HP must be stabilised or healed first.',
+      inputSchema: { id: z.string() },
+    },
+    ({ id }) =>
+      guard(() => {
+        const outcome = longRest(store.creature(id))
+        store.put(outcome.creature)
+        store.commit('long_rest', outcome.events)
+        return ok(
+          `${outcome.creature.name} sleeps eight hours: ` +
+            `${outcome.hpRestored} HP back to full` +
+            (outcome.restored.length > 0
+              ? `, ${outcome.restored.map((r) => `${r.label} (${r.to}/${r.max})`).join(', ')}`
+              : ''),
+          {
+            hpRestored: outcome.hpRestored,
+            restored: outcome.restored,
+            creature: brief(outcome.creature),
+          },
+        )
+      }),
+  )
+
+  server.registerTool(
+    'award_xp',
+    {
+      title: 'Award experience',
+      description:
+        'Give XP and find out whether it crossed a level threshold. It does not level the ' +
+        'character up — call level_up for that, so the player is part of it.',
+      inputSchema: { id: z.string(), amount: z.number().int().min(0) },
+    },
+    ({ id, amount }) =>
+      guard(() => {
+        const outcome = awardXp(store.creature(id), amount)
+        store.put(outcome.creature)
+        store.commit('award_xp', outcome.events)
+        return ok(
+          `${outcome.creature.name} gains ${amount} XP (${outcome.total} total)` +
+            (outcome.levelledUp
+              ? ` — enough for level ${outcome.level}!`
+              : outcome.toNextLevel === null
+                ? ''
+                : `, ${outcome.toNextLevel} to the next level`),
+          {
+            total: outcome.total,
+            levelForXp: outcome.level,
+            currentLevel: outcome.creature.level,
+            readyToLevel: outcome.levelledUp,
+            toNextLevel: outcome.toNextLevel,
+          },
+        )
+      }),
+  )
+
+  server.registerTool(
+    'level_up',
+    {
+      title: 'Level up',
+      description:
+        'Advance one level: hit points, a bigger hit dice pool, and the spell slots the level ' +
+        'brings. Slots already spent stay spent. Proficiency bonus follows from level ' +
+        'automatically. Omit hp_gained to take the fixed average, which most tables use.',
+      inputSchema: {
+        id: z.string(),
+        hp_gained: z
+          .number()
+          .int()
+          .optional()
+          .describe('Rolled HP. Omit for the average: half the hit die plus one, plus CON'),
+      },
+    },
+    ({ id, hp_gained }) =>
+      guard(() => {
+        const outcome = levelUp(store.creature(id), {
+          ...(hp_gained === undefined ? {} : { hpGained: hp_gained }),
+        })
+        store.put(outcome.creature)
+        store.commit('level_up', outcome.events)
+        return ok(
+          `${outcome.creature.name} reaches level ${outcome.level}: +${outcome.hpGained} HP ` +
+            `(${outcome.creature.hp.current}/${outcome.creature.hp.max})` +
+            (outcome.gained.length > 0
+              ? `, gains ${outcome.gained.map((g) => `${g.label} (${g.max})`).join(', ')}`
+              : ''),
+          {
+            level: outcome.level,
+            hpGained: outcome.hpGained,
+            gained: outcome.gained,
+            sheet: sheet(outcome.creature),
+          },
+        )
+      }),
+  )
+
+  server.registerTool(
+    'kill',
+    {
+      title: 'Declare a creature dead',
+      description:
+        'For when the fiction settles it and no damage roll would be honest: drowned while ' +
+        'unconscious, thrown off a cliff, executed, disintegrated. Records the reason in the ' +
+        'log. Do not use it in place of a fair attack roll.',
+      inputSchema: {
+        id: z.string(),
+        reason: z.string().describe('What killed them, for the log'),
+      },
+    },
+    ({ id, reason }) =>
+      guard(() => {
+        const outcome = kill(store.creature(id), reason)
+        store.put(outcome.creature)
+        store.commit('kill', outcome.events)
+        return ok(`${outcome.creature.name} dies: ${reason}`, {
+          creature: brief(outcome.creature),
         })
       }),
   )
