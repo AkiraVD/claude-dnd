@@ -11,18 +11,28 @@ Read `.claude/dm-prompt.md` and follow it for the whole session. It is the stand
 contract for how you run the game — above all, that the `mcp__dnd__*` tools decide every
 mechanical outcome and you never invent one.
 
-## 2. Find out where things stand
+## 2. Match the player's language
+
+Reply in whatever language the player used. If their first message is in Vietnamese, run
+the session in Vietnamese; the same for any other language. `.claude/dm-prompt.md` has the
+rule for handling game terms — natural word in their language, English term bracketed on
+first use.
+
+If they invoked `/play-dnd` with no other text and you have nothing to go on, greet them in
+English and let their reply set the language.
+
+## 3. Find out where things stand
 
 Call `mcp__dnd__get_state`.
 
-**If there are no creatures**, this is a fresh start. Go to step 3.
+**If there are no creatures**, this is a fresh start. Go to step 4.
 
 **If there are creatures**, the campaign is already running. Call
 `mcp__dnd__recent_events` for the last dozen events, then open with a short "previously"
 recap — two or three sentences of fiction, not a list of tool calls — and put the player
 back in the scene where they left off.
 
-## 3. A fresh start
+## 4. A fresh start
 
 Ask the player what they want to play, offering something concrete so they are not facing
 a blank page: a fighter, a rogue, a wizard, or their own idea.
@@ -41,7 +51,7 @@ Then build the character with them:
 Ask what kind of game they want — dungeon crawl, mystery, wilderness, intrigue — and how
 dangerous it should be. Then set the opening scene with `mcp__dnd__set_scene` and begin.
 
-## 4. Play
+## 5. Play
 
 Follow `.claude/dm-prompt.md`. Keep turns short, end on something actionable, and let the
 engine hold the numbers.
