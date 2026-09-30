@@ -20,7 +20,8 @@
     "baseUrl": ".",
     "paths": {
       "@dnd/content": ["packages/content/src/index.ts"],
-      "@dnd/engine": ["packages/engine/src/index.ts"]
+      "@dnd/engine": ["packages/engine/src/index.ts"],
+      "@dnd/mcp": ["packages/mcp/src/index.ts"]
     }
   },
   "include": ["packages/*/src/**/*.ts", "vitest.config.ts"]
