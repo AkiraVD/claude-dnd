@@ -1,8 +1,5 @@
+import { DiceError } from './errors.js'
 import type { Rng } from './rng.js'
-
-export class DiceError extends Error {
-  override readonly name = 'DiceError'
-}
 
 /** Per-group limits, to keep a typo from allocating a million dice. */
 const MAX_COUNT = 200
@@ -329,4 +326,31 @@ export function formatDiceResult(result: DiceResult): string {
     return `${op}[${faces}]`
   })
   return `${result.notation}: ${parts.join(' ')} = ${result.total}`
+}
+
+/**
+ * The notation for a critical hit: every dice term's count doubles, every flat
+ * modifier stays as written.
+ *
+ *   1d8+3   →  2d8+3      not 2d8+6
+ *   2d6+1d4 →  4d6+2d4
+ *
+ * This is the rule people get wrong most often, so it lives in one named
+ * function rather than being open-coded at the call site.
+ */
+export function criticalNotation(notation: string): string {
+  const specs = parseDice(notation)
+  return specs
+    .map((spec, index) => {
+      const op = spec.sign === -1 ? '-' : index === 0 ? '' : '+'
+      if (spec.group) {
+        const doubled = spec.text.replace(
+          /^(\d*)(d)/i,
+          (_full, count: string, d: string) => `${(count === '' ? 1 : Number(count)) * 2}${d}`,
+        )
+        return `${op}${doubled}`
+      }
+      return `${op}${spec.constant}`
+    })
+    .join('')
 }

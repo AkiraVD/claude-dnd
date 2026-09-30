@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { DiceError, formatDiceResult, naturalFace, parseDice, rollDice } from './dice.js'
+import { formatDiceResult, naturalFace, parseDice, rollDice } from './dice.js'
+import { DiceError } from './errors.js'
 import { SeededRng } from './rng.js'
 import { constantRng, scriptedRng } from './testing.js'
 
