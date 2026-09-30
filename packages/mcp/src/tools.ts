@@ -128,6 +128,14 @@ export function registerTools(server: McpServer, store: GameStore): void {
         resistances: z.array(damageTypeEnum).optional(),
         vulnerabilities: z.array(damageTypeEnum).optional(),
         immunities: z.array(damageTypeEnum).optional(),
+        dies_at_zero: z
+          .boolean()
+          .optional()
+          .describe(
+            'Whether 0 HP kills outright. Defaults to true for npc and false for pc. ' +
+              'Death saving throws are a player-character rule; monsters just die. Set false ' +
+              'for a named villain or an NPC ally who should get death saves.',
+          ),
       },
     },
     (args) =>
@@ -159,6 +167,7 @@ export function registerTools(server: McpServer, store: GameStore): void {
             vulnerabilities: args.vulnerabilities ?? [],
             immunities: args.immunities ?? [],
           },
+          ...(args.dies_at_zero === undefined ? {} : { diesAtZero: args.dies_at_zero }),
         })
         store.add(creature)
         return ok(`${creature.name} added at ${creature.hp.current}/${creature.hp.max} HP, AC ${creature.ac}`, {
@@ -338,6 +347,13 @@ export function registerTools(server: McpServer, store: GameStore): void {
         range: z.enum(['melee', 'ranged']).optional().describe('Defaults to melee. Affects prone targets and auto-crits'),
         advantage: advantageEnum.optional().describe('Circumstantial only; conditions are applied automatically'),
         crit_on: z.number().int().min(2).max(20).optional().describe('Defaults to 20; 19 for a Champion fighter'),
+        lethal: z
+          .boolean()
+          .optional()
+          .describe(
+            'Defaults to true. Pass false to pull the blow: a target reduced to 0 falls ' +
+              'unconscious instead of dying, even if it would normally die at 0 HP.',
+          ),
       },
     },
     (args) =>
@@ -356,6 +372,7 @@ export function registerTools(server: McpServer, store: GameStore): void {
           ...(args.range === undefined ? {} : { range: args.range }),
           ...(args.advantage === undefined ? {} : { advantage: args.advantage }),
           ...(args.crit_on === undefined ? {} : { critOn: args.crit_on }),
+          ...(args.lethal === undefined ? {} : { lethal: args.lethal }),
           rng: store.rng,
         })
 
@@ -379,6 +396,7 @@ export function registerTools(server: McpServer, store: GameStore): void {
                 damageApplied: outcome.damage.hpLost,
                 mitigation: outcome.damage.mitigation,
                 droppedToZero: outcome.damage.droppedToZero,
+                died: outcome.damage.died,
                 instantDeath: outcome.damage.instantDeath,
                 concentrationDc: outcome.damage.concentrationDc,
               }
@@ -403,14 +421,19 @@ export function registerTools(server: McpServer, store: GameStore): void {
         amount: z.number().int().min(0),
         damage_type: damageTypeEnum,
         critical: z.boolean().optional().describe('Costs two death saves instead of one if already at 0 HP'),
+        lethal: z
+          .boolean()
+          .optional()
+          .describe('Defaults to true. False knocks the target unconscious instead of killing it.'),
       },
     },
-    ({ id, amount, damage_type, critical }) =>
+    ({ id, amount, damage_type, critical, lethal }) =>
       guard(() => {
         const outcome = applyDamage(store.creature(id), {
           amount,
           damageType: damage_type,
           ...(critical === undefined ? {} : { critical }),
+          ...(lethal === undefined ? {} : { lethal }),
         })
         store.put(outcome.creature)
         store.record(outcome.events)
@@ -419,13 +442,15 @@ export function registerTools(server: McpServer, store: GameStore): void {
         if (outcome.mitigation !== 'none') parts.push(outcome.mitigation)
         if (outcome.absorbedByTempHp > 0) parts.push(`${outcome.absorbedByTempHp} soaked by temp HP`)
         if (outcome.instantDeath) parts.push('killed outright by massive damage')
-        else if (outcome.droppedToZero) parts.push('down and dying')
+        else if (outcome.died) parts.push('killed')
+        else if (outcome.droppedToZero) parts.push('knocked unconscious and dying')
 
         return ok(parts.join(' · '), {
           effective: outcome.effective,
           hpLost: outcome.hpLost,
           mitigation: outcome.mitigation,
           droppedToZero: outcome.droppedToZero,
+          died: outcome.died,
           instantDeath: outcome.instantDeath,
           deathSaveFailures: outcome.deathSaveFailures,
           concentrationDc: outcome.concentrationDc,

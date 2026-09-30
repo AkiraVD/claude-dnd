@@ -23,6 +23,11 @@ export interface DamageOptions {
    * target is already at 0 HP.
    */
   critical?: boolean
+  /**
+   * False to pull the blow: the target drops unconscious instead of dying, even
+   * if it would normally die at 0 HP. Defaults to true.
+   */
+  lethal?: boolean
 }
 
 export interface DamageOutcome {
@@ -36,7 +41,9 @@ export interface DamageOutcome {
   hpLost: number
   /** True when this blow brought the target from above 0 to exactly 0. */
   droppedToZero: boolean
-  /** Overkill matched or beat max HP: dead outright, no death saves. */
+  /** True when this damage killed the target, for any reason. */
+  died: boolean
+  /** Overkill matched or beat max HP. A stricter case of `died`. */
   instantDeath: boolean
   /** Death save failures inflicted for being hit while already at 0 HP. */
   deathSaveFailures: number
@@ -98,7 +105,7 @@ export function concentrationDc(damageTaken: number): number {
 }
 
 export function applyDamage(creature: Creature, options: DamageOptions): DamageOutcome {
-  const { amount, damageType, critical = false } = options
+  const { amount, damageType, critical = false, lethal = true } = options
 
   if (!Number.isInteger(amount) || amount < 0) {
     throw new RulesError(`damage must be a non-negative integer, got ${amount}`)
@@ -112,6 +119,7 @@ export function applyDamage(creature: Creature, options: DamageOptions): DamageO
     absorbedByTempHp: 0,
     hpLost: 0,
     droppedToZero: false,
+    died: false,
     instantDeath: false,
     deathSaveFailures: 0,
     concentrationDc: null,
@@ -151,16 +159,27 @@ export function applyDamage(creature: Creature, options: DamageOptions): DamageO
     dc = concentrationDc(effective)
   }
 
+  let died = false
   let instantDeath = false
   let deathSaveFailures = 0
   const droppedToZero = hpBefore > 0 && hpAfter === 0
 
   if (droppedToZero) {
-    // Massive damage: leftover damage at or above max HP kills outright.
-    if (overkill >= creature.hp.max) {
+    if (!lethal) {
+      // The attacker pulled the blow: unconscious, whatever the creature is.
+      next = addCondition(resetDeathSaves(next), 'unconscious')
+      events.push({ t: 'down', target: creature.id })
+    } else if (overkill >= creature.hp.max) {
+      // Massive damage: leftover damage at or above max HP kills outright.
+      died = true
       instantDeath = true
       next = withDeath(next, { dead: true })
       events.push({ t: 'death', target: creature.id, cause: 'massive-damage' })
+    } else if (creature.diesAtZero) {
+      // Monsters and NPCs do not roll death saves; 0 HP is simply the end.
+      died = true
+      next = withDeath(next, { dead: true })
+      events.push({ t: 'death', target: creature.id, cause: 'dropped-to-zero' })
     } else {
       next = addCondition(resetDeathSaves(next), 'unconscious')
       events.push({ t: 'down', target: creature.id })
@@ -192,6 +211,7 @@ export function applyDamage(creature: Creature, options: DamageOptions): DamageO
       failures,
     })
     if (failures >= 3) {
+      died = true
       next = withDeath(next, { dead: true })
       events.push({ t: 'death', target: creature.id, cause: 'death-saves' })
     }
@@ -204,6 +224,7 @@ export function applyDamage(creature: Creature, options: DamageOptions): DamageO
     absorbedByTempHp,
     hpLost,
     droppedToZero,
+    died,
     instantDeath,
     deathSaveFailures,
     concentrationDc: dc,

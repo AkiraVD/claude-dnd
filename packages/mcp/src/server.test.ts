@@ -146,6 +146,24 @@ describe('creatures', () => {
     expect(sheet.passivePerception).toBe(13)
   })
 
+  it('defaults death saves to player characters only', async () => {
+    const pc = await call('add_creature', BRANN)
+    expect(pc.data!.sheet.diesAtZero).toBe(false)
+
+    const npc = await call('add_creature', GOBLIN)
+    expect(npc.data!.sheet.diesAtZero).toBe(true)
+  })
+
+  it('lets a named NPC be given death saves', async () => {
+    const villain = await call('add_creature', {
+      ...GOBLIN,
+      id: 'boss',
+      name: 'Grishnak',
+      dies_at_zero: false,
+    })
+    expect(villain.data!.sheet.diesAtZero).toBe(false)
+  })
+
   it('refuses a duplicate id', async () => {
     await call('add_creature', BRANN)
     const again = await call('add_creature', BRANN)
@@ -274,10 +292,24 @@ describe('combat', () => {
     expect(data!.sheet.hp).toEqual({ current: 3, max: 7, temp: 0 })
   })
 
-  it('takes a creature down without killing it, then heals it back up', async () => {
+  it('kills a monster at 0 HP rather than making it roll death saves', async () => {
     const down = await call('apply_damage', { id: 'goblin-a', amount: 7, damage_type: 'piercing' })
     expect(down.data!.droppedToZero).toBe(true)
+    expect(down.data!.died).toBe(true)
     expect(down.data!.instantDeath).toBe(false)
+    expect(down.data!.creature.status).toBe('dead')
+    expect(down.data!.creature.conditions).not.toContain('unconscious')
+    expect(down.data!.narration).toMatch(/killed/)
+  })
+
+  it('spares a monster when the blow is pulled, then heals it back up', async () => {
+    const down = await call('apply_damage', {
+      id: 'goblin-a',
+      amount: 7,
+      damage_type: 'piercing',
+      lethal: false,
+    })
+    expect(down.data!.died).toBe(false)
     expect(down.data!.creature.status).toBe('dying')
     expect(down.data!.creature.conditions).toContain('unconscious')
 

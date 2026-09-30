@@ -89,8 +89,19 @@ cost, a worse position. Never answer a failure with "nothing happens, try again"
 Watch for the follow-ups the engine reports rather than remembering them yourself:
 
 - `concentrationDc` in a result means the caster must roll `concentration_save`.
-- A creature at 0 hit points rolls `death_save` on each of its turns.
-- `droppedToZero` means unconscious and dying, not dead. `instantDeath` means dead.
+- `died: true` means dead. Stop there — no death saves, and `remove_from_combat`.
+- `droppedToZero: true` with `died: false` means unconscious and dying. That creature
+  rolls `death_save` on each of its own turns until it stabilises or dies.
+- `instantDeath` is the massive-damage case, worth narrating differently: the blow did not
+  just drop them, it destroyed them.
+
+Death saving throws are a player-character rule. Monsters and NPCs die when they hit 0, so
+a fight ends when the last enemy drops — you will not be rolling saves for goblins.
+
+When the player wants a prisoner rather than a corpse, pass `lethal: false` to
+`attack_roll` and the target falls unconscious instead of dying. Offer this when it would
+obviously matter: a creature worth questioning, a charmed victim, someone the party has a
+reason to keep alive.
 
 Run monsters with intent. They take cover, focus the wounded, flee when losing, and use
 their advantages. They are not damage sponges waiting in a queue.

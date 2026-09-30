@@ -65,6 +65,16 @@ export interface Creature {
   readonly conditions: ConditionState
   readonly death: DeathState
   readonly concentration: Concentration | null
+  /**
+   * Whether dropping to 0 HP kills outright.
+   *
+   * True for monsters and NPCs, false for player characters. Death saving
+   * throws are a player-character rule — a goblin at 0 HP is simply dead, and
+   * making it roll saves every round is both wrong and tedious. An attacker can
+   * still choose to spare a creature that dies at zero; see `lethal` on
+   * applyDamage.
+   */
+  readonly diesAtZero: boolean
 }
 
 export type LifeStatus = 'alive' | 'dying' | 'stable' | 'dead'
@@ -82,6 +92,8 @@ export interface CreatureInput {
   speed?: number
   proficiencies?: Partial<Proficiencies>
   defenses?: Partial<Defenses>
+  /** Defaults to false for `pc` and true for `npc`. */
+  diesAtZero?: boolean
 }
 
 const unique = <T>(values: readonly T[]): readonly T[] => [...new Set(values)]
@@ -100,6 +112,7 @@ export function createCreature(input: CreatureInput): Creature {
     speed = 30,
     proficiencies = {},
     defenses = {},
+    diesAtZero = kind !== 'pc',
   } = input
 
   if (id.trim() === '') throw new RulesError('creature id cannot be empty')
@@ -154,6 +167,7 @@ export function createCreature(input: CreatureInput): Creature {
     conditions: { active: [], exhaustion: 0 },
     death: { successes: 0, failures: 0, stable: false, dead: false },
     concentration: null,
+    diesAtZero,
   }
 }
 

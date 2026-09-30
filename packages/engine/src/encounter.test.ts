@@ -50,7 +50,7 @@ const longsword = { ability: 'str', proficient: true, damage: '1d8', damageType:
 const scimitar = { ability: 'dex', proficient: true, damage: '1d6', damageType: 'slashing', damageBonus: 2 } as const
 
 describe('a goblin ambush, start to finish', () => {
-  it('runs initiative, a hit, a lethal crit, a miss, and a knockout', () => {
+  it('runs initiative, a hit, a lethal crit, a miss, and a killing blow', () => {
     let brann = fighter()
     let alpha = goblin('goblin-a', 'Goblin A')
     let beta = goblin('goblin-b', 'Goblin B')
@@ -128,7 +128,8 @@ describe('a goblin ambush, start to finish', () => {
     expect(wrap.actor.name).toBe('Brann')
 
     // 14 + 6 = 20 against AC 15. 1d8 shows 5, +3 = 8 against 7 HP: one point of
-    // overkill, nowhere near the 7 needed to kill outright, so Alpha goes down.
+    // overkill, nowhere near the 7 needed for massive damage — but a goblin dies
+    // at 0 regardless, with no death saves to roll.
     const finisher = attack({
       attacker: brann,
       target: alpha,
@@ -140,12 +141,35 @@ describe('a goblin ambush, start to finish', () => {
     expect(finisher.hit).toBe(true)
     expect(finisher.damage?.instantDeath).toBe(false)
     expect(finisher.damage?.droppedToZero).toBe(true)
+    expect(finisher.damage?.died).toBe(true)
     expect(alpha.hp.current).toBe(0)
-    expect(lifeStatus(alpha)).toBe('dying')
-    expect(hasCondition(alpha, 'unconscious')).toBe(true)
+    expect(lifeStatus(alpha)).toBe('dead')
+    expect(hasCondition(alpha, 'unconscious')).toBe(false)
 
     // Brann walked away from two goblins having taken a single scimitar hit.
     expect(brann.hp.current).toBe(22)
+  })
+
+  it('takes a goblin alive when the fighter pulls the blow', () => {
+    const brann = fighter()
+    const alpha = goblin('goblin-a', 'Goblin A')
+
+    const subdue = attack({
+      attacker: brann,
+      target: alpha,
+      ...longsword,
+      lethal: false,
+      rng: scriptedRng([14, 5]),
+    })
+
+    expect(subdue.damage?.died).toBe(false)
+    expect(lifeStatus(subdue.target)).toBe('dying')
+    expect(hasCondition(subdue.target, 'unconscious')).toBe(true)
+    expect(subdue.narrationHint).toMatch(/knocked unconscious/)
+
+    // And a prisoner can be patched up rather than left to bleed out.
+    const stable = heal(subdue.target, 3)
+    expect(lifeStatus(stable.creature)).toBe('alive')
   })
 
   it('takes a fighter down, through death saves, and back up again', () => {

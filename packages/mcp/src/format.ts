@@ -67,6 +67,7 @@ export function sheet(creature: Creature) {
     proficientSkills: skills,
     conditions: conditionList(creature),
     concentrating: creature.concentration?.spell ?? null,
+    diesAtZero: creature.diesAtZero,
     defenses: {
       resistant: creature.defenses.resistances,
       vulnerable: creature.defenses.vulnerabilities,

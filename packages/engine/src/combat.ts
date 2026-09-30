@@ -218,6 +218,11 @@ export interface AttackOptions {
   critOn?: number
   /** Skip the condition-derived advantage and use only what was passed in. */
   ignoreConditions?: boolean
+  /**
+   * False to knock the target out rather than kill it, when the hit would drop
+   * it to 0. Defaults to true.
+   */
+  lethal?: boolean
   rng: Rng
 }
 
@@ -278,6 +283,7 @@ export function attack(options: AttackOptions): AttackOutcome {
     advantage,
     critOn = 20,
     ignoreConditions = false,
+    lethal = true,
     rng,
   } = options
 
@@ -362,7 +368,7 @@ export function attack(options: AttackOptions): AttackOutcome {
   const notation = critical ? criticalNotation(damage) : damage
   const damageRoll = rollDice(notation, rng)
   const total = Math.max(0, damageRoll.total + damageBonus)
-  const outcome = applyDamage(target, { amount: total, damageType, critical })
+  const outcome = applyDamage(target, { amount: total, damageType, critical, lethal })
   events.push(...outcome.events)
 
   const parts = [
@@ -373,7 +379,8 @@ export function attack(options: AttackOptions): AttackOutcome {
   if (outcome.absorbedByTempHp > 0) parts.push(`${outcome.absorbedByTempHp} soaked by temp HP`)
   parts.push(`${outcome.creature.name} at ${outcome.creature.hp.current}/${outcome.creature.hp.max}`)
   if (outcome.instantDeath) parts.push('killed outright by massive damage')
-  else if (outcome.droppedToZero) parts.push('down and dying')
+  else if (outcome.died) parts.push('killed')
+  else if (outcome.droppedToZero) parts.push('knocked unconscious')
 
   return {
     roll,

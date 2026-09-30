@@ -5,7 +5,7 @@ export type Mitigation = 'none' | 'resisted' | 'vulnerable' | 'immune'
 
 export type DeathSaveOutcome = 'success' | 'failure' | 'stabilised' | 'dead' | 'revived'
 
-export type DeathCause = 'death-saves' | 'massive-damage' | 'exhaustion'
+export type DeathCause = 'death-saves' | 'massive-damage' | 'dropped-to-zero' | 'exhaustion'
 
 /**
  * A faithful record of everything the rules did, in order.

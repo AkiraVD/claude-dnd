@@ -23,7 +23,7 @@ on their own turns.
 
 ## Findings, as the DM reported them
 
-### 1. NPCs go dying instead of dead, with no way to opt out — **bug**
+### 1. NPCs go dying instead of dead, with no way to opt out — **bug · FIXED**
 
 A 7 HP goblin at 0 entered `status: "dying"` with `unconscious`, so the DM was obliged to
 roll `death_save` for it every round. Standard 5e is that monsters die at 0 unless the
@@ -36,6 +36,12 @@ never chose it, and a DM who wanted two corpses had no button to press.
 
 Wanted: `dies_at_zero` on `add_creature`, defaulting true for `kind: "npc"` and false for
 `pc`, plus a `lethal` flag for deliberate non-lethal knockouts.
+
+**Fixed as asked.** `diesAtZero` is now a creature property, defaulting from `kind`, and
+`lethal: false` on `attack_roll` / `apply_damage` pulls the blow so a target falls
+unconscious instead of dying — even past the massive-damage threshold, since an attacker
+choosing to spare someone should not be defeated by arithmetic. Damage results now carry
+`died` alongside `droppedToZero` and `instantDeath`, and the DM brief says which is which.
 
 ### 2. No way to say something is dead — **gap**
 

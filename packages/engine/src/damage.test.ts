@@ -25,10 +25,12 @@ import { scriptedRng } from './testing.js'
 
 const SCORES: AbilityScores = { str: 14, dex: 12, con: 14, int: 10, wis: 10, cha: 10 }
 
+/** A player character: drops to dying at 0 HP and rolls death saves. */
 const subject = (overrides: Partial<Parameters<typeof createCreature>[0]> = {}): Creature =>
   createCreature({
     id: 'x',
     name: 'Target',
+    kind: 'pc',
     level: 5,
     scores: SCORES,
     maxHp: 30,
@@ -36,6 +38,10 @@ const subject = (overrides: Partial<Parameters<typeof createCreature>[0]> = {}):
     proficiencies: { saves: ['con'] },
     ...overrides,
   })
+
+/** A monster: 0 HP is simply the end. */
+const monster = (overrides: Partial<Parameters<typeof createCreature>[0]> = {}): Creature =>
+  createCreature({ id: 'm', name: 'Goblin', scores: SCORES, maxHp: 7, ac: 15, ...overrides })
 
 describe('mitigate', () => {
   it('leaves plain damage alone', () => {
@@ -118,7 +124,7 @@ describe('applyDamage', () => {
     expect(out.hpLost).toBe(0)
   })
 
-  it('floors at 0 HP and knocks the target out', () => {
+  it('floors a player character at 0 HP and starts them dying', () => {
     const out = applyDamage(subject(), { amount: 34, damageType: 'bludgeoning' })
     expect(out.creature.hp.current).toBe(0)
     expect(out.hpLost).toBe(30)
@@ -137,9 +143,10 @@ describe('applyDamage', () => {
     expect(out.events.some((e) => e.t === 'death' && e.cause === 'massive-damage')).toBe(true)
   })
 
-  it('does not kill outright when overkill falls one short', () => {
+  it('does not kill a player character outright when overkill falls one short', () => {
     const out = applyDamage(subject(), { amount: 59, damageType: 'force' })
     expect(out.instantDeath).toBe(false)
+    expect(out.died).toBe(false)
     expect(lifeStatus(out.creature)).toBe('dying')
   })
 
@@ -169,6 +176,46 @@ describe('applyDamage', () => {
     const down = withDeath(withHp(subject(), { current: 0 }), { failures: 2 })
     const out = applyDamage(down, { amount: 1, damageType: 'slashing' })
     expect(lifeStatus(out.creature)).toBe('dead')
+  })
+
+  it('kills a monster outright at 0 HP, with no death saves', () => {
+    // Death saving throws are a player-character rule. A goblin at 0 is dead.
+    const out = applyDamage(monster(), { amount: 7, damageType: 'slashing' })
+    expect(out.droppedToZero).toBe(true)
+    expect(out.died).toBe(true)
+    expect(out.instantDeath).toBe(false)
+    expect(lifeStatus(out.creature)).toBe('dead')
+    expect(hasCondition(out.creature, 'unconscious')).toBe(false)
+    expect(out.events.some((e) => e.t === 'death' && e.cause === 'dropped-to-zero')).toBe(true)
+    expect(out.events.some((e) => e.t === 'down')).toBe(false)
+  })
+
+  it('lets a named NPC take death saves when told to', () => {
+    const villain = monster({ diesAtZero: false, maxHp: 30 })
+    const out = applyDamage(villain, { amount: 30, damageType: 'slashing' })
+    expect(out.died).toBe(false)
+    expect(lifeStatus(out.creature)).toBe('dying')
+  })
+
+  it('knocks a monster unconscious instead of killing it when the blow is pulled', () => {
+    const out = applyDamage(monster(), { amount: 7, damageType: 'bludgeoning', lethal: false })
+    expect(out.droppedToZero).toBe(true)
+    expect(out.died).toBe(false)
+    expect(lifeStatus(out.creature)).toBe('dying')
+    expect(hasCondition(out.creature, 'unconscious')).toBe(true)
+  })
+
+  it('spares even massive damage when the blow is pulled', () => {
+    const out = applyDamage(monster(), { amount: 40, damageType: 'bludgeoning', lethal: false })
+    expect(out.instantDeath).toBe(false)
+    expect(out.died).toBe(false)
+    expect(lifeStatus(out.creature)).toBe('dying')
+  })
+
+  it('reports died when the third death save failure lands', () => {
+    const down = withDeath(withHp(subject(), { current: 0 }), { failures: 2 })
+    const out = applyDamage(down, { amount: 1, damageType: 'slashing' })
+    expect(out.died).toBe(true)
   })
 
   it('does nothing to a corpse', () => {
