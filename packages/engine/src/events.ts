@@ -63,3 +63,17 @@ export type GameEvent =
   | { t: 'initiative'; order: readonly { id: CreatureId; initiative: number }[] }
   | { t: 'turn'; actor: CreatureId; round: number }
   | { t: 'combat'; op: 'start' | 'end' }
+  | { t: 'creature-added'; id: CreatureId; name: string; kind: 'pc' | 'npc' }
+  | { t: 'creature-removed'; id: CreatureId; name: string }
+  | { t: 'scene'; scene: string }
+  | { t: 'roll'; notation: string; total: number; purpose?: string }
+  | {
+      t: 'check'
+      actor: CreatureId
+      /** What was rolled, e.g. "stealth check" or "CON save". */
+      label: string
+      natural: number
+      total: number
+      dc?: number
+      success?: boolean
+    }

@@ -89,10 +89,13 @@ AC 16 went in as an integer, so nothing knows Brann wears chain mail, so nothing
 chain mail's stealth disadvantage. The DM narrated the noise of the armour and rolled a
 straight check — a real rules error the engine could not prevent.
 
-### 10. No undo
+### 10. No undo — **FIXED in phase 4**
 
 `next_turn` is the only way to move the marker. Advance past a player who had not finished
 and there is no way back.
+
+**Fixed.** Every change is now a persisted step, and `undo` reverts the last one — which
+falls out of storing a state snapshot per step rather than replaying events.
 
 ### 11. Keep `attack_roll` as one call
 

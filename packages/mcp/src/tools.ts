@@ -33,6 +33,7 @@ import {
   stabilise,
   startCombat,
   startConcentration,
+  type D20TestResult,
 } from '@dnd/engine'
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
@@ -63,6 +64,34 @@ function fail(message: string): CallToolResult {
  * back as a failed tool result carrying the reason, so the DM can adapt instead
  * of seeing a stack trace — anything else is a real bug and should surface.
  */
+/**
+ * Record a d20 test: the journal entry plus the snapshot that carries the dice
+ * position forward.
+ *
+ * Any tool that consumes randomness has to commit, even a "read-only" check —
+ * otherwise the roll happens, the generator advances, and a restart replays the
+ * same dice.
+ */
+function commitTest(
+  store: GameStore,
+  tool: string,
+  actor: string,
+  label: string,
+  test: D20TestResult,
+): void {
+  store.commit(tool, [
+    {
+      t: 'check',
+      actor,
+      label,
+      natural: test.natural,
+      total: test.total,
+      ...(test.dc === undefined ? {} : { dc: test.dc }),
+      ...(test.success === undefined ? {} : { success: test.success }),
+    },
+  ])
+}
+
 function guard(run: () => CallToolResult): CallToolResult {
   try {
     return run()
@@ -91,6 +120,14 @@ export function registerTools(server: McpServer, store: GameStore): void {
     ({ notation, purpose }) =>
       guard(() => {
         const result = rollDice(notation, store.rng)
+        store.commit('roll_dice', [
+          {
+            t: 'roll',
+            notation,
+            total: result.total,
+            ...(purpose === undefined ? {} : { purpose }),
+          },
+        ])
         return ok(formatDiceResult(result), {
           total: result.total,
           ...(purpose === undefined ? {} : { purpose }),
@@ -170,6 +207,9 @@ export function registerTools(server: McpServer, store: GameStore): void {
           ...(args.dies_at_zero === undefined ? {} : { diesAtZero: args.dies_at_zero }),
         })
         store.add(creature)
+        store.commit('add_creature', [
+          { t: 'creature-added', id: creature.id, name: creature.name, kind: creature.kind },
+        ])
         return ok(`${creature.name} added at ${creature.hp.current}/${creature.hp.max} HP, AC ${creature.ac}`, {
           sheet: sheet(creature),
         })
@@ -187,6 +227,7 @@ export function registerTools(server: McpServer, store: GameStore): void {
       guard(() => {
         const name = store.creature(id).name
         store.remove(id)
+        store.commit('remove_creature', [{ t: 'creature-removed', id, name }])
         return ok(`${name} removed from the scene`)
       }),
   )
@@ -226,6 +267,7 @@ export function registerTools(server: McpServer, store: GameStore): void {
     ({ scene }) =>
       guard(() => {
         store.setScene(scene)
+        store.commit('set_scene', [{ t: 'scene', scene }])
         return ok('Scene set', { scene })
       }),
   )
@@ -257,6 +299,7 @@ export function registerTools(server: McpServer, store: GameStore): void {
           ...(dc === undefined ? {} : { dc }),
           rng: store.rng,
         })
+        commitTest(store, 'ability_check', creature.id, `${ability.toUpperCase()} check`, test)
         return ok(describeTest(`${creature.name} ${ability.toUpperCase()} check`, test), { test })
       }),
   )
@@ -290,6 +333,7 @@ export function registerTools(server: McpServer, store: GameStore): void {
           ...(dc === undefined ? {} : { dc }),
           rng: store.rng,
         })
+        commitTest(store, 'skill_check', creature.id, `${skill} check`, test)
         return ok(describeTest(`${creature.name} ${skill} check`, test), { test })
       }),
   )
@@ -320,6 +364,7 @@ export function registerTools(server: McpServer, store: GameStore): void {
           dc,
           rng: store.rng,
         })
+        commitTest(store, 'saving_throw', creature.id, `${ability.toUpperCase()} save`, test)
         return ok(describeTest(`${creature.name} ${ability.toUpperCase()} save`, test), { test })
       }),
   )
@@ -377,7 +422,7 @@ export function registerTools(server: McpServer, store: GameStore): void {
         })
 
         store.put(outcome.target)
-        store.record(outcome.events)
+        store.commit('attack_roll', outcome.events)
 
         return ok(`${attacker.name} → ${target.name}: ${outcome.narrationHint}`, {
           attackRoll: {
@@ -436,7 +481,7 @@ export function registerTools(server: McpServer, store: GameStore): void {
           ...(lethal === undefined ? {} : { lethal }),
         })
         store.put(outcome.creature)
-        store.record(outcome.events)
+        store.commit('apply_damage', outcome.events)
 
         const parts = [`${outcome.creature.name} takes ${outcome.hpLost} ${damage_type}`]
         if (outcome.mitigation !== 'none') parts.push(outcome.mitigation)
@@ -472,7 +517,7 @@ export function registerTools(server: McpServer, store: GameStore): void {
       guard(() => {
         const outcome = heal(store.creature(id), amount)
         store.put(outcome.creature)
-        store.record(outcome.events)
+        store.commit('heal', outcome.events)
         return ok(
           `${outcome.creature.name} regains ${outcome.healed} HP${outcome.revived ? ' and is conscious again' : ''}`,
           { healed: outcome.healed, revived: outcome.revived, creature: brief(outcome.creature) },
@@ -491,7 +536,7 @@ export function registerTools(server: McpServer, store: GameStore): void {
       guard(() => {
         const outcome = applyTempHp(store.creature(id), amount)
         store.put(outcome.creature)
-        store.record(outcome.events)
+        store.commit('apply_temp_hp', outcome.events)
         return ok(
           outcome.replaced
             ? `${outcome.creature.name} gains ${amount} temporary HP`
@@ -514,7 +559,7 @@ export function registerTools(server: McpServer, store: GameStore): void {
       guard(() => {
         const outcome = deathSave(store.creature(id), store.rng)
         store.put(outcome.creature)
-        store.record(outcome.events)
+        store.commit('death_save', outcome.events)
         return ok(
           `${outcome.creature.name} death save: rolled ${outcome.roll.natural} — ${outcome.outcome}`,
           {
@@ -540,7 +585,7 @@ export function registerTools(server: McpServer, store: GameStore): void {
       guard(() => {
         const outcome = stabilise(store.creature(id))
         store.put(outcome.creature)
-        store.record(outcome.events)
+        store.commit('stabilise', outcome.events)
         return ok(`${outcome.creature.name} is stable at 0 HP`, { creature: brief(outcome.creature) })
       }),
   )
@@ -566,7 +611,7 @@ export function registerTools(server: McpServer, store: GameStore): void {
         }
         const creature = addCondition(store.creature(id), condition)
         store.put(creature)
-        store.record([{ t: 'condition', target: id, condition, op: 'add' }])
+        store.commit('apply_condition', [{ t: 'condition', target: id, condition, op: 'add' }])
         return ok(`${creature.name} is now ${condition}`, { creature: brief(creature) })
       }),
   )
@@ -585,7 +630,7 @@ export function registerTools(server: McpServer, store: GameStore): void {
         }
         const creature = removeCondition(store.creature(id), condition)
         store.put(creature)
-        store.record([{ t: 'condition', target: id, condition, op: 'remove' }])
+        store.commit('remove_condition', [{ t: 'condition', target: id, condition, op: 'remove' }])
         return ok(`${creature.name} is no longer ${condition}`, { creature: brief(creature) })
       }),
   )
@@ -601,7 +646,7 @@ export function registerTools(server: McpServer, store: GameStore): void {
       guard(() => {
         const creature = setExhaustion(store.creature(id), level)
         store.put(creature)
-        store.record([{ t: 'exhaustion', target: id, level }])
+        store.commit('set_exhaustion', [{ t: 'exhaustion', target: id, level }])
         return ok(
           level === 6
             ? `${creature.name} dies of exhaustion`
@@ -623,7 +668,7 @@ export function registerTools(server: McpServer, store: GameStore): void {
       guard(() => {
         const outcome = startConcentration(store.creature(id), spell)
         store.put(outcome.creature)
-        store.record(outcome.events)
+        store.commit('start_concentration', outcome.events)
         return ok(`${outcome.creature.name} is concentrating on ${spell}`, {
           creature: brief(outcome.creature),
         })
@@ -643,7 +688,7 @@ export function registerTools(server: McpServer, store: GameStore): void {
       guard(() => {
         const outcome = concentrationSave(store.creature(id), damage_taken, store.rng)
         store.put(outcome.creature)
-        store.record(outcome.events)
+        store.commit('concentration_save', outcome.events)
         return ok(
           describeTest(`${outcome.creature.name} concentration save`, outcome.roll) +
             (outcome.maintained ? ' — spell holds' : ' — concentration broken'),
@@ -668,7 +713,7 @@ export function registerTools(server: McpServer, store: GameStore): void {
         const creatures = ids.map((id) => store.creature(id))
         const outcome = startCombat(creatures, store.rng)
         store.setCombat(outcome.state)
-        store.record(outcome.events)
+        store.commit('start_combat', outcome.events)
         return ok(
           `Initiative: ${outcome.state.order.map((c) => `${c.name} ${c.initiative}`).join(', ')}. ` +
             `Round 1, ${outcome.state.order[0]!.name} acts first.`,
@@ -692,7 +737,7 @@ export function registerTools(server: McpServer, store: GameStore): void {
       guard(() => {
         const outcome = nextTurn(store.requireCombat())
         store.setCombat(outcome.state)
-        store.record(outcome.events)
+        store.commit('next_turn', outcome.events)
         return ok(
           `${outcome.newRound ? `Round ${outcome.state.round}. ` : ''}${outcome.actor.name}'s turn.`,
           {
@@ -719,6 +764,7 @@ export function registerTools(server: McpServer, store: GameStore): void {
         const name = store.creature(id).name
         const state = removeFromCombat(store.requireCombat(), id)
         store.setCombat(state)
+        store.commit('remove_from_combat')
         return ok(
           state.active
             ? `${name} leaves the fight. Still up: ${state.order.map((c) => c.name).join(', ')}`
@@ -739,7 +785,7 @@ export function registerTools(server: McpServer, store: GameStore): void {
       guard(() => {
         const outcome = endCombat(store.requireCombat())
         store.setCombat(outcome.state)
-        store.record(outcome.events)
+        store.commit('end_combat', outcome.events)
         return ok(`Combat ends after ${outcome.state.round} round(s).`)
       }),
   )
@@ -785,5 +831,183 @@ export function registerTools(server: McpServer, store: GameStore): void {
           events: store.recentEvents(limit ?? 20),
         }),
       ),
+  )
+}
+
+/**
+ * Campaign management: create, switch, recap, undo, reset, delete.
+ *
+ * Kept separate from the rules tools because it is bookkeeping rather than
+ * mechanics, and because the destructive ones need their own care.
+ */
+export function registerCampaignTools(server: McpServer, store: GameStore): void {
+  server.registerTool(
+    'list_campaigns',
+    {
+      title: 'List saved campaigns',
+      description:
+        'Every campaign on disk, most recently played first, with how many steps each has. ' +
+        'The one currently loaded is marked.',
+      inputSchema: {},
+    },
+    () =>
+      guard(() => {
+        const current = store.campaign.id
+        const campaigns = store.listCampaigns()
+        return ok(
+          campaigns.length === 0
+            ? 'No saved campaigns.'
+            : `${campaigns.length} campaign(s). Currently loaded: ${current}.`,
+          {
+            current,
+            campaigns: campaigns.map((c) => ({
+              id: c.id,
+              name: c.name,
+              steps: c.steps,
+              lastPlayed: c.updatedAt,
+              loaded: c.id === current,
+            })),
+          },
+        )
+      }),
+  )
+
+  server.registerTool(
+    'new_campaign',
+    {
+      title: 'Start a new campaign',
+      description:
+        'Create a fresh campaign and switch to it. The one in play is left untouched on ' +
+        'disk and can be returned to with load_campaign.',
+      inputSchema: {
+        name: z.string().describe('Something you can recognise it by later'),
+        seed: z.number().int().optional().describe('Pin the dice for a reproducible campaign'),
+      },
+    },
+    ({ name, seed }) =>
+      guard(() => {
+        const campaign = store.startCampaign(name, seed)
+        store.commit('new_campaign')
+        return ok(`Started campaign ${campaign.id}: "${campaign.name}"`, {
+          campaign: { id: campaign.id, name: campaign.name, seed: campaign.seed },
+        })
+      }),
+  )
+
+  server.registerTool(
+    'load_campaign',
+    {
+      title: 'Load a saved campaign',
+      description:
+        'Switch to a saved campaign, restoring its creatures, scene, combat, and dice ' +
+        'position exactly as they were. Use list_campaigns to find the id.',
+      inputSchema: { id: z.number().int() },
+    },
+    ({ id }) =>
+      guard(() => {
+        const campaign = store.switchCampaign(id)
+        const combat = store.combat
+        return ok(
+          `Loaded "${campaign.name}" — ${store.all().length} creature(s), ${campaign.steps} step(s)` +
+            (combat?.active ? `, mid-combat on round ${combat.round}` : ''),
+          { campaign: { id: campaign.id, name: campaign.name }, state: stateSummary(store) },
+        )
+      }),
+  )
+
+  server.registerTool(
+    'rename_campaign',
+    {
+      title: 'Rename the current campaign',
+      description: 'Give the loaded campaign a better name once you know what it is about.',
+      inputSchema: { name: z.string() },
+    },
+    ({ name }) =>
+      guard(() => {
+        store.renameCampaign(name)
+        return ok(`Renamed to "${name}"`)
+      }),
+  )
+
+  server.registerTool(
+    'recap',
+    {
+      title: 'Recap the story so far',
+      description:
+        'The scene, the party, and what recently happened mechanically. Read this when ' +
+        'resuming a campaign, and narrate a "previously" from it rather than listing events.',
+      inputSchema: {
+        limit: z.number().int().min(1).max(200).optional().describe('Events to include; defaults to 30'),
+      },
+    },
+    ({ limit }) =>
+      guard(() => {
+        const campaign = store.campaign
+        return ok(
+          `"${campaign.name}" — ${campaign.steps} step(s), last played ${campaign.updatedAt}`,
+          {
+            campaign: { id: campaign.id, name: campaign.name },
+            ...stateSummary(store),
+            events: store.recentEvents(limit ?? 30),
+          },
+        )
+      }),
+  )
+
+  server.registerTool(
+    'undo',
+    {
+      title: 'Undo the last step',
+      description:
+        'Revert the most recent change — a misapplied damage roll, a turn advanced too ' +
+        'early, a condition on the wrong creature. Restores the state from just before it.',
+      inputSchema: {},
+    },
+    () =>
+      guard(() => {
+        const undone = store.undo()
+        if (undone === null) return fail('nothing to undo — this campaign has no steps yet')
+        return ok(`Undid "${undone}"`, { undone, state: stateSummary(store) })
+      }),
+  )
+
+  server.registerTool(
+    'reset_campaign',
+    {
+      title: 'Clear the board',
+      description:
+        'Remove every creature, end any combat, and clear the scene, keeping the campaign ' +
+        'and its journal. Reversible with undo. Use this after a conversation reset has ' +
+        'left you out of step with the engine.',
+      inputSchema: {
+        confirm: z.literal(true).describe('Must be true — this clears the whole board'),
+      },
+    },
+    () =>
+      guard(() => {
+        store.reset()
+        return ok('Board cleared. The campaign and its history are intact; undo will bring it back.')
+      }),
+  )
+
+  server.registerTool(
+    'delete_campaign',
+    {
+      title: 'Delete a campaign permanently',
+      description:
+        'Erase a campaign and its entire history from disk. This cannot be undone. Ask the ' +
+        'player to confirm before calling it — never delete a campaign on your own initiative.',
+      inputSchema: {
+        id: z.number().int(),
+        confirm: z.literal(true).describe('Must be true — this is permanent'),
+      },
+    },
+    ({ id }) =>
+      guard(() => {
+        const deleted = store.deleteCampaign(id)
+        return ok(`Deleted campaign ${deleted.id} "${deleted.name}" permanently.`, {
+          nowLoaded: store.campaign.id,
+        })
+      }),
   )
 }

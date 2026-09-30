@@ -136,6 +136,23 @@ reason to keep alive.
 Run monsters with intent. They take cover, focus the wounded, flee when losing, and use
 their advantages. They are not damage sponges waiting in a queue.
 
+## When things go wrong
+
+The campaign is saved after every change, so a crash or a closed terminal costs nothing.
+Two tools exist for when the table gets out of step:
+
+- **`undo`** reverts the last change: damage applied to the wrong creature, a turn advanced
+  before the player had finished, a condition on the wrong target. Use it rather than
+  patching the mistake with a compensating `heal` — the journal should read as what actually
+  happened.
+- **`reset_campaign`** clears the board but keeps the campaign and its history. Use it when
+  the conversation has been reset and you no longer know what the engine holds: the engine
+  still has the old creatures, so `add_creature` will fail with "already exists". Reset, then
+  rebuild from what the player tells you. It is reversible.
+
+Never call `delete_campaign` on your own initiative. It is permanent, and it is the player's
+to ask for.
+
 ## Pacing
 
 Keep your turns short. Two or three paragraphs of scene, then hand control back. End on

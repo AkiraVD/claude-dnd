@@ -7,37 +7,175 @@ import {
   type CreatureId,
   type GameEvent,
 } from '@dnd/engine'
+import type { CampaignDb, CampaignRow, CampaignSnapshot, StepRow } from './db.js'
+
+export const DEFAULT_SCENE = 'No scene set yet.'
+
+export interface OpenOptions {
+  /** Load this campaign. Defaults to the most recently updated one. */
+  campaignId?: number
+  /** Name for a campaign created because none existed. */
+  name?: string
+  /** Seed for a campaign created because none existed. */
+  seed?: number
+}
 
 /**
- * Everything one campaign knows, held in memory.
+ * One campaign's live state, written through to SQLite after every change.
  *
- * Phase 4 replaces this with SQLite, which is why every mutation already funnels
- * through `put` and `record`: the durable version has to append the same events
- * this one keeps in an array.
+ * Mutators (`put`, `setCombat`, `setScene`) change the hot state; `commit`
+ * persists it as a new step together with the events that produced it. Every
+ * mutating tool must call `commit`, and `persistence.test.ts` checks that they
+ * do by reopening the database and looking.
  */
 export class GameStore {
-  readonly seed: number
-  readonly #rng: SeededRng
-  readonly #creatures = new Map<CreatureId, Creature>()
+  readonly #db: CampaignDb
+  #campaign: CampaignRow
+  #rng: SeededRng
+  #creatures = new Map<CreatureId, Creature>()
   #combat: CombatState | null = null
-  #scene = 'No scene set yet.'
-  readonly #events: GameEvent[] = []
+  #scene = DEFAULT_SCENE
 
-  constructor(seed: number = randomSeed()) {
-    this.seed = seed
-    this.#rng = new SeededRng(seed)
+  private constructor(db: CampaignDb, campaign: CampaignRow) {
+    this.#db = db
+    this.#campaign = campaign
+    this.#rng = new SeededRng(campaign.seed)
+    this.#hydrate()
   }
 
-  /**
-   * One generator for the whole campaign, so the dice stream advances across
-   * tool calls and the session can be replayed from the seed.
-   */
+  static open(db: CampaignDb, options: OpenOptions = {}): GameStore {
+    if (options.campaignId !== undefined) {
+      const found = db.findCampaign(options.campaignId)
+      if (!found) throw new RulesError(`no campaign with id ${options.campaignId}`)
+      return new GameStore(db, found)
+    }
+
+    const recent = db.mostRecentCampaign()
+    if (recent) return new GameStore(db, recent)
+
+    return new GameStore(
+      db,
+      db.createCampaign(options.name ?? 'Untitled campaign', options.seed ?? randomSeed()),
+    )
+  }
+
+  // ── campaign identity ────────────────────────────────────────────────────────
+
+  get campaign(): CampaignRow {
+    return { ...this.#campaign, steps: this.#db.stepCount(this.#campaign.id) }
+  }
+
+  get seed(): number {
+    return this.#campaign.seed
+  }
+
+  listCampaigns(): CampaignRow[] {
+    return this.#db.listCampaigns()
+  }
+
+  /** Create a campaign and switch to it. */
+  startCampaign(name: string, seed?: number): CampaignRow {
+    this.#campaign = this.#db.createCampaign(name, seed ?? randomSeed())
+    this.#rng = new SeededRng(this.#campaign.seed)
+    this.#creatures = new Map()
+    this.#combat = null
+    this.#scene = DEFAULT_SCENE
+    return this.campaign
+  }
+
+  switchCampaign(id: number): CampaignRow {
+    const found = this.#db.findCampaign(id)
+    if (!found) {
+      const known = this.#db
+        .listCampaigns()
+        .map((c) => `${c.id} (${c.name})`)
+        .join(', ')
+      throw new RulesError(
+        `no campaign with id ${id}. Known campaigns: ${known === '' ? '(none)' : known}`,
+      )
+    }
+    this.#campaign = found
+    this.#hydrate()
+    return this.campaign
+  }
+
+  renameCampaign(name: string): void {
+    this.#db.renameCampaign(this.#campaign.id, name)
+    this.#campaign = { ...this.#campaign, name }
+  }
+
+  deleteCampaign(id: number): CampaignRow {
+    const found = this.#db.findCampaign(id)
+    if (!found) throw new RulesError(`no campaign with id ${id}`)
+    this.#db.deleteCampaign(id)
+
+    // Deleting the campaign in play leaves nothing loaded, so move to another
+    // one, or start fresh if that was the last.
+    if (id === this.#campaign.id) {
+      const next = this.#db.mostRecentCampaign()
+      if (next) {
+        this.#campaign = next
+        this.#hydrate()
+      } else {
+        this.startCampaign('Untitled campaign')
+      }
+    }
+    return found
+  }
+
+  /** Wipe the board without destroying the journal, as an undoable step. */
+  reset(): void {
+    this.#creatures = new Map()
+    this.#combat = null
+    this.#scene = DEFAULT_SCENE
+    this.#rng = new SeededRng(randomSeed())
+    this.commit('reset_campaign')
+  }
+
+  /** Revert the newest step. Returns the label of what was undone. */
+  undo(): string | null {
+    const label = this.#db.dropLastStep(this.#campaign.id)
+    if (label === null) return null
+    this.#hydrate()
+    return label
+  }
+
+  // ── persistence ──────────────────────────────────────────────────────────────
+
+  snapshot(): CampaignSnapshot {
+    return {
+      rngState: this.#rng.state(),
+      scene: this.#scene,
+      creatures: this.all(),
+      combat: this.#combat,
+    }
+  }
+
+  /** Persist the current state as a new step, with the events that caused it. */
+  commit(label: string, events: readonly GameEvent[] = []): void {
+    this.#db.appendStep(this.#campaign.id, label, events, this.snapshot())
+  }
+
+  #hydrate(): void {
+    const snapshot = this.#db.latestSnapshot(this.#campaign.id)
+    if (!snapshot) {
+      this.#rng = new SeededRng(this.#campaign.seed)
+      this.#creatures = new Map()
+      this.#combat = null
+      this.#scene = DEFAULT_SCENE
+      return
+    }
+    this.#rng = SeededRng.fromState(snapshot.rngState)
+    this.#scene = snapshot.scene
+    this.#combat = snapshot.combat
+    this.#creatures = new Map(snapshot.creatures.map((creature) => [creature.id, creature]))
+  }
+
+  // ── live state ───────────────────────────────────────────────────────────────
+
+  /** One generator per campaign, its position saved with every step. */
   get rng(): SeededRng {
     return this.#rng
-  }
-
-  get rngState(): number {
-    return this.#rng.state()
   }
 
   get scene(): string {
@@ -86,7 +224,6 @@ export class GameStore {
     this.#creatures.set(creature.id, creature)
   }
 
-  /** Replace an existing creature after the engine returned new state. */
   put(creature: Creature): void {
     this.#creatures.set(creature.id, creature)
   }
@@ -104,15 +241,17 @@ export class GameStore {
     return [...this.#creatures.keys()]
   }
 
-  record(events: readonly GameEvent[]): void {
-    this.#events.push(...events)
-  }
+  // ── journal ──────────────────────────────────────────────────────────────────
 
   get eventCount(): number {
-    return this.#events.length
+    return this.#db.eventCount(this.#campaign.id)
   }
 
   recentEvents(limit: number): GameEvent[] {
-    return this.#events.slice(-limit)
+    return this.#db.recentEvents(this.#campaign.id, limit)
+  }
+
+  recentSteps(limit: number): StepRow[] {
+    return this.#db.recentSteps(this.#campaign.id, limit)
   }
 }

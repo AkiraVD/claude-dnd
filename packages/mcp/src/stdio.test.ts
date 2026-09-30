@@ -1,3 +1,6 @@
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -13,13 +16,22 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 let client: Client
 let transport: StdioClientTransport
+let dir: string
+
+/** Each spawned server gets its own database file, never the project's. */
+const spawnEnv = (seed = '99') =>
+  ({ ...process.env, DND_SEED: seed, DND_DB: join(dir, `${seed}-${Math.random()}.db`) }) as Record<
+    string,
+    string
+  >
 
 beforeAll(async () => {
+  dir = mkdtempSync(join(tmpdir(), 'dnd-stdio-'))
   transport = new StdioClientTransport({
     command: 'npx',
     args: ['tsx', 'packages/mcp/src/index.ts'],
     cwd: process.cwd(),
-    env: { ...process.env, DND_SEED: '99' } as Record<string, string>,
+    env: spawnEnv(),
     stderr: 'pipe',
   })
   client = new Client({ name: 'stdio-test', version: '0' })
@@ -28,6 +40,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await client?.close()
+  rmSync(dir, { recursive: true, force: true })
 })
 
 async function call(name: string, args: Record<string, unknown> = {}) {
@@ -123,13 +136,74 @@ describe('the server as Claude Code launches it', () => {
     expect(bad.text).toMatch(/no creature with id|no combat/)
   })
 
+  it('resumes a campaign across a real process restart', async () => {
+    const shared = join(dir, 'resume.db')
+    const env = { ...process.env, DND_SEED: '1234', DND_DB: shared } as Record<string, string>
+
+    const spawn = async () => {
+      const t = new StdioClientTransport({
+        command: 'npx',
+        args: ['tsx', 'packages/mcp/src/index.ts'],
+        cwd: process.cwd(),
+        env,
+        stderr: 'pipe',
+      })
+      const c = new Client({ name: 'resume', version: '0' })
+      await c.connect(t)
+      return c
+    }
+
+    const first = await spawn()
+    await first.callTool({
+      name: 'add_creature',
+      arguments: {
+        id: 'thora',
+        name: 'Thora',
+        kind: 'pc',
+        level: 2,
+        str: 15,
+        dex: 12,
+        con: 14,
+        int: 10,
+        wis: 13,
+        cha: 8,
+        max_hp: 20,
+        ac: 15,
+      },
+    })
+    await first.callTool({
+      name: 'apply_damage',
+      arguments: { id: 'thora', amount: 6, damage_type: 'piercing' },
+    })
+    await first.callTool({ name: 'set_scene', arguments: { scene: 'Halfway up the cliff path.' } })
+    await first.close()
+
+    // The process is gone. A new one, same database, nothing passed in.
+    const second = await spawn()
+    const result = await second.callTool({
+      name: 'get_character_sheet',
+      arguments: { id: 'thora' },
+    })
+    const sheet = JSON.parse((result.content as Array<{ text: string }>)[0]!.text)
+
+    expect(sheet.sheet.name).toBe('Thora')
+    expect(sheet.sheet.hp).toEqual({ current: 14, max: 20, temp: 0 })
+
+    const state = await second.callTool({ name: 'get_state', arguments: {} })
+    expect(JSON.parse((state.content as Array<{ text: string }>)[0]!.text).scene).toBe(
+      'Halfway up the cliff path.',
+    )
+    await second.close()
+  }, 90_000)
+
   it('pins the dice to DND_SEED', async () => {
-    // Seed 99 is set in beforeAll; a fresh connection must replay identically.
+    // Two servers, each with its own empty database and the same seed, must
+    // produce the same dice.
     const fresh = new StdioClientTransport({
       command: 'npx',
       args: ['tsx', 'packages/mcp/src/index.ts'],
       cwd: process.cwd(),
-      env: { ...process.env, DND_SEED: '99' } as Record<string, string>,
+      env: spawnEnv('4242'),
       stderr: 'pipe',
     })
     const other = new Client({ name: 'seed-test', version: '0' })
@@ -147,7 +221,7 @@ describe('the server as Claude Code launches it', () => {
       command: 'npx',
       args: ['tsx', 'packages/mcp/src/index.ts'],
       cwd: process.cwd(),
-      env: { ...process.env, DND_SEED: '99' } as Record<string, string>,
+      env: spawnEnv('4242'),
       stderr: 'pipe',
     })
     const last = new Client({ name: 'seed-test-2', version: '0' })

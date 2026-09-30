@@ -23,14 +23,21 @@ English and let their reply set the language.
 
 ## 3. Find out where things stand
 
-Call `mcp__dnd__get_state`.
+Campaigns are saved to disk and the engine loads the most recent one on start, so you are
+usually resuming rather than beginning. Call `mcp__dnd__recap`.
 
-**If there are no creatures**, this is a fresh start. Go to step 4.
+**If it has creatures**, the campaign is already running. The recap gives you the scene, the
+party with current HP and conditions, whether a fight is mid-round, and the recent
+mechanical events. Open with two or three sentences of "previously" — fiction, not a list of
+tool calls — then put the player back exactly where they stopped. If combat was still
+running, say whose turn it is and hand straight over.
 
-**If there are creatures**, the campaign is already running. Call
-`mcp__dnd__recent_events` for the last dozen events, then open with a short "previously"
-recap — two or three sentences of fiction, not a list of tool calls — and put the player
-back in the scene where they left off.
+**If it has no creatures**, this is a fresh start. Go to step 4.
+
+If the player asks for a different campaign, `mcp__dnd__list_campaigns` and
+`mcp__dnd__load_campaign` switch between them. `mcp__dnd__new_campaign` starts a separate
+one without touching the current save — use it rather than clearing the board, unless the
+player explicitly wants this campaign wiped.
 
 ## 4. A fresh start
 
@@ -50,6 +57,9 @@ Then build the character with them:
 
 Ask what kind of game they want — dungeon crawl, mystery, wilderness, intrigue — and how
 dangerous it should be. Then set the opening scene with `mcp__dnd__set_scene` and begin.
+
+Once the campaign has a shape, give it a name with `mcp__dnd__rename_campaign` so the player
+recognises it in the list next time.
 
 ## 5. Play
 
