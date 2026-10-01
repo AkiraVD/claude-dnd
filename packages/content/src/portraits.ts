@@ -111,6 +111,12 @@ export const PORTRAITS = {
   'half-orc-drummer-painted': 'Young woman, red war paint, braids, a war drum',
   'tiefling-gravekeeper-ash': 'Old man, ash-grey skin, curling horns, a skull-topped staff',
   'human-bounty-hooded': 'Woman in her forties, leather hood, dark braid, watchful',
+
+  // The one that fits when nothing fits. Race-neutral, gender-neutral and
+  // faceless by construction, so it can never contradict what the DM has
+  // already said out loud. PLACEHOLDER ART — drawn with maths, not painted;
+  // see PLAN.md, "Art still owed".
+  'unknown-figure-hooded': 'A hooded figure, face lost in the shadow of the cowl',
 } as const
 
 export type PortraitName = keyof typeof PORTRAITS
@@ -199,3 +205,12 @@ export function portraitKind(value: string): 'folk' | 'monster' | null {
   if (value in BESTIARY) return 'monster'
   return null
 }
+
+/**
+ * The portrait for someone the library has no face for.
+ *
+ * Better than no picture: an empty avatar reads as a bug, and a face of the
+ * wrong race reads as the DM contradicting itself. A hood is neither — it is a
+ * person whose face you have not seen yet, which is true.
+ */
+export const UNKNOWN_PORTRAIT: PortraitName = 'unknown-figure-hooded'

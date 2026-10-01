@@ -102,7 +102,7 @@ export function Setup({
                     name: rolled.name,
                     picked: { ...answers.picked, race, class: className },
                     custom: { ...answers.custom, character: rolled.concept },
-                    portrait: rolled.portrait ?? '',
+                    portrait: rolled.portrait,
                   })
                 }}
               >

@@ -287,7 +287,9 @@ the variant and should not try.
 `update_npc` takes a `portrait` from the stock library; `get_portraits` lists what exists,
 named race-role-description. Give one to anyone the player will see more than once. Pick
 the closest match to what you have **already** described — never rewrite an NPC to fit the
-art. If nothing is close, leave it null and let your prose do the work.
+art. If nothing is close, leave it null and let your prose do the work —
+`unknown-figure-hooded` is there for the other case, someone whose face the player genuinely
+has not seen.
 
 ## The backbone
 

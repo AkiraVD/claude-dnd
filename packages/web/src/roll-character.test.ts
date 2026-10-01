@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { BESTIARY, PORTRAITS } from '@dnd/content'
+import { BESTIARY, PORTRAITS, UNKNOWN_PORTRAIT } from '@dnd/content'
 import { avatarFor, portraitsForRace, rollCharacter, rolledClasses, rolledRaces } from './roll-character.js'
 
 /**
@@ -67,6 +67,18 @@ describe('rolling a character', () => {
     const rolled = rollCharacter('aarakocra', 'artificer', () => 0.5)
     expect(rolled.name.length).toBeGreaterThan(2)
     expect(rolled.concept.length).toBeGreaterThan(20)
-    expect(rolled.portrait).toBeNull()
+    // A hood rather than nothing, and rather than a face of the wrong race.
+    expect(rolled.portrait).toBe(UNKNOWN_PORTRAIT)
+  })
+
+  it('keeps the hood for the cases nothing else fits', () => {
+    // It is in the catalogue, so the DM can pick it for a figure the player has
+    // only seen at a distance — but a race the library covers must never get it.
+    expect(UNKNOWN_PORTRAIT in PORTRAITS).toBe(true)
+    for (const race of RACES) {
+      for (const cls of CLASSES) {
+        expect(avatarFor(race, cls), `${race} ${cls}`).not.toBe(UNKNOWN_PORTRAIT)
+      }
+    }
   })
 })

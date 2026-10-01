@@ -1989,7 +1989,9 @@ export function registerProgressionTools(server: McpServer, store: GameStore): v
         'might talk to; `monster` are creatures, named plainly — goblin, owlbear, beholder — ' +
         'for anything on the other side of a fight. Ask for the one you need rather than both. ' +
         'For a walk-on part pick the closest match to what you have already described, rather ' +
-        'than describing them to fit the art.',
+        'than describing them to fit the art. `unknown-figure-hooded` is the one to use when ' +
+        'the player has not seen a face yet — not when the library merely lacks a good match, ' +
+        'which is what leaving the portrait unset is for.',
       inputSchema: {
         kind: z
           .enum(['folk', 'monster'])

@@ -250,6 +250,42 @@ outlive the model process. Once campaigns were in SQLite that stopped mattering:
 server can die with `claude` and reload from disk, and the web server reads the same file
 directly to hydrate a page. One fewer transport, one fewer thing to get wrong.
 
+## Art still owed
+
+Everything in `packages/web/public/` is pre-rendered and shipped — there is no API key here
+and nothing generates an image at run time — so a gap in the library is a gap until someone
+sits down and makes the picture. These are the gaps, and they are planned rather than
+declined.
+
+**A hooded figure, for when nothing fits.** The library is people with faces, and every face
+commits to a race, an age and a sex. So the fallback cannot be a face: showing an elf for a
+race the library does not cover is worse than showing nothing, because it contradicts prose
+the DM has already spoken. A hood with the face lost in shadow commits to none of it and is
+true as a picture — it is a person you have not seen. It serves two callers: the character
+roller, when the rolled race has no portraits, and the DM, for a figure the player has only
+seen at a distance.
+
+*Status: placeholder in the tree.* `unknown-figure-hooded.webp` is currently drawn with
+maths, not painted — flat shapes, a cowl and a void where the face goes. Good enough to
+build and test the fallback path against, and deliberately flat so it cannot be mistaken for
+finished art sitting next to the painted set. Replace it with a real one on the next art
+pass, same shared block as the rest: one warm light low in frame, deep muted palette, the
+cowl's interior fully dark. Drop it into the same 5x5 sheet as the portraits below rather
+than generating it alone.
+
+**The second adventurer sheet.** Half-orc, gnome, dragonborn and tiefling have townsfolk
+only, so those four races fall back to a baker or a tinker when a player rolls one. Twenty
+faces, five archetypes apiece, the roster is written. The first sheet covered human, dwarf,
+elf, halfling and half-elf.
+
+**Focal points for the first adventurer sheet.** The twenty-five new portraits are seeded at
+`[57, 33]` rather than measured. They want a pass in `/faces.html`; the measured ones are
+visibly better framed than the guessed ones.
+
+**Open question: unset portraits in the cast list.** An NPC the DM never gave art to renders
+with no avatar at all. Whether that should become the hood is a judgement about how the cast
+column reads when half of it is hooded strangers, and is not decided here.
+
 ## Not built, deliberately
 
 - **Positioning.** No grid, cover, flanking, reach or opportunity attacks. Theatre of the

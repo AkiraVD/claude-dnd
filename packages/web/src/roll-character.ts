@@ -12,13 +12,16 @@
  * already holds, preferring one whose role suits the class and settling for any
  * face of the right race.
  */
-import { BESTIARY, PORTRAITS, type PortraitName } from '@dnd/content'
+import { BESTIARY, PORTRAITS, UNKNOWN_PORTRAIT, type PortraitName } from '@dnd/content'
 
 export interface RolledCharacter {
   name: string
   concept: string
-  /** A portrait from the stock library, or null if the race has no faces. */
-  portrait: PortraitName | null
+  /**
+   * A portrait from the stock library. Never null: a race the library has no
+   * faces for gets the hood rather than an empty frame.
+   */
+  portrait: PortraitName
 }
 
 /** Injectable so a test can pin the roll; `Math.random` by default. */
@@ -150,10 +153,13 @@ export function portraitsForRace(race: string): PortraitName[] {
  *
  * Race first, because a wrong race is wrong in a way a wrong trade is not — a
  * dwarf bard shown as a dwarf innkeeper reads fine, shown as an elf does not.
+ * Which is also why the last resort is a hood rather than a near-miss: when the
+ * library has nothing of that race, showing a face of another one is worse than
+ * showing no face at all.
  */
-export function avatarFor(race: string, className: string): PortraitName | null {
+export function avatarFor(race: string, className: string): PortraitName {
   const ofRace = portraitsForRace(race)
-  if (ofRace.length === 0) return null
+  if (ofRace.length === 0) return UNKNOWN_PORTRAIT
   for (const role of ROLES[slug(className)] ?? []) {
     const match = ofRace.find((name) => name.includes(`-${role}-`) || name.endsWith(`-${role}`))
     if (match) return match
@@ -178,7 +184,7 @@ export function rollCharacter(race: string, className: string, rng: Rng = Math.r
   }
 }
 
-/** Guards against a roster entry naming a creature instead of a person. */
+/** The races the roller has names for. */
 export function rolledRaces(): string[] {
   return Object.keys(NAMES)
 }

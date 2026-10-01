@@ -1,5 +1,5 @@
 {
- "_": "Face centre of each portrait as [x, y] percentages, optionally [x, y, zoom]. Placed by hand in /faces.html. Zoom buys legibility out of resolution: these are 256px, so 5x samples ~51px and is soft on a retina panel \u2014 re-slice at 512px from the source sheet if that ever matters.",
+ "_": "Face centre of each portrait as [x, y] percentages, optionally [x, y, zoom]. Placed by hand in /faces.html. Zoom buys legibility out of resolution: these are 256px, so 5x samples ~51px and is soft on a retina panel — re-slice at 512px from the source sheet if that ever matters.",
  "dragonborn-caravan-bronze": [
   59,
   22
@@ -363,5 +363,10 @@
  "tiefling-preacher-fervent": [
   64,
   30
+ ],
+ "unknown-figure-hooded": [
+  50,
+  45,
+  1.15
  ]
 }
