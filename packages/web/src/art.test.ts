@@ -9,6 +9,7 @@ import {
   backdropFor,
   hash,
   itemArtFor,
+  DEFAULT_ZOOM,
   faceOf,
   faceTransform,
   hasFace,
@@ -155,8 +156,8 @@ describe('portraitFor', () => {
   })
 
   it('falls back to the centre rather than nothing', () => {
-    expect(faceOf('not-a-real-name')).toEqual({ x: 50, y: 50 })
-    expect(faceOf(null)).toEqual({ x: 50, y: 50 })
+    expect(faceOf('not-a-real-name')).toEqual({ x: 50, y: 50, zoom: DEFAULT_ZOOM })
+    expect(faceOf(null)).toEqual({ x: 50, y: 50, zoom: DEFAULT_ZOOM })
     expect(hasFace('not-a-real-name')).toBe(false)
     expect(hasFace(null)).toBe(false)
   })
@@ -244,5 +245,33 @@ describe('itemArtFor', () => {
     for (const name of ITEM_ASSETS) {
       expect(existsSync(asset(`/items/${name}.svg`)), `${name}.webp is missing`).toBe(true)
     }
+  })
+})
+
+describe('zoom in the metadata', () => {
+  it('defaults when the entry does not say', () => {
+    // Entries are [x, y] or [x, y, zoom]; the two-element form is the common one
+    // and has to keep working.
+    expect(faceOf('not-a-real-name').zoom).toBe(DEFAULT_ZOOM)
+    for (const name of [...PORTRAIT_LIST, ...BESTIARY_LIST]) {
+      expect(faceOf(name).zoom, name).toBeGreaterThanOrEqual(1)
+      expect(faceOf(name).zoom, name).toBeLessThanOrEqual(5)
+    }
+  })
+
+  it('uses the portrait’s own zoom unless told otherwise', () => {
+    const name = BESTIARY_LIST[0]!
+    const own = faceOf(name).zoom
+    expect(faceTransform(name)).toContain(`scale(${own})`)
+    expect(faceTransform(name, 3)).toContain('scale(3)')
+  })
+
+  it('clamps against whatever zoom is in play, not a fixed one', () => {
+    // The shift limit comes from the zoom, so a tighter crop can reach further.
+    const reach = (zoom: number): number => {
+      const [, , dy] = /translate\((-?[\d.]+)%, (-?[\d.]+)%\)/.exec(faceTransform('ogre', zoom))!
+      return Math.abs(Number(dy))
+    }
+    expect(reach(3)).toBeGreaterThan(reach(1.5))
   })
 })

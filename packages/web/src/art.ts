@@ -57,19 +57,33 @@ export function portraitFor(portrait: string | null | undefined): string | null 
   return isBeast(name) ? `/monsters/${name}.webp` : `/npcs/${name}.webp`
 }
 
-/** Where the face is, as percentages of the image. */
+/**
+ * Where the face is, as percentages of the image, and how close to crop in.
+ *
+ * Zoom is per portrait because the subjects are not framed alike: a
+ * head-and-shoulders innkeeper is already most of the frame and wants barely any,
+ * while a whole-body displacer beast is a small shape in a big picture and wants
+ * a lot. One number for all of them makes half the library wrong.
+ */
 export interface Face {
   x: number
   y: number
+  zoom: number
 }
 
+/** How close to crop when nothing says otherwise. */
+export const DEFAULT_ZOOM = 2
+
 /** The middle of the frame, for a name with no entry. */
-const CENTRE: Face = { x: 50, y: 50 }
+const CENTRE: Face = { x: 50, y: 50, zoom: DEFAULT_ZOOM }
 
 const FACES: Record<string, Face> = Object.fromEntries(
   [...Object.entries(folkFaces), ...Object.entries(monsterFaces)]
     .filter(([key, value]) => key !== '_' && Array.isArray(value))
-    .map(([key, value]) => [key, { x: (value as number[])[0]!, y: (value as number[])[1]! }]),
+    .map(([key, value]) => {
+      const [x, y, zoom] = value as number[]
+      return [key, { x: x!, y: y!, zoom: zoom ?? DEFAULT_ZOOM }]
+    }),
 )
 
 /**
@@ -102,8 +116,9 @@ export function faceOf(portrait: string | null | undefined): Face {
  * far it sits from the middle. The translate is a percentage of the element,
  * and happens before the scale, which is why it is not multiplied by the zoom.
  */
-export function faceTransform(portrait: string | null | undefined, zoom = 2): string {
+export function faceTransform(portrait: string | null | undefined, override?: number): string {
   const face = faceOf(portrait)
+  const zoom = override ?? face.zoom
   // How far the image can be shifted before its edge comes inside the box and
   // the background shows through. Scaling by z leaves (z - 1) of overflow, half
   // of it on each side, and the translate is scaled too — hence the 2z. Without

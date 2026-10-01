@@ -134,6 +134,11 @@ metadata will save it. Regenerate those: a 2×2 is plenty, and the instruction t
 that the *entire* creature including the top of its head must sit inside its own cell with
 clear space above it, framing smaller if that is what it takes.
 
+**Zoom is per portrait too**, stored as an optional third number in `faces.json`
+(`[x, y, zoom]`, defaulting to 2). A head-and-shoulders portrait is already most of its
+frame and wants almost none; a whole-body creature is a small shape in a big picture and
+wants a lot. The editor has a slider for it.
+
 **Clamp the translate.** Scaling by `z` leaves `(z - 1)` of overflow, half on each side, and
 the translate is scaled too — so the shift cannot exceed `(z - 1) / 2z`. Past that the image
 edge comes inside the box and the circle gets a bite of background taken out of it. Most of

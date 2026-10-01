@@ -19,7 +19,7 @@ if (input === '') {
   process.exit(1)
 }
 
-const overrides = JSON.parse(input) as Record<string, [number, number]>
+const overrides = JSON.parse(input) as Record<string, [number, number, number?]>
 
 const unknown = Object.keys(overrides).filter((n) => !(n in PORTRAITS) && !(n in BESTIARY))
 if (unknown.length > 0) {
@@ -27,12 +27,14 @@ if (unknown.length > 0) {
   process.exit(1)
 }
 
-const bad = Object.entries(overrides).filter(
-  ([, xy]) =>
-    !Array.isArray(xy) ||
-    xy.length !== 2 ||
-    xy.some((n) => typeof n !== 'number' || n < 0 || n > 100),
-)
+const bad = Object.entries(overrides).filter(([, xy]) => {
+  if (!Array.isArray(xy) || xy.length < 2 || xy.length > 3) return true
+  const [x, y, zoom] = xy
+  if (![x, y].every((n) => typeof n === 'number' && n >= 0 && n <= 100)) return true
+  // A zoom under 1 would shrink the image inside its own box and show the
+  // background; over 5 is past anything the editor offers.
+  return zoom !== undefined && (typeof zoom !== 'number' || zoom < 1 || zoom > 5)
+})
 if (bad.length > 0) {
   console.error(`out of range: ${bad.map(([n]) => n).join(', ')}`)
   process.exit(1)

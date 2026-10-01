@@ -8,7 +8,7 @@
  *
  * `npm run gallery`, then open /gallery.html on the table's own port.
  */
-import { writeFileSync } from 'node:fs'
+import { existsSync, writeFileSync } from 'node:fs'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { BESTIARY, BESTIARY_LIST, PORTRAITS, PORTRAIT_LIST } from '@dnd/content'
@@ -52,7 +52,7 @@ function portraitCard(name: string, looks: string): string {
         style="transform:${faceTransform(name)}"></span>
       <i class="pin" style="left:${face.x}%;top:${face.y}%"></i>
     </div>`
-  return card(src, name, looks, pair)
+  return card(src, `${name}  ${face.zoom}\u00d7`, looks, pair)
 }
 
 const folk = `<section><h2>Folk<small>${PORTRAIT_LIST.length} portraits · /npcs</small></h2>
@@ -112,8 +112,18 @@ const html = `<!doctype html>
 </body></html>
 `
 
+
+/** public/ only reaches dist/ on a build; write both so order cannot bite. */
+function writeAlsoToDist(contents: string): void {
+  const dist = join(import.meta.dirname, '../packages/web/dist')
+  if (existsSync(dist)) writeFileSync(join(dist, 'gallery.html'), contents)
+}
+
 const out = join(PUBLIC, 'gallery.html')
 writeFileSync(out, html)
+// public/ only reaches dist/ during a build, so a page generated after one
+// would be served stale. Writing both ends removes the ordering trap.
+writeAlsoToDist(html)
 const cards = SETUP_TABS.filter((t) => t.imageFor !== undefined).reduce((n, t) => n + t.options.length, 0)
 console.error(
   `gallery: ${cards} menu cards, ${PORTRAIT_LIST.length} folk, ${BESTIARY_LIST.length} creatures -> ${out}`,

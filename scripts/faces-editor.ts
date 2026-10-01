@@ -13,7 +13,7 @@
  *
  * `npm run faces`, then open /faces.html.
  */
-import { writeFileSync } from 'node:fs'
+import { existsSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { BESTIARY, BESTIARY_LIST, PORTRAITS, PORTRAIT_LIST } from '@dnd/content'
 import { faceOf, portraitFor } from '../packages/web/src/art.js'
@@ -64,11 +64,14 @@ const html = `<!doctype html>
   .meta span { color:var(--dim); font-size:10.5px; }
   .meta .xy { color:var(--accent); font-size:11px; }
   .meta .xy em { color:var(--faint); font-style:normal; }
+  .zoomrow { display:flex; align-items:center; gap:8px; padding:7px 9px 0; }
+  .zoomrow input { flex:1; accent-color:var(--accent); }
+  .zval { color:var(--accent); font-size:11px; min-width:30px; text-align:right; }
 </style></head>
 <body>
 <header>
   <h1>Aim the faces</h1>
-  <span class="hint">click or drag on a picture — the circles follow</span>
+  <span class="hint">click or drag to aim · slider to zoom — the circles follow</span>
   <button id="f-all" class="on">all</button>
   <button id="f-folk">folk</button>
   <button id="f-mon">monsters</button>
@@ -81,7 +84,7 @@ const html = `<!doctype html>
 <script>
 var STORE = ${JSON.stringify(STORE)};
 var ROWS = ${JSON.stringify(rows)};
-var ZOOM_BIG = 2, ZOOM_SMALL = 2;
+
 
 function saved() {
   try { return JSON.parse(localStorage.getItem(STORE) || '{}') } catch (e) { return {} }
@@ -102,7 +105,9 @@ var cards = {};
 
 ROWS.forEach(function (row) {
   var over = saved()[row.name];
-  var x = over ? over[0] : row.face.x, y = over ? over[1] : row.face.y;
+  var x = over ? over[0] : row.face.x;
+  var y = over ? over[1] : row.face.y;
+  var z = over && over.length > 2 ? over[2] : row.face.zoom;
 
   var card = document.createElement('div');
   card.className = 'card';
@@ -116,6 +121,8 @@ ROWS.forEach(function (row) {
         '<span class="circle big"><img src="' + row.src + '" alt=""></span>' +
       '</div>' +
     '</div>' +
+    '<div class="zoomrow"><input type="range" class="zoom" min="1" max="5" step="0.1" value="' + z + '">' +
+      '<span class="zval"></span></div>' +
     '<div class="meta"><b>' + row.name + '</b><span>' + row.looks + '</span>' +
       '<span class="xy"></span></div>';
   grid.appendChild(card);
@@ -125,28 +132,40 @@ ROWS.forEach(function (row) {
   var bigImg = card.querySelector('.big img');
   var smallImg = card.querySelector('.small img');
   var xy = card.querySelector('.xy');
+  var zoom = card.querySelector('.zoom');
+  var zval = card.querySelector('.zval');
 
   function paint() {
     ring.style.left = x + '%';
     ring.style.top = y + '%';
-    bigImg.style.transform = transform(x, y, ZOOM_BIG);
-    smallImg.style.transform = transform(x, y, ZOOM_SMALL);
+    bigImg.style.transform = transform(x, y, z);
+    smallImg.style.transform = transform(x, y, z);
+    zoom.value = z;
+    zval.textContent = z.toFixed(1) + '\u00d7';
     var orig = row.face;
-    var moved = x !== orig.x || y !== orig.y;
+    var moved = x !== orig.x || y !== orig.y || z !== orig.zoom;
     card.classList.toggle('changed', moved);
-    xy.innerHTML = x + ', ' + y + (moved ? ' <em>was ' + orig.x + ', ' + orig.y + '</em>' : '');
+    xy.innerHTML = x + ', ' + y + ' @' + z.toFixed(1) + '\u00d7' +
+      (moved ? ' <em>was ' + orig.x + ', ' + orig.y + ' @' + orig.zoom.toFixed(1) + '\u00d7</em>' : '');
   }
 
   function put(event) {
     var box = stage.getBoundingClientRect();
     x = Math.round(Math.max(0, Math.min(100, ((event.clientX - box.left) / box.width) * 100)));
     y = Math.round(Math.max(0, Math.min(100, ((event.clientY - box.top) / box.height) * 100)));
+    remember();
+  }
+
+  function remember() {
     var all = saved();
-    if (x === row.face.x && y === row.face.y) { delete all[row.name] } else { all[row.name] = [x, y] }
+    if (x === row.face.x && y === row.face.y && z === row.face.zoom) { delete all[row.name] }
+    else { all[row.name] = [x, y, Math.round(z * 10) / 10] }
     store(all);
     paint();
     tally();
   }
+
+  zoom.addEventListener('input', function () { z = Number(zoom.value); remember() });
 
   stage.addEventListener('pointerdown', function (event) {
     stage.setPointerCapture(event.pointerId);
@@ -156,7 +175,7 @@ ROWS.forEach(function (row) {
     if (event.buttons === 1) put(event);
   });
 
-  cards[row.name] = { card: card, reset: function () { x = row.face.x; y = row.face.y; paint() } };
+  cards[row.name] = { card: card, reset: function () { x = row.face.x; y = row.face.y; z = row.face.zoom; paint() } };
   paint();
 });
 
@@ -202,6 +221,16 @@ document.getElementById('copy').onclick = function () {
 </body></html>
 `
 
+
+/** public/ only reaches dist/ on a build; write both so order cannot bite. */
+function writeAlsoToDist(contents: string): void {
+  const dist = join(import.meta.dirname, '../packages/web/dist')
+  if (existsSync(dist)) writeFileSync(join(dist, 'faces.html'), contents)
+}
+
 const out = join(import.meta.dirname, '../packages/web/public/faces.html')
 writeFileSync(out, html)
+// public/ only reaches dist/ during a build, so a page generated after one
+// would be served stale. Writing both ends removes the ordering trap.
+writeAlsoToDist(html)
 console.error(`faces editor: ${rows.length} portraits -> ${out}`)
