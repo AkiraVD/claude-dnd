@@ -113,6 +113,49 @@ describe('named attacks', () => {
     expect(() => findAttack(fighter(), 'greataxe')).toThrow(/longsword, longbow/)
   })
 
+  it('resolves a shortened name when only one attack can be meant', () => {
+    // The miss that actually happens in play: an attack is defined as
+    // "weighted net" and called for as "net" once the fight is moving.
+    const sabat = createCreature({
+      id: 'sabat',
+      name: 'Sabat',
+      scores: SCORES,
+      maxHp: 20,
+      ac: 13,
+      attacks: [
+        { name: 'weighted net', ability: 'dex', damage: '1d4', damageType: 'bludgeoning' },
+        { name: 'boarding axe', ability: 'str', damage: '1d6', damageType: 'slashing' },
+      ],
+    })
+    expect(findAttack(sabat, 'net').name).toBe('weighted net')
+    expect(findAttack(sabat, 'axe').name).toBe('boarding axe')
+  })
+
+  it('refuses a shortened name that two attacks answer to', () => {
+    // "sword" against a longsword and a shortsword is a question, not shorthand.
+    const duellist = createCreature({
+      id: 'd',
+      name: 'Duellist',
+      scores: SCORES,
+      maxHp: 20,
+      ac: 13,
+      attacks: [
+        { name: 'longsword', ability: 'str', damage: '1d8', damageType: 'slashing' },
+        { name: 'shortsword', ability: 'dex', damage: '1d6', damageType: 'piercing' },
+      ],
+    })
+    expect(() => findAttack(duellist, 'sword')).toThrow(/matches 2 of/)
+    expect(() => findAttack(duellist, 'sword')).toThrow(/longsword, shortsword/)
+    // The unambiguous halves still resolve.
+    expect(findAttack(duellist, 'short').name).toBe('shortsword')
+  })
+
+  it('still refuses an attack the creature does not have', () => {
+    expect(() => findAttack(fighter(), '?')).toThrow(/no attack called "\?"/)
+    expect(() => findAttack(fighter(), '')).toThrow(/no attack called/)
+    expect(() => findAttack(fighter(), 'trebuchet')).toThrow(/no attack called/)
+  })
+
   it('carries the weapon range through', () => {
     const brann = fighter()
     const prone = createCreature({ id: 'g', name: 'Goblin', scores: SCORES, maxHp: 7, ac: 15 })

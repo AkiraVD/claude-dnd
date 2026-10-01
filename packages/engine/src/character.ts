@@ -394,16 +394,42 @@ export function restoreCreature(stored: Creature): Creature {
   }
 }
 
+/**
+ * The attack a name refers to.
+ *
+ * Exact first. Failing that, a name that contains what was asked for, which is
+ * the common miss in play: a weapon gets defined as "weighted net" and called
+ * for as "net" three rounds later, and a hard failure there costs a turn to
+ * recover something nobody was actually confused about.
+ *
+ * Ambiguity is still refused — "sword" against a longsword and a shortsword is a
+ * question, not a shorthand — and a name matching nothing is refused as before.
+ * This resolves which attack was meant; it never invents one, so an attack the
+ * creature does not have still cannot be rolled. Same shape as `revealNote`.
+ */
 export function findAttack(creature: Creature, name: string): CreatureAttack {
   const wanted = name.trim().toLowerCase()
-  const attack = creature.attacks.find((a) => a.name.toLowerCase() === wanted)
-  if (!attack) {
-    const known = creature.attacks.map((a) => a.name)
+  const known = creature.attacks.map((a) => a.name)
+  const nothing = (): never => {
     throw new RulesError(
       `${creature.name} has no attack called "${name}". Has: ${known.length > 0 ? known.join(', ') : '(none defined)'}`,
     )
   }
-  return attack
+  if (wanted === '') nothing()
+
+  const exact = creature.attacks.find((a) => a.name.toLowerCase() === wanted)
+  if (exact) return exact
+
+  const near = creature.attacks.filter((a) => a.name.toLowerCase().includes(wanted))
+  if (near.length === 1) return near[0]!
+  if (near.length > 1) {
+    throw new RulesError(
+      `"${name}" matches ${near.length} of ${creature.name}'s attacks: ${near
+        .map((a) => a.name)
+        .join(', ')}. Say which.`,
+    )
+  }
+  return nothing()
 }
 
 /** The spell save DC and attack bonus for a caster, from its class. */
