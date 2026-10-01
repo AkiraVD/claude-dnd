@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Creature } from '@dnd/engine'
-import { faceTransform, portraitFor } from './art.js'
+import { backdropFor, faceTransform, portraitFor } from './art.js'
 import { Actions } from './Actions.js'
 import { actionSheet, defaultActor } from './actions.js'
 import { Character } from './Character.js'
@@ -130,8 +130,16 @@ function Console({
     setDraft('')
   }
 
+  // The room the party is in, behind the reading column. The log is a narrow
+  // strip on a wide screen and the rest of the frame was flat; this gives the
+  // margins the place you are standing in, rather than nothing.
+  const art = backdropFor(table.state?.backdrop ?? null, table.state?.scene ?? '')
+
   return (
-    <main className="console">
+    <main
+      className={`console${art === null ? '' : ' console-art'}`}
+      style={art === null ? undefined : { ['--scene-art' as string]: `url(${art})` }}
+    >
       <header className="console-head">
         <span className="brand">dice tower</span>
         <span className={`dot ${table.connected ? 'dot-on' : 'dot-off'}`} />

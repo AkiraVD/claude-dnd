@@ -122,6 +122,35 @@ body {
 }
 .log > * { width: min(100%, 980px); margin-inline: auto; }
 
+/* The room, in the margins the reading column does not use.
+ *
+ * Three layers, front to back: a scrim that is fully opaque across the column
+ * so the prose still sits on flat background and nothing competes with it, a
+ * flat dim over the whole frame so the art reads as a wall rather than a
+ * picture, and the scene itself. Where the column ends the scrim fades out and
+ * the room appears — which is the only part of the window that had nothing in
+ * it. Below about 1100px the gutters close, the scrim meets in the middle, and
+ * this costs nothing. */
+.console-art .log {
+  --gutter: max(0px, calc((100% - 980px) / 2));
+  background-image:
+    linear-gradient(
+      90deg,
+      transparent 0,
+      var(--bg) calc(var(--gutter) * 0.6),
+      var(--bg) calc(100% - var(--gutter) * 0.6),
+      transparent 100%
+    ),
+    linear-gradient(
+      color-mix(in oklab, var(--bg) 82%, transparent),
+      color-mix(in oklab, var(--bg) 82%, transparent)
+    ),
+    var(--scene-art);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
 .empty { color: var(--text-faint); padding: 40px 0; text-align: center; }
 .empty-hint { font-size: 13px; }
 
@@ -173,7 +202,10 @@ body {
   width: 64px;
   height: 64px;
   flex: none;
-  border-radius: 50%;
+  /* Square, like the sheet and the character panel. A circle crops a painted
+     portrait to its middle and throws the shoulders away, which is most of what
+     tells one person from another at a glance. */
+  border-radius: 5px;
   border: 1px solid var(--line);
   overflow: hidden;
   display: block;
