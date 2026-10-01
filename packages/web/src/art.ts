@@ -71,7 +71,16 @@ export interface Face {
   zoom: number
 }
 
-/** How close to crop when nothing says otherwise. */
+/**
+ * How close to crop when nothing says otherwise.
+ *
+ * Portraits are stored at 256px, so zoom buys legibility out of resolution: at 5×
+ * only about 51px of source is sampled, which is near 1:1 for the 34px the cast
+ * list draws and soft on a retina panel. A handful of creatures drawn large in
+ * their cell sit at that ceiling. Re-slicing those few at 512px from the source
+ * sheets would fix it — nothing here assumes every portrait is the same size —
+ * and the trade is noted in `.claude/skills/make-art/SKILL.md`.
+ */
 export const DEFAULT_ZOOM = 2
 
 /** The middle of the frame, for a name with no entry. */

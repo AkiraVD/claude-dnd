@@ -139,6 +139,15 @@ clear space above it, framing smaller if that is what it takes.
 frame and wants almost none; a whole-body creature is a small shape in a big picture and
 wants a lot. The editor has a slider for it.
 
+**Known limit, not yet worth fixing.** Portraits are stored at 256px, so a 5× zoom samples
+about a 51px region — roughly 1:1 against the 34px the cast list draws, and visibly soft on
+a retina panel. Five creatures sit at that ceiling because they were drawn large in their
+cell: `ogre`, `wight`, `bandit-captain`, `hill-giant`, `drow-raider`. Regenerating bought
+back enough headroom to aim them properly but not enough resolution to zoom that far
+cleanly. The fix, if it ever grates in play, is to re-slice those few at 512px from the
+source sheets — the sheets are 1254px so the pixels exist — and let the rest stay at 256.
+Nothing in the code assumes a uniform size.
+
 **Clamp the translate.** Scaling by `z` leaves `(z - 1)` of overflow, half on each side, and
 the translate is scaled too — so the shift cannot exceed `(z - 1) / 2z`. Past that the image
 edge comes inside the box and the circle gets a bite of background taken out of it. Most of
