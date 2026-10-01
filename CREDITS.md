@@ -21,8 +21,12 @@ By artist:
 
 ## Everything else
 
-Class cards, scenery, NPC portraits and the setup background were generated locally with
-Stable Diffusion (SDXL) and are not third-party work. The twelve class busts share one
-fixed seed and one style clause, which is what gives the set its common framing.
+Scenery, NPC portraits and the setup background were generated locally with Stable
+Diffusion (SDXL) and are not third-party work.
+
+The twelve class cards were generated with OpenAI's GPT Image from a shared prompt: one
+fixed block for framing, light and style, with only the subject and pose clause changed
+per class. That shared block is what gives the set its common look — there is no seed to
+pin, so the consistency comes from the prompt.
 
 Game content is SRD 5.1, CC BY 4.0. See the note in CLAUDE.md.

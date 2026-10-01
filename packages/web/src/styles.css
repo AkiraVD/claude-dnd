@@ -960,7 +960,9 @@ button.ghost:hover { border-color: var(--text-faint); color: var(--text); }
 .opt-art img {
   display: block;
   width: 100%;
-  aspect-ratio: 5 / 4;
+  /* Portrait, because the art is: a 5:4 letterbox would crop the head off a
+     bust. object-fit covers the small trim this leaves. */
+  aspect-ratio: 4 / 5;
   margin-bottom: 8px;
   object-fit: cover;
   /* The renders fade to black at the edges, so let them meet the card border. */
