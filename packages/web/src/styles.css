@@ -104,6 +104,14 @@ body {
 .console-meta { color: var(--text-faint); }
 .console-cost { margin-left: auto; color: var(--text-faint); }
 
+/* The reading column. Prose has a measure whatever the window does — a line of
+   180 characters is not a feature — so on a wide screen the question is only
+   where the slack goes. Centred it reads as margin; left-aligned it read as
+   half the page having failed to render.
+ *
+ * The bars below the log centre their contents with padding rather than
+ * shrinking themselves, so the rule and the sunken background still run the
+ * full width and the composer does not look like it has come loose. */
 .log {
   min-height: 0;
   overflow-y: auto;
@@ -112,6 +120,7 @@ body {
   padding: 24px 18px 8px;
   scrollbar-width: thin;
 }
+.log > * { width: min(100%, 980px); margin-inline: auto; }
 
 .empty { color: var(--text-faint); padding: 40px 0; text-align: center; }
 .empty-hint { font-size: 13px; }
@@ -131,7 +140,9 @@ body {
   font-family: var(--serif);
   font-size: 16.5px;
   line-height: 1.7;
-  max-width: 68ch;
+  /* The column sets the width now; this is only a ceiling for a narrow window
+     made very wide, so a line never runs past what is comfortable to read. */
+  max-width: 100ch;
 }
 .line-dm strong { color: var(--text); font-weight: 600; }
 .line-dm code {
@@ -152,15 +163,15 @@ body {
   display: flex;
   align-items: flex-start;
   gap: 11px;
-  margin: 13px 0;
-  padding: 9px 12px 9px 11px;
+  margin: 14px 0;
+  padding: 11px 14px 11px 13px;
   border-left: 2px solid var(--line);
   border-radius: 0 var(--radius) var(--radius) 0;
   background: var(--bg-raised);
 }
 .speech-face {
-  width: 40px;
-  height: 40px;
+  width: 64px;
+  height: 64px;
   flex: none;
   border-radius: 50%;
   border: 1px solid var(--line);
@@ -274,6 +285,7 @@ body {
   display: flex;
   gap: 10px;
   padding: 14px 18px;
+  padding-inline: max(18px, calc((100% - 980px) / 2));
   border-top: 1px solid var(--line);
   background: var(--bg-sunken);
 }
@@ -1066,6 +1078,7 @@ button.ghost:hover { border-color: var(--text-faint); color: var(--text); }
   flex-wrap: wrap;
   gap: 7px;
   padding: 11px 18px;
+  padding-inline: max(18px, calc((100% - 980px) / 2));
   border-top: 1px solid var(--line);
   background: color-mix(in oklab, var(--accent) 5%, var(--bg));
 }
