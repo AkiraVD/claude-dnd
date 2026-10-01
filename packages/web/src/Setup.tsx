@@ -9,6 +9,7 @@ import {
   isAnswered,
   type SetupAnswers,
 } from './setup.js'
+import type { JSX } from 'react'
 
 /**
  * The opening form.

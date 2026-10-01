@@ -6,6 +6,7 @@ import { Panels } from './Panels.js'
 import { Setup } from './Setup.js'
 import { Shop } from './Shop.js'
 import { useTable, type LogEntry } from './useTable.js'
+import type { JSX } from 'react'
 
 export function App(): JSX.Element {
   const table = useTable()

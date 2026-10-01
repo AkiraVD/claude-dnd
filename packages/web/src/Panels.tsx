@@ -1,6 +1,7 @@
 import type { Creature } from '@dnd/engine'
 import type { TableState } from '@dnd/server/protocol.js'
 import { backdropFor, portraitFor } from './art.js'
+import type { JSX } from 'react'
 
 const ABILITIES = ['str', 'dex', 'con', 'int', 'wis', 'cha'] as const
 
@@ -127,7 +128,10 @@ function HpBar({ creature }: { creature: Creature }): JSX.Element {
 }
 
 function Conditions({ creature }: { creature: Creature }): JSX.Element | null {
-  const list = [...creature.conditions.active]
+  // Display labels, not engine conditions: 'dead', 'dying', 'stable' and
+  // 'exhaustion N' all belong on a chip but none of them is a SimpleCondition,
+  // which is what this array infers as if it is left to the spread.
+  const list: string[] = [...creature.conditions.active]
   if (creature.conditions.exhaustion > 0) list.push(`exhaustion ${creature.conditions.exhaustion}`)
   if (creature.death.dead) list.unshift('dead')
   else if (creature.hp.current === 0) list.unshift(creature.death.stable ? 'stable' : 'dying')

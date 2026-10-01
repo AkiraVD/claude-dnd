@@ -28,5 +28,5 @@
       "@dnd/web/*": ["packages/web/src/*"]
     }
   },
-  "include": ["packages/*/src/**/*.ts", "vitest.config.ts"]
+  "include": ["packages/*/src/**/*.ts", "packages/*/src/**/*.tsx", "vitest.config.ts"]
 }

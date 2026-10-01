@@ -1,4 +1,5 @@
 import type { ToolCallView } from '@dnd/server/protocol.js'
+import type { JSX } from 'react'
 
 /**
  * A mechanical result, rendered as a card rather than read back as prose.
@@ -43,6 +44,19 @@ function Advantage({ value }: { value: string }): JSX.Element | null {
   return <span className={`chip chip-${value === 'advantage' ? 'good' : 'bad'}`}>{value}</span>
 }
 
+/**
+ * The heading on an attack card: "longbow · Vessa → Vreeke".
+ *
+ * A function rather than JSX because it was JSX, and the newline between
+ * `{weapon}` and `{attacker}` collapsed to nothing — the card read
+ * "longbowVessa → Vreeke" for as long as attack cards have existed. JSX drops
+ * whitespace that spans a line break, so a separator only survives if it is on
+ * the same line as both expressions. Here it cannot go missing unnoticed.
+ */
+export function attackLabel(weapon: string | null, attacker: unknown, target: unknown): string {
+  return `${weapon ?? 'attack'} · ${String(attacker ?? '')} → ${String(target ?? '')}`
+}
+
 function AttackCard({
   call,
   attack,
@@ -62,10 +76,7 @@ function AttackCard({
   return (
     <div className={`card ${critical ? 'card-crit' : hit ? 'card-hit' : 'card-miss'}`}>
       <div className="card-head">
-        <span className="card-tool">
-          {weapon ?? 'attack'}
-          {String(call.input['attacker'] ?? '')} → {String(call.input['target'] ?? '')}
-        </span>
+        <span className="card-tool">{attackLabel(weapon, call.input['attacker'], call.input['target'])}</span>
         <span className={`card-verdict ${hit ? 'verdict-good' : 'verdict-bad'}`}>
           {critical ? 'critical hit' : hit ? 'hit' : 'miss'}
         </span>

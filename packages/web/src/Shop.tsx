@@ -2,6 +2,7 @@ import { formatCoin } from '@dnd/engine'
 import { useState } from 'react'
 import { itemArtFor } from './art.js'
 import type { Shop as ShopData } from './useTable.js'
+import type { JSX } from 'react'
 
 /**
  * The counter.

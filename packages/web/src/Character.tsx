@@ -2,6 +2,7 @@ import { abilityModifier, formatCoin, type Creature } from '@dnd/engine'
 import { itemArtFor, portraitFor } from './art.js'
 import type { TableState } from '@dnd/server/protocol.js'
 import { useState } from 'react'
+import type { JSX } from 'react'
 
 const ABILITIES = ['str', 'dex', 'con', 'int', 'wis', 'cha'] as const
 
