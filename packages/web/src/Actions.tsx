@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import {
   composeAction,
+  defaultLevel,
   isReady,
   spellLevelLabel,
+  spellsForLevel,
   type ActionDraft,
   type ActionSheet,
 } from './actions.js'
@@ -37,7 +39,7 @@ export function Actions({
   const [target, setTarget] = useState<string | null>(null)
   const [lethal, setLethal] = useState(true)
   const [spell, setSpell] = useState('')
-  const [level, setLevel] = useState(sheet.slots[0]?.level ?? 1)
+  const [level, setLevel] = useState(defaultLevel(sheet.slots))
   const [custom, setCustom] = useState('')
 
   // The draft is rebuilt from the controls rather than stored, so changing the
@@ -52,6 +54,18 @@ export function Actions({
           : draft.kind === 'item'
             ? { kind: 'item', item: draft.item, target }
             : { kind: 'custom', text: custom }
+
+  const castable = spellsForLevel(sheet.spells, level)
+
+  const pickLevel = (next: number): void => {
+    setLevel(next)
+    // A spell already picked may not survive the new level, so drop it rather
+    // than send a 3rd-level spell into a 1st-level slot.
+    const stillThere = spellsForLevel(sheet.spells, next).some((s) => s.name === spell)
+    const kept = stillThere || sheet.spells.every((s) => s.name !== spell) ? spell : ''
+    setSpell(kept)
+    if (draft?.kind === 'spell') setDraft({ kind: 'spell', spell: kept, level: next, target })
+  }
 
   const ready = isReady(current)
   const preview = current !== null && ready ? composeAction(current) : null
@@ -125,26 +139,45 @@ export function Actions({
 
         {(sheet.slots.length > 0 || sheet.spells.length > 0) && (
           <section className="sheet-section">
-            <h4>
-              Cast
-              <span className="sheet-slots">
-                {sheet.slots.map((slot) => (
-                  <span key={slot.level} className="sheet-slot">
-                    {spellLevelLabel(slot.level)}{' '}
+            <h4>Cast</h4>
+
+            {/* The level is chosen first and the list follows from it: a spell
+                goes into a slot of its own level or higher, never a lower one,
+                so picking the slot is what decides what is castable. */}
+            <div className="sheet-targets sheet-levels">
+              <button
+                type="button"
+                className="chip chip-pick"
+                aria-pressed={level === 0}
+                onClick={() => pickLevel(0)}
+              >
+                cantrip
+              </button>
+              {sheet.slots.map((slot) => (
+                <button
+                  key={slot.level}
+                  type="button"
+                  className="chip chip-pick"
+                  aria-pressed={level === slot.level}
+                  disabled={slot.current === 0}
+                  onClick={() => pickLevel(slot.level)}
+                >
+                  {spellLevelLabel(slot.level)}{' '}
+                  <em>
                     {'●'.repeat(slot.current)}
                     {'○'.repeat(Math.max(0, slot.max - slot.current))}
-                  </span>
-                ))}
-              </span>
-            </h4>
+                  </em>
+                </button>
+              ))}
+            </div>
 
             {/* The engine keeps no spell catalogue by design, so the list is
                 what this character has been seen to cast — every cast is
                 journalled, so the names come back exactly right. Anything new
                 is typed once and then joins the row. */}
-            {sheet.spells.length > 0 && (
+            {castable.length > 0 && (
               <div className="sheet-targets sheet-spells">
-                {sheet.spells.map((known) => (
+                {castable.map((known) => (
                   <button
                     key={known.name}
                     type="button"
@@ -152,11 +185,11 @@ export function Actions({
                     aria-pressed={draft?.kind === 'spell' && spell === known.name}
                     onClick={() => {
                       setSpell(known.name)
-                      setLevel(known.level)
-                      setDraft({ kind: 'spell', spell: known.name, level: known.level, target })
+                      setDraft({ kind: 'spell', spell: known.name, level, target })
                     }}
                   >
-                    {known.name} <em>{spellLevelLabel(known.level)}</em>
+                    {known.name}
+                    {known.level !== level && <em>upcast</em>}
                   </button>
                 ))}
               </div>
@@ -165,30 +198,19 @@ export function Actions({
             <div className="sheet-cast">
               <input
                 type="text"
-                placeholder={sheet.spells.length > 0 ? 'or another spell…' : 'spell name…'}
+                placeholder={
+                  castable.length > 0
+                    ? 'or another spell…'
+                    : sheet.spells.length > 0
+                      ? `nothing cast at ${spellLevelLabel(level)} yet — name one…`
+                      : 'spell name…'
+                }
                 value={spell}
                 onChange={(event) => {
                   setSpell(event.target.value)
                   setDraft({ kind: 'spell', spell: event.target.value, level, target })
                 }}
               />
-              <select
-                value={level}
-                onChange={(event) => {
-                  const next = Number(event.target.value)
-                  setLevel(next)
-                  if (draft?.kind === 'spell') setDraft({ kind: 'spell', spell, level: next, target })
-                }}
-                aria-label="Slot level"
-              >
-                <option value={0}>cantrip</option>
-                {sheet.slots.map((slot) => (
-                  <option key={slot.level} value={slot.level} disabled={slot.current === 0}>
-                    {spellLevelLabel(slot.level)}
-                    {slot.current === 0 ? ' — none left' : ''}
-                  </option>
-                ))}
-              </select>
             </div>
           </section>
         )}

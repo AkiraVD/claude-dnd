@@ -3,8 +3,10 @@ import {
   actionSheet,
   composeAction,
   defaultActor,
+  defaultLevel,
   isReady,
   spellLevelLabel,
+  spellsForLevel,
 } from './actions.js'
 import type { TableState } from '@dnd/server/protocol.js'
 
@@ -265,5 +267,40 @@ describe('spells and items come off the table, not out of thin air', () => {
     )
     expect(isReady({ kind: 'item', item: '', target: null })).toBe(false)
     expect(isReady({ kind: 'item', item: 'Arrows (20)', target: null })).toBe(true)
+  })
+})
+
+describe('the level chooses the list', () => {
+  const spells = [
+    { name: 'Fire Bolt', level: 0 },
+    { name: "Hunter's Mark", level: 1 },
+    { name: 'Cure Wounds', level: 1 },
+    { name: 'Spike Growth', level: 2 },
+    { name: 'Conjure Animals', level: 3 },
+  ]
+
+  it('offers a spell at its own level and above, because upcasting is a thing', () => {
+    expect(spellsForLevel(spells, 2).map((s) => s.name)).toEqual([
+      "Hunter's Mark",
+      'Cure Wounds',
+      'Spike Growth',
+    ])
+  })
+
+  it('never offers a spell above the slot you picked', () => {
+    expect(spellsForLevel(spells, 1).map((s) => s.name)).toEqual(["Hunter's Mark", 'Cure Wounds'])
+  })
+
+  it('keeps cantrips to themselves', () => {
+    expect(spellsForLevel(spells, 0).map((s) => s.name)).toEqual(['Fire Bolt'])
+    expect(spellsForLevel(spells, 3).some((s) => s.level === 0)).toBe(false)
+  })
+
+  it('opens on the lowest level that still has a slot', () => {
+    expect(defaultLevel([{ level: 1, label: '', current: 0, max: 3 }, { level: 2, label: '', current: 1, max: 2 }])).toBe(2)
+    expect(defaultLevel([{ level: 1, label: '', current: 2, max: 3 }])).toBe(1)
+    // Nothing left anywhere, so cantrips are all that is castable.
+    expect(defaultLevel([{ level: 1, label: '', current: 0, max: 3 }])).toBe(0)
+    expect(defaultLevel([])).toBe(0)
   })
 })

@@ -163,6 +163,24 @@ export function spellLevelLabel(level: number): string {
 }
 
 /**
+ * The spells worth offering at a chosen slot level.
+ *
+ * A spell can be cast with a higher slot than its own and not a lower one, so
+ * picking 3rd offers everything up to 3rd rather than only the 3rd-level ones.
+ * Cantrips are their own case: level 0 spends no slot, so it shows cantrips
+ * alone and nothing else shows them.
+ */
+export function spellsForLevel(spells: readonly ActionSpell[], level: number): ActionSpell[] {
+  if (level === 0) return spells.filter((s) => s.level === 0)
+  return spells.filter((s) => s.level > 0 && s.level <= level)
+}
+
+/** The level the panel opens on: the lowest with a slot left, else cantrip. */
+export function defaultLevel(slots: readonly ActionSlot[]): number {
+  return slots.find((slot) => slot.current > 0)?.level ?? 0
+}
+
+/**
  * The sentence the composer gets.
  *
  * Ordinary prose, not a command: it goes into the box as a message like any

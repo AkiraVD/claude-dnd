@@ -1147,3 +1147,7 @@ button.ghost:hover { border-color: var(--text-faint); color: var(--text); }
   white-space: nowrap;
 }
 .sheet-spells { margin-bottom: 8px; }
+.sheet-levels { margin-bottom: 8px; }
+.sheet-levels em { font-style: normal; letter-spacing: 0.08em; color: var(--text-faint); }
+.chip-pick:disabled { opacity: 0.35; cursor: not-allowed; }
+.sheet-spells em { margin-left: 5px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; }
