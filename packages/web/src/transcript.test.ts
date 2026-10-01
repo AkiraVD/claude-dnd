@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { TRANSCRIPT_LIMIT, packTranscript, readTranscript } from './transcript.js'
+import { TRANSCRIPT_LIMIT, isStale, packTranscript, readTranscript } from './transcript.js'
 import type { LogEntry } from './useTable.js'
 
 const narration = (id: string, text: string, streaming = false): LogEntry => ({
@@ -45,5 +45,16 @@ describe('the transcript', () => {
     expect(readTranscript('sess-1', '')).toEqual([])
     expect(readTranscript('sess-1', 'not json')).toEqual([])
     expect(readTranscript('sess-1', '{"session":"sess-1"}')).toEqual([])
+  })
+
+  it('knows a stored log from a conversation that has ended', () => {
+    // Worth telling apart: nothing stored is the ordinary first visit, while a
+    // log from another session is dead weight to be cleared off the disk.
+    const packed = packTranscript('sess-1', [narration('a', 'The door gives.')])
+
+    expect(isStale('sess-2', packed)).toBe(true)
+    expect(isStale('sess-1', packed)).toBe(false)
+    expect(isStale('sess-1', null)).toBe(false)
+    expect(isStale('sess-1', '')).toBe(false)
   })
 })

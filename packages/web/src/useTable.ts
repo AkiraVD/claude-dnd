@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CampaignHeader, ServerMessage, TableState, ToolCallView } from '@dnd/server/protocol.js'
-import { TRANSCRIPT_KEY, packTranscript, readTranscript } from './transcript.js'
+import { TRANSCRIPT_KEY, isStale, packTranscript, readTranscript } from './transcript.js'
 
 export interface NarrationEntry {
   kind: 'narration'
@@ -88,26 +88,26 @@ let counter = 0
 const run = Math.random().toString(36).slice(2, 7)
 const nextId = () => `${run}-${++counter}`
 
-/** sessionStorage, which is absent in a private window and throws when full. */
+/** localStorage, which is absent in a private window and throws when full. */
 const store = {
   read(): string | null {
     try {
-      return sessionStorage.getItem(TRANSCRIPT_KEY)
+      return localStorage.getItem(TRANSCRIPT_KEY)
     } catch {
       return null
     }
   },
   write(value: string): void {
     try {
-      sessionStorage.setItem(TRANSCRIPT_KEY, value)
+      localStorage.setItem(TRANSCRIPT_KEY, value)
     } catch {
       // Out of quota or blocked. The log stays on screen; it just will not
-      // survive the next refresh, which is where it was before this existed.
+      // survive the next load, which is where it was before this existed.
     }
   },
   clear(): void {
     try {
-      sessionStorage.removeItem(TRANSCRIPT_KEY)
+      localStorage.removeItem(TRANSCRIPT_KEY)
     } catch {
       /* nothing to do */
     }
@@ -271,7 +271,12 @@ export function useTable(): Table {
   useEffect(() => {
     if (restored.current || claudeSession === null) return
     restored.current = true
-    const saved = readTranscript(claudeSession, store.read())
+    const raw = store.read()
+    // A transcript from a conversation that has ended — a restart, a clear from
+    // another tab — is never shown, and now that it outlives the browser it is
+    // not left lying there either.
+    if (isStale(claudeSession, raw)) store.clear()
+    const saved = readTranscript(claudeSession, raw)
     // Only into an empty log: anything already here arrived on this connection
     // and is newer than what was written before the refresh.
     if (saved.length > 0) setLog((entries) => (entries.length === 0 ? saved : entries))
