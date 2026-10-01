@@ -56,6 +56,35 @@ export const PORTRAITS = {
   'tiefling-fortuneteller-white': 'Old woman, white horns, many rings, a fan of cards',
   'human-fishwife-salted': 'Woman in her thirties, salt-bleached hair, oilskin',
 
+  // Adventurers rather than townsfolk: the archetypes a player character
+  // actually lands on, so a rolled character has a face that does not look
+  // like it came to fix the roof.
+  'human-mercenary-scarred': 'Woman, mail, scarred jaw, a captain’s indifference',
+  'human-warpriest-bloodied': 'Man, bloodied vestments over a breastplate, sunburst',
+  'human-courtmage-inked': 'Woman, high collar, ink on her fingers, measuring you',
+  'human-outrider-windburnt': 'Man, hood down, windburnt and days unshaven',
+  'human-charlatan-easy': 'Woman, fine coat worn badly, a very easy smile',
+  'dwarf-shieldbreaker-ringed': 'Man, flat nose, beard plaited through iron rings',
+  'dwarf-forgepriest-sooted': 'Woman, soot to the elbows, a hammer pendant',
+  'dwarf-runecarver-chalked': 'Old man, spectacles pushed up, chalk and a cut rune',
+  'dwarf-pathfinder-furred': 'Woman, furs, a snow-burnt face, red braids',
+  'dwarf-dicesharp-gilded': 'Man, a ring on every finger, watching your hands',
+  'elf-bladedancer-lacquered': 'Woman, lacquered half-armour, white hair, cold',
+  'elf-grovepriest-antlered': 'Man, antler circlet, serene, green and grey',
+  'elf-highmage-circleted': 'Woman, silver circlet, pale, remote and unhurried',
+  'elf-longstrider-hooded': 'Man, green hood down, a bow stave at his shoulder',
+  'elf-silvertongue-cool': 'Woman, dark hair, half a smile and nothing behind it',
+  'halfling-bulwark-cheerful': 'Man, a shield far too big for him, entirely cheerful',
+  'halfling-hearthpriest-lantern': 'Woman, plain robes, a lit lantern, kind',
+  'halfling-hedgemage-singed': 'Man, singed sleeves, a flame in his palm, pleased',
+  'halfling-trailwise-muddy': 'Woman, muddy cloak, sharp-eyed, a sprig at her collar',
+  'halfling-cardsharp-waistcoated': 'Man, waistcoat, a fan of cards, friendly and lying',
+  'half-elf-sellsword-tired': 'Woman, brigandine, tired in a way sleep will not fix',
+  'half-elf-wanderingpriest-dusty': 'Man, road dust on a holy symbol, patient',
+  'half-elf-hedgewitch-charmed': 'Woman, charms and feathers braided into her hair',
+  'half-elf-scout-listening': 'Man, half-cloak, arrows at his shoulder, listening',
+  'half-elf-grifter-borrowed': 'Woman, borrowed finery, pearls, delighted with herself',
+
   // The road, the temple, and the people you would rather avoid.
   'human-sergeant-broken': 'Man in his forties, mail coif, broken nose, watch badge',
   'dwarf-warden-plaited': 'Old man, long white plaits, temple staff, gold fittings',

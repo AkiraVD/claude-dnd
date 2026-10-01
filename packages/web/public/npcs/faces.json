@@ -24,6 +24,14 @@
   59,
   34
  ],
+ "dwarf-dicesharp-gilded": [
+  57,
+  33
+ ],
+ "dwarf-forgepriest-sooted": [
+  57,
+  33
+ ],
  "dwarf-gaoler-keys": [
   61,
   36
@@ -36,9 +44,21 @@
   63,
   36
  ],
+ "dwarf-pathfinder-furred": [
+  57,
+  33
+ ],
+ "dwarf-runecarver-chalked": [
+  57,
+  33
+ ],
  "dwarf-sapper-sooted": [
   60,
   31
+ ],
+ "dwarf-shieldbreaker-ringed": [
+  57,
+  33
  ],
  "dwarf-silversmith-loupe": [
   62,
@@ -60,6 +80,10 @@
   60,
   31
  ],
+ "elf-bladedancer-lacquered": [
+  57,
+  33
+ ],
  "elf-draper-cold": [
   60,
   29
@@ -68,9 +92,21 @@
   58,
   27
  ],
+ "elf-grovepriest-antlered": [
+  57,
+  33
+ ],
+ "elf-highmage-circleted": [
+  57,
+  33
+ ],
  "elf-lamplighter-sooty": [
   55,
   29
+ ],
+ "elf-longstrider-hooded": [
+  57,
+  33
  ],
  "elf-priestess-circlet": [
   57,
@@ -83,6 +119,10 @@
  "elf-scout-lean": [
   58,
   34
+ ],
+ "elf-silvertongue-cool": [
+  57,
+  33
  ],
  "gnome-clockmaker-white": [
   60,
@@ -108,6 +148,14 @@
   60,
   32
  ],
+ "half-elf-grifter-borrowed": [
+  57,
+  33
+ ],
+ "half-elf-hedgewitch-charmed": [
+  57,
+  33
+ ],
  "half-elf-innkeeper-unimpressed": [
   54,
   36
@@ -116,13 +164,25 @@
   60,
   34
  ],
+ "half-elf-scout-listening": [
+  57,
+  33
+ ],
  "half-elf-scribe-inked": [
   58,
   35
  ],
+ "half-elf-sellsword-tired": [
+  57,
+  33
+ ],
  "half-elf-spymaster-grey": [
   59,
   37
+ ],
+ "half-elf-wanderingpriest-dusty": [
+  57,
+  33
  ],
  "half-orc-blacksmith-grey": [
   63,
@@ -156,6 +216,14 @@
   61,
   31
  ],
+ "halfling-bulwark-cheerful": [
+  57,
+  33
+ ],
+ "halfling-cardsharp-waistcoated": [
+  57,
+  33
+ ],
  "halfling-cheesemonger-round": [
   50,
   32
@@ -163,6 +231,14 @@
  "halfling-cook-round": [
   58,
   34
+ ],
+ "halfling-hearthpriest-lantern": [
+  57,
+  33
+ ],
+ "halfling-hedgemage-singed": [
+  57,
+  33
  ],
  "halfling-laundress-strong": [
   52,
@@ -188,6 +264,10 @@
   57,
   34
  ],
+ "halfling-trailwise-muddy": [
+  57,
+  33
+ ],
  "human-abbess-wimple": [
   60,
   31
@@ -199,6 +279,14 @@
  "human-bounty-hooded": [
   58,
   31
+ ],
+ "human-charlatan-easy": [
+  57,
+  33
+ ],
+ "human-courtmage-inked": [
+  57,
+  33
  ],
  "human-farmer-weathered": [
   52,
@@ -216,6 +304,10 @@
   56,
   31
  ],
+ "human-mercenary-scarred": [
+  57,
+  33
+ ],
  "human-merchant-stout": [
   54,
   34
@@ -223,6 +315,10 @@
  "human-novice-shaven": [
   56,
   29
+ ],
+ "human-outrider-windburnt": [
+  57,
+  33
  ],
  "human-priest-gaunt": [
   59,
@@ -235,6 +331,10 @@
  "human-stablehand-straw": [
   57,
   38
+ ],
+ "human-warpriest-bloodied": [
+  57,
+  33
  ],
  "tiefling-fence-horned": [
   60,
