@@ -88,7 +88,10 @@ export const SETUP_TABS: readonly SetupTab[] = [
     options: classOptions,
     phrase: (value) => `Class: ${value}`,
     imageFor: (label) => `/classes/${label.toLowerCase()}.webp`,
-    artAspect: '4 / 5',
+    // Square, because the sheet they are cut from is: cropping a bust to 4:5
+    // meant guessing where each head sat horizontally, and a whole cell beats a
+    // well-aimed crop.
+    artAspect: '1 / 1',
   },
   {
     key: 'adventure',

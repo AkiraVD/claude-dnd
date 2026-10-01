@@ -37,6 +37,13 @@ with only the subject clause changed per card. Each set was produced in a single
 conversation so that block stayed in context. That block is what gives a set its common
 look — there is no seed to pin, so the consistency comes from the prompt.
 
+The twelve class cards are each a different person — a different face, race and gender —
+so the picker never implies a class belongs to one kind of people. The pairings are the
+classic ones: half-orc barbarian, half-elf bard, human cleric, elf druid, human fighter,
+human monk, dragonborn paladin, elf ranger, halfling rogue, dragonborn sorcerer, tiefling
+warlock, human wizard. Six are women and six are men, and where a race appears twice it
+appears as one of each.
+
 The race cards each show a man and a woman of that people in traditional dress, so the
 card shows a people rather than a person and the picker implies nothing about gender.
 

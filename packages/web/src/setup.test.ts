@@ -171,13 +171,13 @@ describe('class art', () => {
   })
 
   it('gives the tabs with art an explicit aspect', () => {
-    // The class busts are portrait while the race pairs and the adventure
-    // scenes are landscape; a shared default would letterbox one of them.
+    // Three different aspects across the tabs — square busts, landscape pairs,
+    // landscape scenes — so a shared default would letterbox something.
     for (const tab of SETUP_TABS) {
       if (tab.imageFor === undefined) continue
       expect(tab.artAspect, `${tab.key} has art but no aspect`).toBeDefined()
     }
-    expect(SETUP_TABS.find((t) => t.key === 'class')!.artAspect).toBe('4 / 5')
+    expect(SETUP_TABS.find((t) => t.key === 'class')!.artAspect).toBe('1 / 1')
     expect(SETUP_TABS.find((t) => t.key === 'race')!.artAspect).toBe('3 / 2')
     expect(SETUP_TABS.find((t) => t.key === 'adventure')!.artAspect).toBe('3 / 2')
     // The still-life deck: difficulty, tone and rules share one treatment.
