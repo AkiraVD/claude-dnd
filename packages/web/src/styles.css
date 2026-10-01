@@ -141,6 +141,52 @@ body {
 }
 
 /*
+ * Dialogue, set apart from the narration around it.
+ *
+ * An exchange buried in prose is the hardest thing in a session to follow —
+ * four people talking, and you are reading the same paragraph twice to work out
+ * who said what. The face and the name carry that, so the speech itself needs
+ * no more than a quiet rule down its left edge.
+ */
+.speech {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  margin: 13px 0;
+  padding: 9px 12px 9px 11px;
+  border-left: 2px solid var(--line);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--bg-raised);
+}
+.speech-face {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  overflow: hidden;
+  display: block;
+  position: relative;
+  margin-top: 2px;
+}
+.speech-face img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+.speech-said { min-width: 0; flex: 1; }
+.speech-who {
+  display: block;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.speech-said p { margin: 2px 0 0; }
+
+/*
  * The DM writes tables in Markdown — shop stock, loot, a rules summary. Laid
  * out as a real table rather than left as pipes and dashes, and allowed to
  * scroll sideways inside its own box so a wide one never widens the log.

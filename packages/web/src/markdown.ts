@@ -9,6 +9,18 @@ export type Align = 'left' | 'center' | 'right'
 export type Block =
   | { kind: 'para'; text: string }
   | { kind: 'table'; head: string[]; align: Align[]; rows: string[][] }
+  | { kind: 'speech'; speaker: string; text: string }
+
+/**
+ * A line of dialogue: a name, a colon, and speech that opens with a quote.
+ *
+ * The quote is what makes this safe to key off. "Varn:" alone would also match
+ * a stat line or a list label, and the cost of a false positive is a paragraph
+ * of narration wearing somebody's face. The name is capped at a few words
+ * because a speaker is a name, not a sentence — and `[^:]` keeps it from
+ * leaping over a second colon further along the line.
+ */
+const SPEECH = /^([^:\n]{1,40}):\s+(["\u201c].*)$/
 
 /**
  * Splits prose on blank lines, and lifts out any run of lines that reads as a
@@ -32,6 +44,15 @@ export function blocks(text: string): Block[] {
     const line = lines[i] ?? ''
     if (line.trim() === '') {
       flush()
+      continue
+    }
+
+    // Before the table check: a speech line has no pipes, so the two cannot
+    // disagree, but reading it first keeps the intent obvious.
+    const speech = SPEECH.exec(line.trim())
+    if (speech !== null) {
+      flush()
+      out.push({ kind: 'speech', speaker: speech[1]!.trim(), text: speech[2]!.trim() })
       continue
     }
 
@@ -86,4 +107,26 @@ function cells(row: string): string[] {
     .replace(/\|$/, '')
     .split(/(?<!\\)\|/)
     .map((cell) => cell.trim().replace(/\\\|/g, '|'))
+}
+
+
+/**
+ * The cast member a speaker name refers to, for the avatar beside the box.
+ *
+ * The DM writes what it would say out loud — "Varn" for a creature recorded as
+ * "Ilde Varn" — so an exact match is tried first and a whole-word match after.
+ * Whole-word matters: "Sool" must not match "Soolhaven", and a stray match is
+ * worse than no portrait, because a wrong face is a wrong character.
+ */
+export function speakerKey(speaker: string, names: readonly string[]): string | null {
+  const said = speaker.trim().toLowerCase()
+  if (said === '') return null
+
+  const exact = names.find((name) => name.toLowerCase() === said)
+  if (exact !== undefined) return exact
+
+  const words = (name: string): string[] => name.toLowerCase().split(/[^\p{L}\p{N}]+/u)
+  const matches = names.filter((name) => words(name).includes(said))
+  // Two people called Varn: say neither rather than guess between them.
+  return matches.length === 1 ? matches[0]! : null
 }

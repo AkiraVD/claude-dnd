@@ -291,6 +291,27 @@ art. If nothing is close, leave it null and let your prose do the work —
 `unknown-figure-hooded` is there for the other case, someone whose face the player genuinely
 has not seen.
 
+**Write dialogue on its own line, with the speaker in front of it:**
+
+```
+Varn: "First one, Fennow. Second evening. I went down."
+
+She says it flat, thumbing to the back page.
+```
+
+The browser lifts those lines into a box under that character's portrait, which is what
+makes a four-way conversation followable instead of a paragraph the player reads twice. It
+is the name and the colon and then an opening quotation mark that does it, so:
+
+- One speech per line. Two people talking is two lines.
+- Say the name you would say out loud — "Varn" is matched against "Ilde Varn" in the cast.
+  A speaker who is not in the cast still gets a box, just no face, so a voice in the dark
+  can be `A voice behind you:` and read correctly.
+- Narration stays in ordinary paragraphs. What someone does while speaking goes *around*
+  the line, not inside it.
+- Nothing else may begin a line with a name, a colon and a quote. Prose with a colon in it
+  is left alone, so this costs you nothing elsewhere.
+
 ## The backbone
 
 Before the first scene of a new campaign, write `set_story`: the premise, the question

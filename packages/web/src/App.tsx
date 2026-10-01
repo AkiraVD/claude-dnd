@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
+import type { Creature } from '@dnd/engine'
+import { faceTransform, portraitFor } from './art.js'
 import { Actions } from './Actions.js'
 import { actionSheet, defaultActor } from './actions.js'
 import { Character } from './Character.js'
 import { DiceCard } from './DiceCard.js'
-import { blocks, type Block } from './markdown.js'
+import { blocks, speakerKey, type Block } from './markdown.js'
 import { Panels } from './Panels.js'
 import { Sessions } from './Sessions.js'
 import { Setup } from './Setup.js'
@@ -182,7 +184,7 @@ function Console({
         )}
 
         {table.log.map((entry) => (
-          <Entry key={entry.id} entry={entry} />
+          <Entry key={entry.id} entry={entry} cast={table.state?.creatures ?? []} />
         ))}
 
         {table.thinking && (
@@ -258,7 +260,7 @@ function Console({
   )
 }
 
-function Entry({ entry }: { entry: LogEntry }): JSX.Element {
+function Entry({ entry, cast }: { entry: LogEntry; cast: readonly Creature[] }): JSX.Element {
   switch (entry.kind) {
     case 'player':
       return (
@@ -271,7 +273,7 @@ function Entry({ entry }: { entry: LogEntry }): JSX.Element {
     case 'narration':
       return (
         <div className="line line-dm">
-          <Prose text={entry.text} />
+          <Prose text={entry.text} cast={cast} />
           {entry.streaming && <span className="caret" />}
         </div>
       )
@@ -290,17 +292,59 @@ function Entry({ entry }: { entry: LogEntry }): JSX.Element {
  * English term. Enough of it is rendered to read well without pulling in a
  * Markdown parser.
  */
-function Prose({ text }: { text: string }): JSX.Element {
+function Prose({ text, cast }: { text: string; cast: readonly Creature[] }): JSX.Element {
   return (
     <>
-      {blocks(text).map((block, index) =>
-        block.kind === 'para' ? (
-          <p key={index}>{inline(block.text)}</p>
-        ) : (
-          <ProseTable key={index} block={block} />
-        ),
-      )}
+      {blocks(text).map((block, index) => {
+        if (block.kind === 'para') return <p key={index}>{inline(block.text)}</p>
+        if (block.kind === 'speech') return <Speech key={index} block={block} cast={cast} />
+        return <ProseTable key={index} block={block} />
+      })}
     </>
+  )
+}
+
+/**
+ * A line of dialogue, under the face of whoever said it.
+ *
+ * The speaker is whatever the DM wrote before the colon, and that is what the
+ * box shows — the cast is consulted only for the portrait. So a voice from the
+ * dark, or someone the player has not met and who therefore is not in the cast
+ * yet, still gets a box with their name on it and simply no face.
+ */
+function Speech({
+  block,
+  cast,
+}: {
+  block: Extract<Block, { kind: 'speech' }>
+  cast: readonly Creature[]
+}): JSX.Element {
+  const match = speakerKey(
+    block.speaker,
+    cast.map((creature) => creature.name),
+  )
+  const who = cast.find((creature) => creature.name === match) ?? null
+  const face = portraitFor(who?.profile.portrait)
+
+  return (
+    <div className="speech">
+      {face !== null && (
+        <span className="speech-face">
+          <img
+            src={face}
+            alt=""
+            style={{ transform: faceTransform(who?.profile.portrait) }}
+            onError={(event) => {
+              event.currentTarget.style.display = 'none'
+            }}
+          />
+        </span>
+      )}
+      <div className="speech-said">
+        <span className="speech-who">{block.speaker}</span>
+        <p>{inline(block.text)}</p>
+      </div>
+    </div>
   )
 }
 
