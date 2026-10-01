@@ -593,14 +593,17 @@ button.ghost:hover { border-color: var(--text-faint); color: var(--text); }
 
 /* ── tabs ────────────────────────────────────────────────────────────────── */
 
+/* Wraps rather than scrolls. Seven tabs needed five pixels more than the strip
+   had, which bought a full scrollbar to scroll almost nothing; an eighth would
+   buy a real one. A second row costs nothing and is visible without being
+   dragged, which matters on a phone where the strip has no room at all. */
 .tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 2px;
-  padding: 0 18px;
-  overflow-x: auto;
+  padding: 0 12px;
   border-bottom: 1px solid var(--line);
   background: var(--bg-sunken);
-  scrollbar-width: thin;
 }
 .tabs button {
   flex: none;
