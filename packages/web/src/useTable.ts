@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CampaignHeader, ServerMessage, TableState, ToolCallView } from '@dnd/server/protocol.js'
+import { TRANSCRIPT_KEY, packTranscript, readTranscript } from './transcript.js'
 
 export interface NarrationEntry {
   kind: 'narration'
@@ -82,7 +83,36 @@ export interface Table {
 }
 
 let counter = 0
-const nextId = () => `e${++counter}`
+// Namespaced per page load, so ids restored from a previous load of this tab
+// cannot collide with ids minted after it and leave React with two keys alike.
+const run = Math.random().toString(36).slice(2, 7)
+const nextId = () => `${run}-${++counter}`
+
+/** sessionStorage, which is absent in a private window and throws when full. */
+const store = {
+  read(): string | null {
+    try {
+      return sessionStorage.getItem(TRANSCRIPT_KEY)
+    } catch {
+      return null
+    }
+  },
+  write(value: string): void {
+    try {
+      sessionStorage.setItem(TRANSCRIPT_KEY, value)
+    } catch {
+      // Out of quota or blocked. The log stays on screen; it just will not
+      // survive the next refresh, which is where it was before this existed.
+    }
+  },
+  clear(): void {
+    try {
+      sessionStorage.removeItem(TRANSCRIPT_KEY)
+    } catch {
+      /* nothing to do */
+    }
+  },
+}
 
 /**
  * One WebSocket to the server, turned into a log and a state snapshot.
@@ -234,6 +264,25 @@ export function useTable(): Table {
     return () => ws.close()
   }, [])
 
+  // Restore once, as soon as the server names the conversation. A refresh keeps
+  // the DM's process and so keeps its session id, which is what makes this the
+  // same session rather than a new one wearing the same campaign.
+  const restored = useRef(false)
+  useEffect(() => {
+    if (restored.current || claudeSession === null) return
+    restored.current = true
+    const saved = readTranscript(claudeSession, store.read())
+    // Only into an empty log: anything already here arrived on this connection
+    // and is newer than what was written before the refresh.
+    if (saved.length > 0) setLog((entries) => (entries.length === 0 ? saved : entries))
+  }, [claudeSession])
+
+  useEffect(() => {
+    if (claudeSession === null) return
+    if (log.length === 0) return
+    store.write(packTranscript(claudeSession, log))
+  }, [claudeSession, log])
+
   const say = useCallback((text: string) => {
     const ws = socket.current
     if (ws === null || ws.readyState !== WebSocket.OPEN) return
@@ -267,9 +316,18 @@ export function useTable(): Table {
         .then((body: { campaigns: CampaignHeader[] }) => setCampaigns(body.campaigns))
         .catch(() => setCampaigns([]))
     },
-    clearSession: () => socket.current?.send(JSON.stringify({ type: 'clear' })),
-    resume: (campaignId: number) =>
-      socket.current?.send(JSON.stringify({ type: 'resume', campaignId })),
+    clearSession: () => {
+      // The DM is about to forget; the transcript goes with it, or a refresh
+      // would restore prose this conversation has never seen.
+      store.clear()
+      setLog([])
+      socket.current?.send(JSON.stringify({ type: 'clear' }))
+    },
+    resume: (campaignId: number) => {
+      store.clear()
+      setLog([])
+      socket.current?.send(JSON.stringify({ type: 'resume', campaignId }))
+    },
     say,
     dismissChoice,
     closeShop,
