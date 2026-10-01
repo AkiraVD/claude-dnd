@@ -339,3 +339,60 @@ describe('a fighter is not offered spells', () => {
     expect(sheet.spells).toEqual([{ name: 'Fire Bolt', level: 0 }])
   })
 })
+
+describe('slots that did not come from a class', () => {
+  /**
+   * The engine gates casting on a `spell-slot-N` resource, not on the class, so
+   * a ring, a boon or a subclass picked up at level 3 all work the same way:
+   * the DM grants the resource and the creature can cast. Verified live against
+   * a classless commoner handed a ring — the slot spent and the cast landed.
+   * The panel has to follow the same rule, or the UI would quietly disagree
+   * with the engine about who can cast.
+   */
+  const ringBearer = {
+    ...vessa,
+    id: 'corvin',
+    name: 'Corvin Hask',
+    className: null,
+    resources: [
+      { name: 'spell-slot-1', label: 'Ring of the Borrowed Word', max: 2, current: 1, recharge: 'dawn' },
+    ],
+  }
+
+  const withRing = (events: unknown[] = []) =>
+    ({ ...state, creatures: [ringBearer, vreeke], events }) as unknown as TableState
+
+  it('offers the slot however the creature came by it', () => {
+    const sheet = actionSheet(withRing(), 'corvin')!
+    expect(sheet.canCast).toBe(true)
+    expect(sheet.slots).toEqual([
+      { level: 1, label: 'Ring of the Borrowed Word', current: 1, max: 2 },
+    ])
+    // The label is the ring's, not a class's, and it is shown as given.
+    expect(sheet.slots[0]!.label).toBe('Ring of the Borrowed Word')
+  })
+
+  it('opens on that level and lists what was cast with it', () => {
+    const sheet = actionSheet(
+      withRing([{ t: 'spell', caster: 'corvin', spell: 'Charm Person', level: 1, slotLevel: 1 }]),
+      'corvin',
+    )!
+    expect(defaultLevel(sheet.slots)).toBe(1)
+    expect(spellsForLevel(sheet.spells, 1).map((s) => s.name)).toEqual(['Charm Person'])
+  })
+
+  it('closes the door again once the charges are gone', () => {
+    const spent = {
+      ...ringBearer,
+      resources: [{ name: 'spell-slot-1', label: 'Ring of the Borrowed Word', max: 2, current: 0, recharge: 'dawn' }],
+    }
+    const sheet = actionSheet(
+      { ...state, creatures: [spent, vreeke], events: [] } as unknown as TableState,
+      'corvin',
+    )!
+    // The level still shows, because "none left" is worth seeing, but there is
+    // nothing to open on and cantrips are all that remain.
+    expect(sheet.slots[0]!.current).toBe(0)
+    expect(defaultLevel(sheet.slots)).toBe(0)
+  })
+})

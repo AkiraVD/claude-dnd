@@ -1319,7 +1319,10 @@ export function registerProgressionTools(server: McpServer, store: GameStore): v
       description:
         'Give a creature something with uses and a recharge: Second Wind, Action Surge, ki ' +
         'points, three charges of a wand, two potions. Naming a class already supplies hit dice ' +
-        'and spell slots, so this is for everything else.',
+        'and spell slots, so this is mostly for everything else — but casting is gated on the ' +
+        'slot existing and not on the class, so a ring, a boon or a subclass taken later can ' +
+        'grant one here: name it "spell-slot-N" and that creature can cast at level N, whatever ' +
+        'it is. Label it after the thing that granted it.',
       inputSchema: {
         id: z.string(),
         name: z.string().describe('Stable id, e.g. "second-wind"'),
