@@ -9,7 +9,9 @@ import {
   backdropFor,
   hash,
   itemArtFor,
-  isWholeBody,
+  faceOf,
+  faceTransform,
+  hasFace,
   portraitFor,
 } from './art.js'
 
@@ -124,15 +126,51 @@ describe('portraitFor', () => {
     for (const name of PORTRAIT_LIST) expect(portraitFor(name)).toContain('/npcs/')
   })
 
-  it('knows which portraits are framed whole', () => {
-    // The crop leans upward only for the bestiary; getting this backwards would
-    // put every innkeeper's forehead in the circle.
-    expect(isWholeBody('goblin')).toBe(true)
-    expect(isWholeBody('beholder')).toBe(true)
-    expect(isWholeBody('human-baker-floured')).toBe(false)
-    expect(isWholeBody(null)).toBe(false)
-    expect(isWholeBody('  ')).toBe(false)
-    expect(isWholeBody('not-a-real-name')).toBe(false)
+  it('has a recorded face for every portrait in both libraries', () => {
+    // The whole point of measuring them: a name without an entry silently falls
+    // back to the centre of the frame, which is exactly the blunt rule this
+    // replaced.
+    for (const name of PORTRAIT_LIST) expect(hasFace(name), name).toBe(true)
+    for (const name of BESTIARY_LIST) expect(hasFace(name), name).toBe(true)
+  })
+
+  it('keeps every face inside the frame', () => {
+    for (const name of [...PORTRAIT_LIST, ...BESTIARY_LIST]) {
+      const face = faceOf(name)
+      expect(face.x, `${name} x`).toBeGreaterThan(0)
+      expect(face.x, `${name} x`).toBeLessThan(100)
+      expect(face.y, `${name} y`).toBeGreaterThan(0)
+      expect(face.y, `${name} y`).toBeLessThan(100)
+    }
+  })
+
+  it('holds the measurements that were hardest to get right', () => {
+    // Each of these was wrong on the first pass and only showed up when the
+    // crop was actually rendered. They are pinned because an edit that drifts
+    // back toward "heads are near the top" would silently break them again:
+    // a four-legged creature carries its head low, and two of these have no
+    // head in frame at all.
+    expect(faceOf('giant-rat').y).toBeGreaterThan(45)
+    expect(faceOf('displacer-beast').y).toBeGreaterThan(45)
+    expect(faceOf('beholder').y).toBeGreaterThan(40)
+    expect(faceOf('dire-wolf').x).toBeGreaterThan(65)
+    expect(faceOf('bandit-captain').x).toBeGreaterThan(55)
+  })
+
+  it('falls back to the centre rather than nothing', () => {
+    expect(faceOf('not-a-real-name')).toEqual({ x: 50, y: 50 })
+    expect(faceOf(null)).toEqual({ x: 50, y: 50 })
+    expect(hasFace('not-a-real-name')).toBe(false)
+    expect(hasFace(null)).toBe(false)
+  })
+
+  it('aims the zoom at the face', () => {
+    // A face already in the middle needs no shift; one high in the frame has to
+    // be pulled down into the circle.
+    expect(faceTransform('not-a-real-name')).toBe('scale(2) translate(0%, 0%)')
+    expect(faceTransform('hill-giant')).toBe('scale(2) translate(0%, 40%)')
+    expect(faceTransform('wererat')).toBe('scale(2) translate(-30%, 32%)')
+    expect(faceTransform('beholder', 1.5)).toBe('scale(1.5) translate(0%, 5%)')
   })
 })
 

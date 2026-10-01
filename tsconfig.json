@@ -6,6 +6,7 @@
     "moduleResolution": "bundler",
     "types": ["vitest/globals", "node"],
     "jsx": "react-jsx",
+    "resolveJsonModule": true,
 
     "strict": true,
     "noUncheckedIndexedAccess": true,

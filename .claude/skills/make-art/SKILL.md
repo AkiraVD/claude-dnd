@@ -110,7 +110,29 @@ yields known people instead of faces to identify afterwards. Ask also for even s
 outer border, one identical dark background, and no name plates, or the cut will not be
 clean.
 
-## 6. Show the work
+## 6. Aiming the small circles
+
+Each portrait's face is recorded in `faces.json` beside the pictures, as `[x, y]`
+percentages, and `faceOf` / `faceTransform` in `art.ts` read it. Two things are easy to
+get wrong here and both were:
+
+**`object-position` does nothing.** The images are square and so are the boxes, so
+`object-fit: cover` scales them exactly and leaves no overflow to shift — the whole
+creature just gets small. Legibility at 22px needs a *zoom*, which is a `transform:
+scale()` on an image inside a wrapper that clips, aimed by translating the face to the
+middle.
+
+**Measure by eye, then check by rendering.** Reading positions off the source sheet with a
+10% grid overlaid (`drawgrid`, plus `eq=brightness` because the sheets are dark) gets most
+of them. It got nine wrong out of 116, and every one only showed up when the crop was
+actually rendered and tiled — a four-legged creature carries its head low, which is the
+opposite of the assumption that a standing figure's head is near the top. Always do the
+render-and-tile pass; it takes one command and catches what the eye missed.
+
+Two of the monster cells have no head in frame at all, because the creature was taller than
+its cell on the source sheet. No metadata fixes that — it needs regenerating.
+
+## 7. Show the work
 
 Browser screenshots render only on Claude's side. To put anything in front of the user,
 save it (`save_to_disk`) and send it with `SendUserFile` — and for menu art, screenshot the

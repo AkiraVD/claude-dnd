@@ -1010,9 +1010,20 @@ button.ghost:hover { border-color: var(--text-faint); color: var(--text); }
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  object-fit: cover;
   border: 1px solid var(--line);
   flex: none;
+  /* The wrapper does the clipping so the image inside can be zoomed onto its
+     face. Squeezing a whole creature into 34px makes a smudge; the zoom is
+     aimed by faces.json beside the pictures. */
+  overflow: hidden;
+  display: inline-block;
+  position: relative;
+}
+.npc-face img, .foe-face img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
 }
 .foe-face {
   width: 22px;
@@ -1193,7 +1204,6 @@ button.ghost:hover { border-color: var(--text-faint); color: var(--text); }
 .sheet-levels [aria-pressed='false'] em { opacity: 0.6; }
 .sheet-offsheet { margin: 6px 0 0; font-size: 11.5px; color: var(--text-faint); }
 
-/* The bestiary is framed whole, so a standing creature keeps its head in the
-   top third. Leaning the crop upward puts the face in the circle instead of
-   the belt buckle. */
-.face-whole { object-position: center 22%; }
+/* Where a portrait is cropped to comes from faces.json beside the pictures and
+   is applied per image, because one rule cannot serve a head-and-shoulders
+   innkeeper and a whole-body beholder at once. */

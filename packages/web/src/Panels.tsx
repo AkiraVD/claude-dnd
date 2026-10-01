@@ -1,6 +1,6 @@
 import type { Creature } from '@dnd/engine'
 import type { TableState } from '@dnd/server/protocol.js'
-import { backdropFor, isWholeBody, portraitFor } from './art.js'
+import { backdropFor, faceTransform, portraitFor } from './art.js'
 import type { JSX } from 'react'
 
 const ABILITIES = ['str', 'dex', 'con', 'int', 'wis', 'cha'] as const
@@ -255,14 +255,16 @@ function Foe({ creature }: { creature: Creature }): JSX.Element {
     <div className={`foe ${lifeClass(creature)}`}>
       <span className="foe-name">
         {portrait !== null && (
-          <img
-            className={`foe-face${isWholeBody(creature.profile.portrait) ? ' face-whole' : ''}`}
-            src={portrait}
-            alt=""
-            onError={(event) => {
-              event.currentTarget.style.display = 'none'
-            }}
-          />
+          <span className="foe-face">
+            <img
+              src={portrait}
+              alt=""
+              style={{ transform: faceTransform(creature.profile.portrait) }}
+              onError={(event) => {
+                event.currentTarget.style.display = 'none'
+              }}
+            />
+          </span>
         )}
         {creature.name}
         <Conditions creature={creature} />

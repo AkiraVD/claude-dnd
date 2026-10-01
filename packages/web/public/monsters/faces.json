@@ -1,0 +1,203 @@
+{
+ "_": "Face centre of each portrait as [x, y] percentages. Read off the source sheets by eye, then checked against a rendered crop. Used to aim the circular crop in the cast list.",
+ "animated-armour": [
+  50,
+  14
+ ],
+ "bandit": [
+  44,
+  18
+ ],
+ "bandit-captain": [
+  62,
+  7
+ ],
+ "banshee": [
+  55,
+  8
+ ],
+ "beholder": [
+  50,
+  45
+ ],
+ "bugbear": [
+  55,
+  14
+ ],
+ "cultist": [
+  50,
+  18
+ ],
+ "death-knight": [
+  55,
+  10
+ ],
+ "dire-wolf": [
+  75,
+  25
+ ],
+ "displacer-beast": [
+  63,
+  62
+ ],
+ "doppelganger": [
+  70,
+  8
+ ],
+ "drow-priestess": [
+  50,
+  13
+ ],
+ "drow-raider": [
+  75,
+  12
+ ],
+ "duergar": [
+  45,
+  13
+ ],
+ "gargoyle": [
+  70,
+  13
+ ],
+ "ghost": [
+  65,
+  8
+ ],
+ "ghoul": [
+  63,
+  10
+ ],
+ "giant-rat": [
+  66,
+  52
+ ],
+ "giant-spider": [
+  50,
+  25
+ ],
+ "gnoll": [
+  55,
+  14
+ ],
+ "goblin": [
+  57,
+  17
+ ],
+ "green-dragon": [
+  70,
+  13
+ ],
+ "harpy": [
+  65,
+  23
+ ],
+ "hell-hound": [
+  75,
+  45
+ ],
+ "hill-giant": [
+  50,
+  10
+ ],
+ "hobgoblin": [
+  48,
+  14
+ ],
+ "imp": [
+  70,
+  30
+ ],
+ "kobold": [
+  60,
+  14
+ ],
+ "kuo-toa": [
+  70,
+  13
+ ],
+ "lich": [
+  50,
+  13
+ ],
+ "lizardfolk": [
+  50,
+  13
+ ],
+ "medusa": [
+  50,
+  28
+ ],
+ "mind-flayer": [
+  35,
+  18
+ ],
+ "minotaur": [
+  62,
+  12
+ ],
+ "mummy": [
+  55,
+  10
+ ],
+ "ogre": [
+  55,
+  8
+ ],
+ "orc": [
+  50,
+  13
+ ],
+ "owlbear": [
+  65,
+  18
+ ],
+ "red-wyrmling": [
+  80,
+  22
+ ],
+ "sahuagin": [
+  45,
+  13
+ ],
+ "skeleton": [
+  57,
+  15
+ ],
+ "troll": [
+  55,
+  13
+ ],
+ "vampire-spawn": [
+  58,
+  14
+ ],
+ "wererat": [
+  80,
+  18
+ ],
+ "werewolf": [
+  75,
+  13
+ ],
+ "wight": [
+  53,
+  12
+ ],
+ "will-o-wisp": [
+  55,
+  13
+ ],
+ "wolf": [
+  70,
+  22
+ ],
+ "yuan-ti": [
+  50,
+  13
+ ],
+ "zombie": [
+  60,
+  14
+ ]
+}

@@ -1,4 +1,6 @@
 import { isBeast } from '@dnd/content'
+import monsterFaces from '../public/monsters/faces.json'
+import folkFaces from '../public/npcs/faces.json'
 /**
  * Picking pre-rendered art.
  *
@@ -55,16 +57,61 @@ export function portraitFor(portrait: string | null | undefined): string | null 
   return isBeast(name) ? `/monsters/${name}.webp` : `/npcs/${name}.webp`
 }
 
+/** Where the face is, as percentages of the image. */
+export interface Face {
+  x: number
+  y: number
+}
+
+/** The middle of the frame, for a name with no entry. */
+const CENTRE: Face = { x: 50, y: 50 }
+
+const FACES: Record<string, Face> = Object.fromEntries(
+  [...Object.entries(folkFaces), ...Object.entries(monsterFaces)]
+    .filter(([key, value]) => key !== '_' && Array.isArray(value))
+    .map(([key, value]) => [key, { x: (value as number[])[0]!, y: (value as number[])[1]! }]),
+)
+
 /**
- * Whether this portrait is framed whole rather than head-and-shoulders.
+ * Where to aim a crop of this portrait.
  *
- * The folk are shot at head height, so a circle on the middle of the image
- * lands on the face. The bestiary is framed whole, and a standing goblin keeps
- * its head in the top third — without this the cast list would show everything
- * from the waist.
+ * Every image was looked at and its face recorded in `faces.json` beside the
+ * pictures, because no single rule covers the set: the folk are shot at head
+ * height but turn and lean, and the bestiary is framed whole, so a beholder's
+ * eye sits at 45% while a hill giant's head is at 8%. Guessing with one number
+ * put the circle on a belt buckle as often as a face.
+ *
+ * An unknown name falls back to the centre of the frame rather than nothing, so
+ * a typo shows a badly-cropped portrait instead of no portrait.
  */
-export function isWholeBody(portrait: string | null | undefined): boolean {
-  return portrait !== undefined && portrait !== null && isBeast(portrait.trim())
+export function faceOf(portrait: string | null | undefined): Face {
+  if (portrait === undefined || portrait === null) return CENTRE
+  return FACES[portrait.trim()] ?? CENTRE
+}
+
+/**
+ * A CSS transform that zooms a portrait onto its face.
+ *
+ * `object-position` cannot do this: the images are square and so are the boxes
+ * they go in, so `object-fit: cover` scales them exactly and there is no
+ * overflow left to shift — the whole creature just gets small. Zooming is the
+ * only thing that makes a face legible at 22px, and the zoom has to be aimed,
+ * which is what the recorded face is for.
+ *
+ * Scaled about the centre, so bringing the face there means translating by how
+ * far it sits from the middle. The translate is a percentage of the element,
+ * and happens before the scale, which is why it is not multiplied by the zoom.
+ */
+export function faceTransform(portrait: string | null | undefined, zoom = 2): string {
+  const face = faceOf(portrait)
+  const dx = -(face.x - 50)
+  const dy = -(face.y - 50)
+  return `scale(${zoom}) translate(${dx}%, ${dy}%)`
+}
+
+/** Whether a face was actually recorded for this name. */
+export function hasFace(portrait: string | null | undefined): boolean {
+  return portrait !== undefined && portrait !== null && portrait.trim() in FACES
 }
 
 /**
