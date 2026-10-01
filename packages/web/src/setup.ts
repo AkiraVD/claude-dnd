@@ -31,6 +31,11 @@ export interface SetupTab {
    * that visibly disagreed.
    */
   imageFor?: (label: string) => string
+  /**
+   * Aspect of the art box. Class busts are portrait; race cards hold two
+   * figures side by side and need the width.
+   */
+  artAspect?: string
 }
 
 const LANGUAGES: readonly (readonly [string, string])[] = [
@@ -63,8 +68,13 @@ export const SETUP_TABS: readonly SetupTab[] = [
     prompt: 'What are you?',
     custom: 'Or describe your own people',
     placeholder: 'A tiefling raised by dwarves, ashamed of neither…',
+    wide: true,
     options: raceOptions,
     phrase: (value) => `Race: ${value}`,
+    // A man and a woman of each people, so the card shows a people rather than
+    // a person — and nothing about the picker implies a gender.
+    imageFor: (label) => `/races/${label.toLowerCase()}.webp`,
+    artAspect: '3 / 2',
   },
   {
     key: 'class',
@@ -75,6 +85,7 @@ export const SETUP_TABS: readonly SetupTab[] = [
     options: classOptions,
     phrase: (value) => `Class: ${value}`,
     imageFor: (label) => `/classes/${label.toLowerCase()}.webp`,
+    artAspect: '4 / 5',
   },
   {
     key: 'adventure',

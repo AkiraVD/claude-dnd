@@ -104,6 +104,7 @@ export function Setup({
                     <img
                       src={tab.imageFor(label)}
                       alt=""
+                      style={{ aspectRatio: tab.artAspect ?? '4 / 5' }}
                       // A missing asset should cost the art, not the card.
                       onError={(event) => {
                         event.currentTarget.style.display = 'none'

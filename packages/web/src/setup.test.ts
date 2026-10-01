@@ -161,9 +161,32 @@ describe('class art', () => {
     }
   })
 
-  it('leaves the other tabs without art', () => {
+  it('points every race at an asset that exists', async () => {
+    const { existsSync } = await import('node:fs')
+    const { fileURLToPath } = await import('node:url')
+    const tab = SETUP_TABS.find((t) => t.key === 'race')!
+
+    expect(tab.imageFor).toBeDefined()
+    for (const [label] of tab.options) {
+      const path = fileURLToPath(new URL(`../public${tab.imageFor!(label)}`, import.meta.url))
+      expect(existsSync(path), `${label}: ${tab.imageFor!(label)} is missing`).toBe(true)
+    }
+  })
+
+  it('gives the tabs with art an explicit aspect', () => {
+    // The class busts are portrait and the race pairs landscape; a shared
+    // default would letterbox one of them.
     for (const tab of SETUP_TABS) {
-      if (tab.key !== 'class') expect(tab.imageFor, tab.key).toBeUndefined()
+      if (tab.imageFor === undefined) continue
+      expect(tab.artAspect, `${tab.key} has art but no aspect`).toBeDefined()
+    }
+    expect(SETUP_TABS.find((t) => t.key === 'class')!.artAspect).toBe('4 / 5')
+    expect(SETUP_TABS.find((t) => t.key === 'race')!.artAspect).toBe('3 / 2')
+  })
+
+  it('leaves the tabs without art alone', () => {
+    for (const tab of SETUP_TABS) {
+      if (!['class', 'race'].includes(tab.key)) expect(tab.imageFor, tab.key).toBeUndefined()
     }
   })
 })
