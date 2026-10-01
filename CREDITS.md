@@ -24,7 +24,8 @@ By artist:
 Scenery, NPC portraits and the setup background were generated locally with Stable
 Diffusion (SDXL) and are not third-party work.
 
-The twelve class cards, the nine race cards and the seven adventure cards were generated
+The twelve class cards, the nine race cards, the seven adventure cards and the eleven
+difficulty, tone and rules cards were generated
 with OpenAI's GPT Image from a shared prompt: one fixed block for framing, light and style,
 with only the subject clause changed per card. Each set was produced in a single
 conversation so that block stayed in context. That block is what gives a set its common
@@ -35,5 +36,9 @@ card shows a people rather than a person and the picker implies nothing about ge
 
 The adventure cards are places rather than people, and carry no figure close enough to
 read a face — the card describes the kind of game, not who you are in it.
+
+The difficulty, tone and rules cards are still lifes on one table under one lamp. They
+describe abstractions, and a tone drawn as a face would be a caricature of whoever was
+drawn, so there are no people in them at all.
 
 Game content is SRD 5.1, CC BY 4.0. See the note in CLAUDE.md.

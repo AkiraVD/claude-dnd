@@ -152,7 +152,14 @@ describe('class art', () => {
     const { fileURLToPath } = await import('node:url')
 
     const withArt = SETUP_TABS.filter((tab) => tab.imageFor !== undefined)
-    expect(withArt.map((tab) => tab.key)).toEqual(['race', 'class', 'adventure'])
+    expect(withArt.map((tab) => tab.key)).toEqual([
+      'race',
+      'class',
+      'adventure',
+      'difficulty',
+      'rules',
+      'tone',
+    ])
 
     for (const tab of withArt) {
       for (const [label] of tab.options) {
@@ -173,11 +180,15 @@ describe('class art', () => {
     expect(SETUP_TABS.find((t) => t.key === 'class')!.artAspect).toBe('4 / 5')
     expect(SETUP_TABS.find((t) => t.key === 'race')!.artAspect).toBe('3 / 2')
     expect(SETUP_TABS.find((t) => t.key === 'adventure')!.artAspect).toBe('3 / 2')
+    // The still-life deck: difficulty, tone and rules share one treatment.
+    for (const key of ['difficulty', 'rules', 'tone']) {
+      expect(SETUP_TABS.find((t) => t.key === key)!.artAspect, key).toBe('3 / 2')
+    }
   })
 
   it('leaves the tabs without art alone', () => {
     for (const tab of SETUP_TABS) {
-      if (!['class', 'race', 'adventure'].includes(tab.key)) {
+      if (!['class', 'race', 'adventure', 'difficulty', 'rules', 'tone'].includes(tab.key)) {
         expect(tab.imageFor, tab.key).toBeUndefined()
       }
     }

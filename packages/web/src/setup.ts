@@ -127,6 +127,11 @@ export const SETUP_TABS: readonly SetupTab[] = [
       ['Deadly', 'No pulled punches. Roll a spare character'],
     ],
     phrase: (value) => `Difficulty: ${value}`,
+    // Abstractions, so neither people nor places would do: the whole set is one
+    // still life on the same table under the same lamp, which is what lets
+    // difficulty, tone and rules read as siblings of the other three decks.
+    imageFor: (label) => `/menu/${slug(label)}.webp`,
+    artAspect: '3 / 2',
   },
   {
     key: 'rules',
@@ -151,10 +156,16 @@ export const SETUP_TABS: readonly SetupTab[] = [
       value === 'Hold me to the sheet'
         ? 'Rules: strict — call set_rules with strict_spells true, so a spell must be on my sheet before I can cast it'
         : `Rules: ${value}`,
+    // Abstractions, so neither people nor places would do: the whole set is one
+    // still life on the same table under the same lamp, which is what lets
+    // difficulty, tone and rules read as siblings of the other three decks.
+    imageFor: (label) => `/menu/${slug(label)}.webp`,
+    artAspect: '3 / 2',
   },
   {
     key: 'tone',
     label: 'Tone',
+    wide: true,
     prompt: 'How should it feel?',
     custom: 'Or describe the register you want',
     placeholder: 'Funny until it suddenly is not…',
@@ -166,6 +177,11 @@ export const SETUP_TABS: readonly SetupTab[] = [
       ['Romantic', 'People, and what they want from you'],
     ],
     phrase: (value) => `Tone: ${value}`,
+    // Abstractions, so neither people nor places would do: the whole set is one
+    // still life on the same table under the same lamp, which is what lets
+    // difficulty, tone and rules read as siblings of the other three decks.
+    imageFor: (label) => `/menu/${slug(label)}.webp`,
+    artAspect: '3 / 2',
   },
   {
     key: 'character',
