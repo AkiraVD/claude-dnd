@@ -13,7 +13,8 @@
     "dev:web": "npm run dev --workspace @dnd/web",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "gallery": "tsx scripts/gallery.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.3",
