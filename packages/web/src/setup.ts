@@ -25,10 +25,10 @@ export interface SetupTab {
   /**
    * Art for each option card, by label.
    *
-   * Painted busts, all rendered on one fixed seed with an identical style
-   * clause and only the subject swapped. That is what buys the set its common
-   * framing and lighting — twelve different seeds produced twelve compositions
-   * that visibly disagreed.
+   * Each set was generated in one conversation off a shared prompt block, with
+   * only the subject swapped between images. That block is what buys a set its
+   * common framing and lighting — generating them independently produced
+   * compositions that visibly disagreed.
    */
   imageFor?: (label: string) => string
   /**
@@ -48,6 +48,9 @@ const LANGUAGES: readonly (readonly [string, string])[] = [
 ]
 
 export const LANGUAGE_OPTIONS = LANGUAGES
+
+/** Option label to asset basename: 'Dungeon crawl' -> 'dungeon-crawl'. */
+const slug = (label: string): string => label.toLowerCase().replace(/\s+/g, '-')
 
 const raceOptions = Object.entries(RACES).map(
   ([key, description]) => [raceLabel(key), description] as const,
@@ -104,6 +107,11 @@ export const SETUP_TABS: readonly SetupTab[] = [
       ['War', 'You are very small and it is very large'],
     ],
     phrase: (value) => `Adventure: ${value}`,
+    // Places, not people — the one rule that separates these from the class and
+    // race cards. Same deck treatment otherwise: one warm light low in a cool
+    // dark frame, and the upper-left kept quiet because the label sits there.
+    imageFor: (label) => `/adventures/${slug(label)}.webp`,
+    artAspect: '3 / 2',
   },
   {
     key: 'difficulty',

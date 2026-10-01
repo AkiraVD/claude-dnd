@@ -147,46 +147,39 @@ describe('briefSummary', () => {
 })
 
 describe('class art', () => {
-  it('points every class at an asset that exists', async () => {
+  it('points every option with art at an asset that exists', async () => {
     const { existsSync } = await import('node:fs')
     const { fileURLToPath } = await import('node:url')
-    const tab = SETUP_TABS.find((t) => t.key === 'class')!
 
-    expect(tab.imageFor).toBeDefined()
-    for (const [label] of tab.options) {
-      const path = fileURLToPath(
-        new URL(`../public${tab.imageFor!(label)}`, import.meta.url),
-      )
-      expect(existsSync(path), `${label}: ${tab.imageFor!(label)} is missing`).toBe(true)
-    }
-  })
+    const withArt = SETUP_TABS.filter((tab) => tab.imageFor !== undefined)
+    expect(withArt.map((tab) => tab.key)).toEqual(['race', 'class', 'adventure'])
 
-  it('points every race at an asset that exists', async () => {
-    const { existsSync } = await import('node:fs')
-    const { fileURLToPath } = await import('node:url')
-    const tab = SETUP_TABS.find((t) => t.key === 'race')!
-
-    expect(tab.imageFor).toBeDefined()
-    for (const [label] of tab.options) {
-      const path = fileURLToPath(new URL(`../public${tab.imageFor!(label)}`, import.meta.url))
-      expect(existsSync(path), `${label}: ${tab.imageFor!(label)} is missing`).toBe(true)
+    for (const tab of withArt) {
+      for (const [label] of tab.options) {
+        const href = tab.imageFor!(label)
+        const path = fileURLToPath(new URL(`../public${href}`, import.meta.url))
+        expect(existsSync(path), `${tab.key}/${label}: ${href} is missing`).toBe(true)
+      }
     }
   })
 
   it('gives the tabs with art an explicit aspect', () => {
-    // The class busts are portrait and the race pairs landscape; a shared
-    // default would letterbox one of them.
+    // The class busts are portrait while the race pairs and the adventure
+    // scenes are landscape; a shared default would letterbox one of them.
     for (const tab of SETUP_TABS) {
       if (tab.imageFor === undefined) continue
       expect(tab.artAspect, `${tab.key} has art but no aspect`).toBeDefined()
     }
     expect(SETUP_TABS.find((t) => t.key === 'class')!.artAspect).toBe('4 / 5')
     expect(SETUP_TABS.find((t) => t.key === 'race')!.artAspect).toBe('3 / 2')
+    expect(SETUP_TABS.find((t) => t.key === 'adventure')!.artAspect).toBe('3 / 2')
   })
 
   it('leaves the tabs without art alone', () => {
     for (const tab of SETUP_TABS) {
-      if (!['class', 'race'].includes(tab.key)) expect(tab.imageFor, tab.key).toBeUndefined()
+      if (!['class', 'race', 'adventure'].includes(tab.key)) {
+        expect(tab.imageFor, tab.key).toBeUndefined()
+      }
     }
   })
 })
