@@ -36,3 +36,17 @@ every name and every line of prose stayed exactly as it was and only the files c
 
 16 in one picture is 313 px a cell, comfortably over the 256 px stored, so the replacements
 are if anything sharper than the batches of 25. The library now reads as one set.
+
+## Difficulty, re-pitched
+
+The four difficulty cards escalated too gently: the old Hard was a camp after a bad day,
+which reads as tired rather than dangerous, and Deadly was one figure dragging another
+clear — alarming, but survivable-looking.
+
+Shifted one notch. The dragging-clear scene is Hard now, and Deadly is the aftermath: a
+survivor on one knee among the fallen, blood running in the cracks between the stones, the
+sword left standing where it was driven in, a toppled lantern as the only light. Grim and
+exhausted rather than gory — the weight is in the posture, not the detail.
+
+The camp scene is dropped. It is a good picture that no longer has a slot, which is the
+usual way art gets retired here.
