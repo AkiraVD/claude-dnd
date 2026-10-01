@@ -69,6 +69,14 @@ export interface ActionSpell {
   name: string
   /** The level it was last cast at, which is the sensible default to re-offer. */
   level: number
+  /**
+   * What the DM said it does, from the last cast that bothered to say.
+   *
+   * There is no spell catalogue to look this up in — by design — so this is a
+   * reminder of this table's own ruling and nothing more. Null until the DM has
+   * described it once.
+   */
+  effect: string | null
 }
 
 export interface ActionItem {
@@ -145,8 +153,13 @@ export function actionSheet(state: TableState | null, actorId: string): ActionSh
   for (const event of state.events) {
     if (event.t !== 'spell' || event.caster !== actorId) continue
     const seen = spells.find((s) => s.name.toLowerCase() === event.spell.toLowerCase())
-    if (seen === undefined) spells.push({ name: event.spell, level: event.level })
-    else seen.level = event.level
+    const effect = event.effect ?? null
+    if (seen === undefined) spells.push({ name: event.spell, level: event.level, effect })
+    else {
+      seen.level = event.level
+      // A later cast that said nothing does not erase what the DM wrote before.
+      if (effect !== null) seen.effect = effect
+    }
   }
   spells.sort((a, b) => a.level - b.level || a.name.localeCompare(b.name))
 

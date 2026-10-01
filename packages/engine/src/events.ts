@@ -78,7 +78,15 @@ export type GameEvent =
     }
   | { t: 'rest'; target: CreatureId; kind: 'short' | 'long' }
   | { t: 'killed'; target: CreatureId; reason: string }
-  | { t: 'spell'; caster: CreatureId; spell: string; level: number; slotLevel: number | null }
+  | {
+      t: 'spell'
+      caster: CreatureId
+      spell: string
+      level: number
+      slotLevel: number | null
+      /** One line on what it did here, from the DM. The engine never reads it. */
+      effect?: string
+    }
   | { t: 'level-up'; target: CreatureId; level: number; hpGained: number }
   | { t: 'xp'; target: CreatureId; amount: number; total: number; level: number }
   | {

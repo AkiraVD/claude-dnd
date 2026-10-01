@@ -1176,3 +1176,12 @@ button.ghost:hover { border-color: var(--text-faint); color: var(--text); }
   border-color: var(--good);
   background: color-mix(in oklab, var(--good) 16%, var(--bg-sunken));
 }
+/* A spell the DM has described once carries a mark; hovering shows the ruling. */
+.spell-known {
+  margin-left: 4px;
+  font-size: 9px;
+  vertical-align: super;
+  color: var(--accent);
+}
+/* A level with nothing left still opens — you may be reading what it does. */
+.sheet-levels [aria-pressed='false'] em { opacity: 0.6; }

@@ -173,6 +173,33 @@ describe('spell slots', () => {
     expect(availableSlots(out.creature).find((s) => s.level === 3)!.remaining).toBe(1)
   })
 
+  it('journals the DM’s own line on what the spell did', () => {
+    // The engine has no spell catalogue and is not getting one: nothing reads
+    // this back, it is carried so the browser can remind the player later.
+    const out = castSpell(wizard(5), {
+      spell: 'fireball',
+      level: 3,
+      effect: '8d6 fire in a 20-foot radius, DEX save for half',
+    })
+    const cast = out.events.find((e) => e.t === 'spell')!
+    expect(cast).toMatchObject({
+      spell: 'fireball',
+      effect: '8d6 fire in a 20-foot radius, DEX save for half',
+    })
+  })
+
+  it('leaves the line off entirely when the DM says nothing', () => {
+    const cast = castSpell(wizard(5), { spell: 'fireball', level: 3 }).events.find(
+      (e) => e.t === 'spell',
+    )!
+    expect('effect' in cast).toBe(false)
+    // Whitespace is not a description either.
+    const blank = castSpell(wizard(5), { spell: 'fireball', level: 3, effect: '   ' }).events.find(
+      (e) => e.t === 'spell',
+    )!
+    expect('effect' in blank).toBe(false)
+  })
+
   it('costs nothing for a cantrip', () => {
     const out = castSpell(wizard(5), { spell: 'fire bolt', level: 0 })
     expect(out.slotLevel).toBeNull()

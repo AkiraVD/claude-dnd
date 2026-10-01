@@ -1388,6 +1388,16 @@ export function registerProgressionTools(server: McpServer, store: GameStore): v
         id: z.string(),
         spell: z.string(),
         level: z.number().int().min(0).max(9).describe("The spell's own level; 0 for a cantrip"),
+        effect: z
+          .string()
+          .max(160)
+          .optional()
+          .describe(
+            'One line on what it does, in your words — "marks a target: +1d6 damage from you, ' +
+              'concentration". Not stored as a rule and never enforced; it is shown to the ' +
+              'player as a reminder next time they reach for the same spell. Worth writing the ' +
+              'first time each spell is cast.',
+          ),
         slot_level: z
           .number()
           .int()
@@ -1397,12 +1407,13 @@ export function registerProgressionTools(server: McpServer, store: GameStore): v
           .describe('Upcast by spending a higher slot. Defaults to the spell level'),
       },
     },
-    ({ id, spell, level, slot_level }) =>
+    ({ id, spell, level, slot_level, effect }) =>
       guard(() => {
         const outcome = castSpell(store.creature(id), {
           spell,
           level,
           ...(slot_level === undefined ? {} : { slotLevel: slot_level }),
+          ...(effect === undefined ? {} : { effect }),
         })
         store.put(outcome.creature)
         store.commit('cast_spell', outcome.events)

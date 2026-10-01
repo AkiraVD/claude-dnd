@@ -286,6 +286,11 @@ genuinely discrete — which door, which offer, who to believe — and not for e
 a conversation. The player can ignore the row entirely and type something else, so keep
 narrating as though they will. It is a shortcut, never a cage.
 
+When you first adjudicate a spell, pass `effect` to `cast_spell` — one line, your words,
+"marks a target: +1d6 damage from you, concentration". It is never enforced and no rule
+reads it; it is shown to the player next time they reach for that spell, because the
+engine has no spell catalogue and your ruling is the only description this table has.
+
 `offer_actions` opens a panel of that creature's weapons, remaining slots and the
 creatures it could target, with a box for anything else. Worth calling at the top of the
 player's turn in a fight. They can open it themselves at any time, so skipping it costs

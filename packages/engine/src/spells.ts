@@ -10,6 +10,14 @@ export interface CastOptions {
   level: number
   /** Cast at a higher level than written. Defaults to the spell's own level. */
   slotLevel?: number
+  /**
+   * One line on what the spell does, as the DM is adjudicating it.
+   *
+   * The engine has no spell catalogue and is not acquiring one here: this is
+   * never read back by any rule, only journalled so the browser can remind the
+   * player what they cast last time. The DM remains the authority on the effect.
+   */
+  effect?: string
 }
 
 export interface CastResult {
@@ -92,6 +100,9 @@ export function castSpell(creature: Creature, options: CastOptions): CastResult 
   events.push({
     t: 'spell',
     caster: creature.id,
+    ...(options.effect === undefined || options.effect.trim() === ''
+      ? {}
+      : { effect: options.effect.trim() }),
     spell,
     level,
     slotLevel: level === 0 ? null : slotLevel,

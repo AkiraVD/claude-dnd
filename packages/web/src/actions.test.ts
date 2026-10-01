@@ -247,7 +247,7 @@ describe('spells and items come off the table, not out of thin air', () => {
       withEvents([cast('vessa', 'Cure Wounds', 1), cast('vessa', 'Cure Wounds', 3)]),
       'vessa',
     )!
-    expect(sheet.spells).toEqual([{ name: 'Cure Wounds', level: 3 }])
+    expect(sheet.spells).toEqual([{ name: 'Cure Wounds', level: 3, effect: null }])
   })
 
   it('carries the pack through for using an item', () => {
@@ -273,11 +273,11 @@ describe('spells and items come off the table, not out of thin air', () => {
 
 describe('the level chooses the list', () => {
   const spells = [
-    { name: 'Fire Bolt', level: 0 },
-    { name: "Hunter's Mark", level: 1 },
-    { name: 'Cure Wounds', level: 1 },
-    { name: 'Spike Growth', level: 2 },
-    { name: 'Conjure Animals', level: 3 },
+    { name: 'Fire Bolt', level: 0, effect: null },
+    { name: "Hunter's Mark", level: 1, effect: null },
+    { name: 'Cure Wounds', level: 1, effect: null },
+    { name: 'Spike Growth', level: 2, effect: null },
+    { name: 'Conjure Animals', level: 3, effect: null },
   ]
 
   it('offers a spell at its own level and above, because upcasting is a thing', () => {
@@ -337,7 +337,7 @@ describe('a fighter is not offered spells', () => {
       'vessa',
     )!
     expect(sheet.canCast).toBe(true)
-    expect(sheet.spells).toEqual([{ name: 'Fire Bolt', level: 0 }])
+    expect(sheet.spells).toEqual([{ name: 'Fire Bolt', level: 0, effect: null }])
   })
 })
 
@@ -435,5 +435,43 @@ describe('telling friend from foe', () => {
       ['Tolm Vreeke', 'hostile', 'hostile'],
       ['Corvin Hask', 'neutral', 'indifferent'],
     ])
+  })
+})
+
+describe('what the DM said the spell does', () => {
+  const cast = (spell: string, level: number, effect?: string) =>
+    ({ t: 'spell', caster: 'vessa', spell, level, slotLevel: level, ...(effect === undefined ? {} : { effect }) })
+
+  const withEvents = (events: unknown[]) => ({ ...state, events } as unknown as TableState)
+
+  it('carries the DM’s own line through to the sheet', () => {
+    const sheet = actionSheet(
+      withEvents([cast("Hunter's Mark", 1, 'marks a target: +1d6 from you, concentration')]),
+      'vessa',
+    )!
+    expect(sheet.spells[0]!.effect).toBe('marks a target: +1d6 from you, concentration')
+  })
+
+  it('is null until the DM has described it', () => {
+    const sheet = actionSheet(withEvents([cast('Cure Wounds', 1)]), 'vessa')!
+    expect(sheet.spells[0]!.effect).toBeNull()
+  })
+
+  it('does not forget a description because a later cast said nothing', () => {
+    // The DM writes the line once; casting it again in a hurry must not wipe it.
+    const sheet = actionSheet(
+      withEvents([cast('Cure Wounds', 1, 'heals 1d8 + spellcasting modifier, touch'), cast('Cure Wounds', 2)]),
+      'vessa',
+    )!
+    expect(sheet.spells[0]!.effect).toBe('heals 1d8 + spellcasting modifier, touch')
+    expect(sheet.spells[0]!.level).toBe(2)
+  })
+
+  it('takes the most recent description when the ruling changes', () => {
+    const sheet = actionSheet(
+      withEvents([cast('Shield', 1, 'old ruling'), cast('Shield', 1, '+5 AC until your next turn, reaction')]),
+      'vessa',
+    )!
+    expect(sheet.spells[0]!.effect).toBe('+5 AC until your next turn, reaction')
   })
 })

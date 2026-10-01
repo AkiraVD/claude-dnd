@@ -67,8 +67,16 @@ export function Actions({
     if (draft?.kind === 'spell') setDraft({ kind: 'spell', spell: kept, level: next, target })
   }
 
-  const ready = isReady(current)
-  const preview = current !== null && ready ? composeAction(current) : null
+  // A spent level is still worth opening — it is where you look up what a spell
+  // does before planning a rest around it. Same shape as the counter: explore
+  // freely, and the send is what refuses. The engine would refuse too.
+  const spentLevel =
+    current?.kind === 'spell' && level > 0
+      ? (sheet.slots.find((slot) => slot.level === level)?.current ?? 0) === 0
+      : false
+
+  const ready = isReady(current) && !spentLevel
+  const preview = current !== null && isReady(current) ? composeAction(current) : null
 
   const take = (): void => {
     if (preview === null) return
@@ -163,7 +171,6 @@ export function Actions({
                   type="button"
                   className="chip chip-pick"
                   aria-pressed={level === slot.level}
-                  disabled={slot.current === 0}
                   onClick={() => pickLevel(slot.level)}
                 >
                   {spellLevelLabel(slot.level)}{' '}
@@ -187,12 +194,20 @@ export function Actions({
                     type="button"
                     className="chip chip-pick"
                     aria-pressed={draft?.kind === 'spell' && spell === known.name}
+                    // The engine keeps no spell catalogue, so this is the DM's
+                    // own ruling from when it was last cast — not a rulebook.
+                    title={
+                      known.effect === null
+                        ? `${known.name} — ${spellLevelLabel(known.level)}; the DM has not said what it does yet`
+                        : `${known.name} — ${known.effect}`
+                    }
                     onClick={() => {
                       setSpell(known.name)
                       setDraft({ kind: 'spell', spell: known.name, level, target })
                     }}
                   >
                     {known.name}
+                    {known.effect !== null && <span className="spell-known" aria-hidden="true">?</span>}
                     {known.level !== level && <em>upcast</em>}
                   </button>
                 ))}
@@ -267,7 +282,11 @@ export function Actions({
 
         <div className="modal-foot">
           <div className="brief">
-            {preview === null ? (
+            {spentLevel ? (
+              <>
+                <b>No {spellLevelLabel(level)} slots left</b> — a rest, or a lower one
+              </>
+            ) : preview === null ? (
               'Nothing picked.'
             ) : (
               <>
