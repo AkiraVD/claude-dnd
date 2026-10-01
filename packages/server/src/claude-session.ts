@@ -36,6 +36,13 @@ export interface SessionOptions {
   allowedTools: string[]
   /** Reuse an existing conversation. */
   resumeSessionId?: string
+  /**
+   * The command and arguments to run instead of the CLI. Only tests pass this —
+   * they need a process that starts and stays up, which `claude` will not do
+   * without a real config, and what is worth testing here is how a child is
+   * torn down rather than which child it was.
+   */
+  spawnAs?: { command: string; args: string[] }
   env?: Record<string, string>
 }
 
@@ -45,7 +52,8 @@ export declare interface ClaudeSession {
 }
 
 export class ClaudeSession extends EventEmitter {
-  #child: ChildProcessWithoutNullStreams
+  #child!: ChildProcessWithoutNullStreams
+  #options: SessionOptions
   #buffer = ''
   #sessionId: string | null = null
   #busy = false
@@ -53,7 +61,16 @@ export class ClaudeSession extends EventEmitter {
 
   constructor(options: SessionOptions) {
     super()
+    this.#options = options
+    this.#spawn()
+  }
 
+  /**
+   * Start the CLI. Separate from the constructor so a conversation can be
+   * thrown away and begun again without rebuilding anything around it.
+   */
+  #spawn(): void {
+    const options = this.#options
     const args = [
       '-p',
       '--input-format', 'stream-json',
@@ -72,7 +89,7 @@ export class ClaudeSession extends EventEmitter {
     for (const pattern of options.allowedTools) args.push('--allowedTools', pattern)
     if (options.resumeSessionId !== undefined) args.push('--resume', options.resumeSessionId)
 
-    this.#child = spawn('claude', args, {
+    this.#child = spawn(options.spawnAs?.command ?? 'claude', options.spawnAs?.args ?? args, {
       cwd: options.cwd,
       env: { ...process.env, ...options.env },
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -100,6 +117,33 @@ export class ClaudeSession extends EventEmitter {
     this.#child.on('exit', (code) => {
       this.emit('event', { type: 'exit', code })
     })
+  }
+
+  /**
+   * Throw the conversation away and start a new one.
+   *
+   * This is what `/clear` does, done from the outside: the campaign is in SQLite
+   * and untouched, so the new DM reads the same table with no memory of how it
+   * got there. Queued turns are dropped — they were meant for the conversation
+   * that no longer exists.
+   */
+  restart(): void {
+    // Detach the outgoing child before killing it, rather than guarding its exit
+    // with a flag: the exit event arrives a tick later, by which time any flag
+    // set around the kill has already been cleared, and the player sees "the DM
+    // process exited" for a restart they asked for.
+    const previous = this.#child
+    previous.removeAllListeners()
+    previous.stdout.removeAllListeners()
+    previous.stderr.removeAllListeners()
+    previous.stdin.end()
+    previous.kill('SIGTERM')
+
+    this.#buffer = ''
+    this.#sessionId = null
+    this.#busy = false
+    this.#queue = []
+    this.#spawn()
   }
 
   get sessionId(): string | null {

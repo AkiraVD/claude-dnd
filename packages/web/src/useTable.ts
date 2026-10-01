@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { ServerMessage, TableState, ToolCallView } from '@dnd/server/protocol.js'
+import type { CampaignHeader, ServerMessage, TableState, ToolCallView } from '@dnd/server/protocol.js'
 
 export interface NarrationEntry {
   kind: 'narration'
@@ -69,6 +69,13 @@ export interface Table {
   actionsFor: string | null
   openActions: (id: string) => void
   closeActions: () => void
+  /** The saves, for the session picker. Loaded on demand. */
+  campaigns: CampaignHeader[]
+  loadCampaigns: () => void
+  /** Throw the DM's conversation away. The campaign is untouched. */
+  clearSession: () => void
+  /** Fresh conversation, then load that campaign into it. */
+  resume: (campaignId: number) => void
   say: (text: string) => void
   dismissChoice: () => void
   closeShop: () => void
@@ -96,6 +103,7 @@ export function useTable(): Table {
   const [choice, setChoice] = useState<Choice | null>(null)
   const [shop, setShop] = useState<Shop | null>(null)
   const [actionsFor, setActionsFor] = useState<string | null>(null)
+  const [campaigns, setCampaigns] = useState<CampaignHeader[]>([])
 
   useEffect(() => {
     const url = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`
@@ -197,6 +205,15 @@ export function useTable(): Table {
           return
         }
 
+        case 'cleared':
+          // The DM that wrote these lines no longer exists; keeping them would
+          // suggest it remembers them.
+          setLog([])
+          setThinking(false)
+          setChoice(null)
+          setShop(null)
+          return
+
         case 'turn-end':
           setThinking(false)
           setCostUsd(message.costUsd)
@@ -243,6 +260,16 @@ export function useTable(): Table {
     actionsFor,
     openActions: setActionsFor,
     closeActions: () => setActionsFor(null),
+    campaigns,
+    loadCampaigns: () => {
+      void fetch('/api/campaigns')
+        .then((r) => r.json())
+        .then((body: { campaigns: CampaignHeader[] }) => setCampaigns(body.campaigns))
+        .catch(() => setCampaigns([]))
+    },
+    clearSession: () => socket.current?.send(JSON.stringify({ type: 'clear' })),
+    resume: (campaignId: number) =>
+      socket.current?.send(JSON.stringify({ type: 'resume', campaignId })),
     say,
     dismissChoice,
     closeShop,

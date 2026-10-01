@@ -5,6 +5,7 @@ import { Character } from './Character.js'
 import { DiceCard } from './DiceCard.js'
 import { blocks, type Block } from './markdown.js'
 import { Panels } from './Panels.js'
+import { Sessions } from './Sessions.js'
 import { Setup } from './Setup.js'
 import { Shop } from './Shop.js'
 import { useTable, type LogEntry } from './useTable.js'
@@ -14,6 +15,7 @@ export function App(): JSX.Element {
   const table = useTable()
   const [skippedSetup, setSkippedSetup] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [sessionsOpen, setSessionsOpen] = useState(false)
 
   // A fresh campaign: nobody in it and nothing said yet. Resuming never matches,
   // because a saved campaign has creatures, and neither does a mid-session
@@ -31,6 +33,7 @@ export function App(): JSX.Element {
         met={met}
         showSheet={hasCharacter}
         onOpenSheet={() => setSheetOpen(true)}
+        onOpenSessions={() => setSessionsOpen(true)}
       />
       <Panels state={table.state} />
 
@@ -45,6 +48,17 @@ export function App(): JSX.Element {
       {sheetOpen && table.state !== null && (
         <Character state={table.state} onClose={() => setSheetOpen(false)} />
       )}
+
+      {sessionsOpen && (
+        <Sessions
+          campaigns={table.campaigns}
+          current={table.state?.campaign.id ?? null}
+          onLoad={table.loadCampaigns}
+          onResume={table.resume}
+          onClear={table.clearSession}
+          onClose={() => setSessionsOpen(false)}
+        />
+      )}
     </div>
   )
 }
@@ -54,11 +68,13 @@ function Console({
   met,
   showSheet,
   onOpenSheet,
+  onOpenSessions,
 }: {
   table: ReturnType<typeof useTable>
   met: number
   showSheet: boolean
   onOpenSheet: () => void
+  onOpenSessions: () => void
 }): JSX.Element {
   const [draft, setDraft] = useState('')
   const log = useRef<HTMLDivElement | null>(null)
@@ -103,6 +119,14 @@ function Console({
         <span className="console-meta">
           {table.connected ? (table.model ?? 'starting the DM…') : 'disconnected'}
         </span>
+        <button
+          className="headbtn"
+          type="button"
+          onClick={onOpenSessions}
+          title="Load another campaign, or start the DM over"
+        >
+          {table.state?.campaign.name ?? 'Sessions'}
+        </button>
         {showSheet && (
           <button className="headbtn" type="button" onClick={onOpenSheet}>
             Character{met > 0 && <span className="count"> · {met} met</span>}

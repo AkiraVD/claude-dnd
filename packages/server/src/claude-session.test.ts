@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { translate } from './claude-session.js'
+import { ClaudeSession, translate } from './claude-session.js'
 
 /**
  * The stream-json shapes below were captured from the real CLI, not read off a
@@ -147,5 +147,48 @@ describe('translate', () => {
 
   it('ignores message types it has never seen', () => {
     expect(translate({ type: 'something_new_in_2027' })).toEqual([])
+  })
+})
+
+describe('restarting the conversation', () => {
+  it('does not report the outgoing process as a crash', async () => {
+    // The old child exits a tick after the kill. Guarding that with a flag set
+    // around the kill does not work — the flag is already cleared by the time
+    // the event lands — and the player sees "the DM process exited" for a
+    // restart they asked for. The outgoing child is detached instead.
+    const session = new ClaudeSession({
+      spawnAs: { command: 'cat', args: [] }, // blocks on stdin; dies only when killed
+      cwd: process.cwd(),
+      systemPromptFile: '/dev/null',
+      mcpConfig: '/dev/null',
+      allowedTools: [],
+    })
+    const seen: string[] = []
+    session.on('event', (event) => seen.push(event.type))
+
+    session.restart()
+    await new Promise((resolve) => setTimeout(resolve, 300))
+
+    expect(seen, `saw: ${seen.join(', ')}`).not.toContain('exit')
+    session.stop()
+  })
+
+  it('still reports a genuine exit', async () => {
+    // The suppression has to be specific to the child being replaced, or a DM
+    // that really does fall over goes unnoticed.
+    const session = new ClaudeSession({
+      spawnAs: { command: 'cat', args: [] },
+      cwd: process.cwd(),
+      systemPromptFile: '/dev/null',
+      mcpConfig: '/dev/null',
+      allowedTools: [],
+    })
+    const seen: string[] = []
+    session.on('event', (event) => seen.push(event.type))
+
+    session.stop()
+    await new Promise((resolve) => setTimeout(resolve, 300))
+
+    expect(seen).toContain('exit')
   })
 })

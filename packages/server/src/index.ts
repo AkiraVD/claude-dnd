@@ -172,6 +172,14 @@ function serveStatic(request: IncomingMessage, response: ServerResponse): void {
     return
   }
 
+  // The saves, for the session picker. Names and step counts only — nothing here
+  // is a spoiler, and it is the one thing the browser cannot work out from state.
+  if (url.pathname === '/api/campaigns') {
+    response.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
+    response.end(JSON.stringify({ campaigns: db.listCampaigns(), current: db.mostRecentCampaign()?.id ?? null }))
+    return
+  }
+
   if (!existsSync(WEB_DIST)) {
     response.writeHead(503, { 'content-type': 'text/plain; charset=utf-8' })
     response.end(
@@ -210,6 +218,30 @@ wss.on('connection', (socket) => {
     try {
       message = JSON.parse(String(raw)) as ClientMessage
     } catch {
+      return
+    }
+
+    if (message.type === 'clear') {
+      session.restart()
+      // The emptied log is the confirmation. An info notice would not show: the
+      // client drops those, because that is also how the CLI's stderr arrives.
+      broadcast({ type: 'cleared' })
+      broadcast({ type: 'state', state: readTableFrom(db) })
+      return
+    }
+
+    if (message.type === 'resume') {
+      const campaign = db.findCampaign(message.campaignId)
+      if (!campaign) return
+      // Fresh DM first, then tell it where it is. The other order leaves the old
+      // conversation narrating the campaign it still remembers.
+      session.restart()
+      broadcast({ type: 'cleared' })
+      const ask =
+        `Load campaign ${campaign.id} with load_campaign, then recap where we left off ` +
+        `and hand control back to me. Do not add anything that is already on the board.`
+      broadcast({ type: 'player', text: ask })
+      session.send(ask)
       return
     }
 

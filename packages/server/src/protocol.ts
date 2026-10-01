@@ -42,6 +42,9 @@ export type ServerMessage =
   | { type: 'turn-end'; costUsd: number | null }
   | { type: 'notice'; message: string; level: 'info' | 'error' }
   | { type: 'player'; text: string }
+  /** The conversation was thrown away; the log should empty. */
+  | { type: 'cleared' }
+  | { type: 'campaigns'; campaigns: CampaignHeader[] }
 
 export interface ToolCallView {
   id: string
@@ -57,3 +60,11 @@ export interface ToolCallView {
 export type ClientMessage =
   | { type: 'say'; text: string }
   | { type: 'refresh' }
+  /** Throw the DM's conversation away and start a new one. The campaign stays. */
+  | { type: 'clear' }
+  /**
+   * Switch tables: a fresh conversation, then a first turn telling the new DM
+   * which campaign to load. Both halves matter — a conversation that outlives
+   * the campaign switch keeps narrating the campaign it remembers.
+   */
+  | { type: 'resume'; campaignId: number }
