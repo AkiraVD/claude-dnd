@@ -1,5 +1,5 @@
 import { CLASSES } from '@dnd/content'
-import { hasCondition, isDead, spellcasting, type Creature } from './character.js'
+import { hasCondition, isDead, spellcasting, type Creature, type CreatureSpell } from './character.js'
 import { RulesError } from './errors.js'
 import type { GameEvent } from './events.js'
 import { availableSlots, findResource, spendResource } from './resources.js'
@@ -134,4 +134,47 @@ export function knownCasterClasses(): string[] {
   return Object.entries(CLASSES)
     .filter(([, definition]) => definition.casterType !== 'none')
     .map(([name]) => name)
+}
+
+/**
+ * Write a spell onto a creature's sheet, with a line on what it does.
+ *
+ * Still not a catalogue: nothing here is consulted when the spell is cast, and
+ * a spell that was never written down casts exactly the same. This is the sheet
+ * — the same role `attacks` plays for weapons — so the player can see what they
+ * know and be reminded what it does without asking.
+ *
+ * Learning a spell twice updates it rather than duplicating it, and a second
+ * call that says nothing about the effect keeps the description already there.
+ */
+export function learnSpell(
+  creature: Creature,
+  input: { name: string; level: number; effect?: string },
+): { creature: Creature; events: GameEvent[]; spell: CreatureSpell } {
+  const name = input.name.trim()
+  if (name === '') throw new RulesError('a spell needs a name')
+  if (!Number.isInteger(input.level) || input.level < 0 || input.level > 9) {
+    throw new RulesError(`spell level must be an integer in 0..9, got ${input.level}`)
+  }
+
+  const effect = input.effect?.trim()
+  const existing = creature.spells.find((s) => s.name.toLowerCase() === name.toLowerCase())
+  const kept = effect !== undefined && effect !== '' ? effect : existing?.effect
+
+  const spell: CreatureSpell = {
+    name,
+    level: input.level,
+    ...(kept === undefined ? {} : { effect: kept }),
+  }
+
+  const spells =
+    existing === undefined
+      ? [...creature.spells, spell]
+      : creature.spells.map((s) => (s === existing ? spell : s))
+
+  return {
+    creature: { ...creature, spells },
+    events: [{ t: 'spell-known', caster: creature.id, spell: name, level: input.level }],
+    spell,
+  }
 }

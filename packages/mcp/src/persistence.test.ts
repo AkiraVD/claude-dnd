@@ -214,6 +214,7 @@ describe('every mutating tool writes through', () => {
     ['earn_money', { id: 'brann', amount: '10 gp' }],
     ['spend_money', { id: 'brann', amount: '2 sp' }],
     ['give_item', { id: 'brann', name: 'Rope, 50 ft' }],
+    ['learn_spell', { id: 'brann', name: 'Shield', level: 1, effect: '+5 AC, reaction' }],
     ['take_item', { id: 'brann', name: 'Rope, 50 ft' }],
     ['give_item', { id: 'ogre', name: 'Torch', qty: 5, price: '1 cp' }],
     ['buy', { buyer_id: 'brann', vendor_id: 'ogre', lines: [{ name: 'Torch', qty: 2 }] }],

@@ -134,6 +134,22 @@ export const EMPTY_PROFILE: CreatureProfile = {
  * the governing ability modifier, which is the 5e rule and one less thing to get
  * wrong.
  */
+/**
+ * A spell this creature knows.
+ *
+ * The engine still has no spell catalogue and still enforces nothing about what
+ * a spell does — this is character data, exactly as `attacks` is: a name the
+ * sheet can be asked for and a line the player can be reminded by. Casting is
+ * gated on the slot, never on this list, so a spell absent from it still casts.
+ */
+export interface CreatureSpell {
+  name: string
+  /** The spell's own level; 0 for a cantrip. */
+  level: number
+  /** What it does, in the DM's words. Never read by any rule. */
+  effect?: string
+}
+
 export interface CreatureAttack {
   name: string
   ability: Ability
@@ -174,6 +190,7 @@ export interface Creature {
   readonly death: DeathState
   readonly concentration: Concentration | null
   readonly attacks: readonly CreatureAttack[]
+  readonly spells: readonly CreatureSpell[]
   readonly armour: Armour | null
   readonly resources: readonly Resource[]
   /** Die size for hit dice, from the class. */
@@ -216,6 +233,8 @@ export interface CreatureInput {
   /** Defaults to false for `pc` and true for `npc`. */
   diesAtZero?: boolean
   attacks?: readonly CreatureAttack[]
+  /** Spells this creature knows, with a line on what each does. */
+  spells?: readonly CreatureSpell[]
   armour?: Armour | null
   /**
    * Naming a class fills in the hit die, save proficiencies, hit dice, and spell
@@ -263,6 +282,7 @@ export function createCreature(input: CreatureInput): Creature {
     defenses = {},
     diesAtZero = kind !== 'pc',
     attacks = [],
+    spells = [],
     armour = null,
     className,
     xp = 0,
@@ -362,6 +382,7 @@ export function createCreature(input: CreatureInput): Creature {
     death: { successes: 0, failures: 0, stable: false, dead: false },
     concentration: null,
     attacks: [...attacks],
+    spells: [...spells],
     armour,
     resources,
     hitDie,
@@ -389,6 +410,7 @@ export function restoreCreature(stored: Creature): Creature {
     ...stored,
     purse: stored.purse ?? 0,
     items: stored.items ?? [],
+    spells: stored.spells ?? [],
     presence: stored.presence ?? 'present',
     profile: { ...EMPTY_PROFILE, ...(profile ?? {}), notes: profile?.notes ?? [] },
   }

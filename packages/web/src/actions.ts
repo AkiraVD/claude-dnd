@@ -146,10 +146,16 @@ export function actionSheet(state: TableState | null, actorId: string): ActionSh
     .filter((s) => Number.isFinite(s.level) && s.level > 0)
     .sort((a, b) => a.level - b.level)
 
-  // The engine has no spell catalogue on purpose, so the list is what this
-  // character has actually been seen to cast. Everything cast is journalled, so
-  // the names come back exact — and the box is still there for a new one.
-  const spells: ActionSpell[] = []
+  // Two sources, in this order: what the DM wrote onto the sheet, then what the
+  // journal has seen cast. The sheet is the better one — it is there before the
+  // first cast and carries the description — but a spell cast without ever being
+  // written down still has to show up, or the panel would disagree with the
+  // engine about what this character can do. Neither is a catalogue.
+  const spells: ActionSpell[] = actor.spells.map((known) => ({
+    name: known.name,
+    level: known.level,
+    effect: known.effect ?? null,
+  }))
   for (const event of state.events) {
     if (event.t !== 'spell' || event.caster !== actorId) continue
     const seen = spells.find((s) => s.name.toLowerCase() === event.spell.toLowerCase())

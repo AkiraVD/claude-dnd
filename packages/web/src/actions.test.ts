@@ -37,6 +37,7 @@ const vessa = {
     { name: 'shortsword', ability: 'dex', damage: '1d6', damageType: 'piercing' },
   ],
   items: [],
+  spells: [],
   resources: [
     { name: 'hit-dice', label: 'Hit dice (d10)', max: 3, current: 3, recharge: 'long-rest' },
     { name: 'spell-slot-2', label: '2nd-level slots', max: 2, current: 0, recharge: 'long-rest' },
@@ -52,6 +53,7 @@ const vreeke = {
   presence: 'present',
   attacks: [],
   items: [],
+  spells: [],
   resources: [],
 }
 
@@ -473,5 +475,48 @@ describe('what the DM said the spell does', () => {
       'vessa',
     )!
     expect(sheet.spells[0]!.effect).toBe('+5 AC until your next turn, reaction')
+  })
+})
+
+describe('spells written onto the sheet', () => {
+  const caster = (spells: unknown[]) =>
+    ({
+      ...state,
+      creatures: [{ ...vessa, spells }, vreeke],
+      events: [],
+    }) as unknown as TableState
+
+  it('shows a spell before it has ever been cast', () => {
+    // The whole point of writing them down at character creation: the player
+    // should not have to cast something blind to find out what it does.
+    const sheet = actionSheet(
+      caster([{ name: 'Ensnaring Strike', level: 1, effect: 'restrains on a hit, STR save to escape' }]),
+      'vessa',
+    )!
+    expect(sheet.canCast).toBe(true)
+    expect(sheet.spells).toEqual([
+      { name: 'Ensnaring Strike', level: 1, effect: 'restrains on a hit, STR save to escape' },
+    ])
+  })
+
+  it('does not list the same spell twice when it is then cast', () => {
+    const board = {
+      ...state,
+      creatures: [{ ...vessa, spells: [{ name: "Hunter's Mark", level: 1, effect: 'marks a target' }] }, vreeke],
+      events: [{ t: 'spell', caster: 'vessa', spell: "hunter's mark", level: 1, slotLevel: 1 }],
+    } as unknown as TableState
+    const sheet = actionSheet(board, 'vessa')!
+    expect(sheet.spells).toHaveLength(1)
+    // Casting it without a line does not wipe the one from the sheet.
+    expect(sheet.spells[0]!.effect).toBe('marks a target')
+  })
+
+  it('still shows a spell cast but never written down', () => {
+    const board = {
+      ...state,
+      creatures: [{ ...vessa, spells: [] }, vreeke],
+      events: [{ t: 'spell', caster: 'vessa', spell: 'Fog Cloud', level: 1, slotLevel: 1 }],
+    } as unknown as TableState
+    expect(actionSheet(board, 'vessa')!.spells.map((s) => s.name)).toEqual(['Fog Cloud'])
   })
 })

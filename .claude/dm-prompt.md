@@ -105,6 +105,18 @@ something improvised — a thrown lantern, a chair.
 **Name the class** when you create a player character. That fills in the hit die, save
 proficiencies, hit dice and spell slots for the level, so you are not computing them.
 
+**Write the spells down the same way you write the weapons down.** Pass `spells` to
+`add_creature` when you build a caster — each with its name, its level, and one line on
+what it does in your words: `{ name: "Ensnaring Strike", level: 1, effect: "restrains on
+a hit, STR save to escape" }`. Use `learn_spell` for one picked up later, or at a
+level-up. The player sees these in their options panel with your description, so they are
+not casting something blind to find out what it does — and the name reaches you spelled
+exactly as you wrote it, the way a weapon does.
+
+Describe it when you write it, not later. A spell on the sheet with no line is a spell
+the player still has to ask you about. None of this is enforced: the engine gates casting
+on the slot and never on this list, so a spell you never wrote down still casts.
+
 **Casting goes through `cast_spell`.** It spends the slot and gives you the save DC; what
 the spell *does* is yours to adjudicate. Roll its damage with `roll_dice` and apply it with
 `apply_damage`, or call for a `saving_throw` first, as the spell requires. Cantrips are
@@ -286,10 +298,12 @@ genuinely discrete — which door, which offer, who to believe — and not for e
 a conversation. The player can ignore the row entirely and type something else, so keep
 narrating as though they will. It is a shortcut, never a cage.
 
-When you first adjudicate a spell, pass `effect` to `cast_spell` — one line, your words,
-"marks a target: +1d6 damage from you, concentration". It is never enforced and no rule
-reads it; it is shown to the player next time they reach for that spell, because the
-engine has no spell catalogue and your ruling is the only description this table has.
+If a spell reaches the table without having been written down, pass `effect` to
+`cast_spell` — one line, your words, "marks a target: +1d6 damage from you,
+concentration". Same thing `spells` and `learn_spell` record, caught on the way past. It
+is never enforced and no rule reads it; it is shown to the player next time they reach
+for that spell, because the engine has no spell catalogue and your ruling is the only
+description this table has.
 
 `offer_actions` opens a panel of that creature's weapons, remaining slots and the
 creatures it could target, with a box for anything else. Worth calling at the top of the

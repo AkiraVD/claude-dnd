@@ -41,6 +41,7 @@ import {
   availableSlots,
   awardXp,
   castSpell,
+  learnSpell,
   combineAdvantage,
   kill,
   levelUp,
@@ -280,6 +281,25 @@ export function registerTools(server: McpServer, store: GameStore): void {
             'Define weapons once here, then use them by name with attack_roll. Far less error ' +
               'prone than retyping the dice and bonus on every swing.',
           ),
+        spells: z
+          .array(
+            z.object({
+              name: z.string(),
+              level: z.number().int().min(0).max(9).describe("The spell's own level; 0 for a cantrip"),
+              effect: z
+                .string()
+                .max(160)
+                .optional()
+                .describe('One line on what it does, in your words — shown to the player'),
+            }),
+          )
+          .optional()
+          .describe(
+            'Spells this creature knows, each with a line on what it does. Write these down ' +
+              'when you build a caster: the player sees them in their options panel with your ' +
+              'description, instead of having to remember. Nothing is enforced — casting is ' +
+              'gated on the slot, not on this list.',
+          ),
         dies_at_zero: z
           .boolean()
           .optional()
@@ -348,6 +368,15 @@ export function registerTools(server: McpServer, store: GameStore): void {
                     ? {}
                     : { stealthDisadvantage: args.armour.stealth_disadvantage }),
                 },
+              }),
+          ...(args.spells === undefined
+            ? {}
+            : {
+                spells: args.spells.map((sp) => ({
+                  name: sp.name,
+                  level: sp.level,
+                  ...(sp.effect === undefined ? {} : { effect: sp.effect }),
+                })),
               }),
           attacks: (args.attacks ?? []).map((a) => ({
             name: a.name,
@@ -2120,6 +2149,42 @@ export function registerProgressionTools(server: McpServer, store: GameStore): v
       },
     },
     ({ prompt, options }) => ok(prompt, { choice: { prompt, options } }),
+  )
+
+  server.registerTool(
+    'learn_spell',
+    {
+      title: 'Write a spell onto a sheet',
+      description:
+        'Record that a creature knows a spell, with one line on what it does. The player sees ' +
+        'it in their options panel with your description, so they do not have to remember. ' +
+        'Nothing is enforced and casting is gated on the slot rather than this list — writing ' +
+        'it down is for the player\u2019s benefit, not the engine\u2019s. Calling it again updates ' +
+        'the entry instead of duplicating it.',
+      inputSchema: {
+        id: z.string(),
+        name: z.string(),
+        level: z.number().int().min(0).max(9).describe("The spell's own level; 0 for a cantrip"),
+        effect: z
+          .string()
+          .max(160)
+          .optional()
+          .describe('What it does, in your words — "marks a target: +1d6 from you, concentration"'),
+      },
+    },
+    ({ id, name, level, effect }) =>
+      guard(() => {
+        const outcome = learnSpell(store.creature(id), {
+          name,
+          level,
+          ...(effect === undefined ? {} : { effect }),
+        })
+        store.put(outcome.creature)
+        store.commit('learn_spell', outcome.events)
+        return ok(`${outcome.creature.name} knows ${outcome.spell.name}`, {
+          spells: outcome.creature.spells,
+        })
+      }),
   )
 
   server.registerTool(

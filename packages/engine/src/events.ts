@@ -78,6 +78,7 @@ export type GameEvent =
     }
   | { t: 'rest'; target: CreatureId; kind: 'short' | 'long' }
   | { t: 'killed'; target: CreatureId; reason: string }
+  | { t: 'spell-known'; caster: CreatureId; spell: string; level: number }
   | {
       t: 'spell'
       caster: CreatureId
