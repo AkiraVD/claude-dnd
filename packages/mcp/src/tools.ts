@@ -2109,6 +2109,30 @@ export function registerProgressionTools(server: McpServer, store: GameStore): v
   )
 
   server.registerTool(
+    'offer_actions',
+    {
+      title: 'Open the player’s options',
+      description:
+        'Opens a panel in the browser listing that creature’s weapons, its remaining spell ' +
+        'slots and everyone it could target, with a box for anything else. The player picks ' +
+        'and the sentence lands in their composer for them to edit and send, so it comes back ' +
+        'as an ordinary message. Worth calling at the top of their turn in a fight. The panel ' +
+        'is also theirs to open whenever they like, so not calling it costs them nothing — and ' +
+        'the names it hands you come straight off the sheet, which is the point.',
+      inputSchema: {
+        id: z.string().describe('Whose turn it is — usually the player character'),
+      },
+    },
+    ({ id }) =>
+      guard(() => {
+        // Reading the creature is the whole validation: the browser already has
+        // the sheet, so the payload only has to say who, and say it exists.
+        const creature = store.creature(id)
+        return ok(`${creature.name}’s options`, { actions: { actorId: creature.id } })
+      }),
+  )
+
+  server.registerTool(
     'open_shop',
     {
       title: 'Open a shop, tavern or trade',

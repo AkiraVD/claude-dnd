@@ -1,0 +1,269 @@
+import { describe, expect, it } from 'vitest'
+import {
+  actionSheet,
+  composeAction,
+  defaultActor,
+  isReady,
+  spellLevelLabel,
+} from './actions.js'
+import type { TableState } from '@dnd/server/protocol.js'
+
+/**
+ * The modal exists to hand the DM the exact name of a thing the engine already
+ * knows about. A weapon called for as "net" when the sheet says "weighted net"
+ * cost a turn in the bench session, and the player typing it by hand is where
+ * that came from. So what matters here is that the names come off the sheet
+ * unaltered and the sentence reads like something a person would send.
+ */
+
+const vessa = {
+  id: 'vessa',
+  name: 'Vessa Antrim',
+  kind: 'pc',
+  hp: { current: 19, max: 28, temp: 0 },
+  presence: 'present',
+  attacks: [
+    {
+      name: 'longbow',
+      ability: 'dex',
+      damage: '1d8',
+      damageType: 'piercing',
+      range: 'ranged',
+      notes: 'range 150/600',
+    },
+    { name: 'shortsword', ability: 'dex', damage: '1d6', damageType: 'piercing' },
+  ],
+  items: [],
+  resources: [
+    { name: 'hit-dice', label: 'Hit dice (d10)', max: 3, current: 3, recharge: 'long-rest' },
+    { name: 'spell-slot-2', label: '2nd-level slots', max: 2, current: 0, recharge: 'long-rest' },
+    { name: 'spell-slot-1', label: '1st-level slots', max: 3, current: 3, recharge: 'long-rest' },
+  ],
+}
+
+const vreeke = {
+  id: 'vreeke',
+  name: 'Tolm Vreeke',
+  kind: 'npc',
+  hp: { current: 6, max: 16, temp: 0 },
+  presence: 'present',
+  attacks: [],
+  items: [],
+  resources: [],
+}
+
+const ghost = {
+  id: 'ghost',
+  name: 'Someone Elsewhere',
+  kind: 'npc',
+  hp: { current: 4, max: 4, temp: 0 },
+  presence: 'offscreen',
+  attacks: [],
+  resources: [],
+}
+
+const state = {
+  creatures: [vessa, vreeke, ghost],
+  events: [],
+  combat: {
+    active: true,
+    round: 3,
+    turnIndex: 0,
+    order: [
+      { id: 'vessa', name: 'Vessa Antrim', initiative: 23, dexMod: 3 },
+      { id: 'vreeke', name: 'Tolm Vreeke', initiative: 19, dexMod: 2 },
+    ],
+  },
+} as unknown as TableState
+
+describe('the action sheet', () => {
+  it('reads the weapons straight off the sheet', () => {
+    const sheet = actionSheet(state, 'vessa')!
+    expect(sheet.attacks.map((a) => a.name)).toEqual(['longbow', 'shortsword'])
+    expect(sheet.attacks[0]).toMatchObject({
+      damage: '1d8',
+      damageType: 'piercing',
+      range: 'ranged',
+      notes: 'range 150/600',
+    })
+    // A weapon with no declared range is a melee weapon.
+    expect(sheet.attacks[1]!.range).toBe('melee')
+    expect(sheet.attacks[1]!.notes).toBeNull()
+  })
+
+  it('lists spell slots lowest first and leaves other resources alone', () => {
+    const sheet = actionSheet(state, 'vessa')!
+    expect(sheet.slots.map((s) => s.level)).toEqual([1, 2])
+    expect(sheet.slots[0]).toMatchObject({ level: 1, current: 3, max: 3 })
+    // An exhausted level still shows, because "none left" is worth seeing.
+    expect(sheet.slots[1]).toMatchObject({ level: 2, current: 0, max: 2 })
+    expect(sheet.slots.some((s) => s.label.includes('Hit dice'))).toBe(false)
+  })
+
+  it('does not offer you as your own target, nor anyone offscreen', () => {
+    const sheet = actionSheet(state, 'vessa')!
+    expect(sheet.targets.map((t) => t.id)).toEqual(['vreeke'])
+    expect(sheet.targets[0]).toMatchObject({ name: 'Tolm Vreeke', hp: '6/16' })
+  })
+
+  it('knows whose turn it is', () => {
+    expect(actionSheet(state, 'vessa')!.yourTurn).toBe(true)
+    expect(actionSheet(state, 'vessa')!.round).toBe(3)
+    const later = { ...state, combat: { ...state.combat!, turnIndex: 1 } } as TableState
+    expect(actionSheet(later, 'vessa')!.yourTurn).toBe(false)
+    expect(actionSheet(later, 'vreeke')!.targets[0]!.acting).toBe(false)
+  })
+
+  it('works outside a fight', () => {
+    const quiet = { ...state, combat: null } as TableState
+    const sheet = actionSheet(quiet, 'vessa')!
+    expect(sheet.round).toBeNull()
+    expect(sheet.yourTurn).toBe(false)
+    expect(sheet.targets.map((t) => t.id)).toEqual(['vreeke'])
+  })
+
+  it('returns nothing for a creature that is not there', () => {
+    expect(actionSheet(state, 'nobody')).toBeNull()
+    expect(actionSheet(null, 'vessa')).toBeNull()
+  })
+
+  it('speaks for the player character by default', () => {
+    expect(defaultActor(state)!.id).toBe('vessa')
+    expect(defaultActor(null)).toBeNull()
+  })
+})
+
+describe('the sentence it composes', () => {
+  it('names the weapon and the target exactly', () => {
+    expect(
+      composeAction({ kind: 'attack', weapon: 'weighted net', target: 'Tolm Vreeke', lethal: true }),
+    ).toBe('I attack Tolm Vreeke with my weighted net.')
+  })
+
+  it('says so when the blow is pulled', () => {
+    expect(
+      composeAction({ kind: 'attack', weapon: 'longbow', target: 'Tolm Vreeke', lethal: false }),
+    ).toBe(
+      'I attack Tolm Vreeke with my longbow. Pull the blow — knock them out rather than kill.',
+    )
+  })
+
+  it('reads properly with no target chosen', () => {
+    expect(composeAction({ kind: 'attack', weapon: 'longbow', target: null, lethal: true })).toBe(
+      'I attack with my longbow.',
+    )
+  })
+
+  it('casts at a level, and knows a cantrip spends nothing', () => {
+    expect(
+      composeAction({ kind: 'spell', spell: "Hunter's Mark", level: 1, target: 'Tolm Vreeke' }),
+    ).toBe("I cast Hunter's Mark on Tolm Vreeke, 1st level.")
+    expect(composeAction({ kind: 'spell', spell: 'Fire Bolt', level: 0, target: null })).toBe(
+      'I cast Fire Bolt as a cantrip.',
+    )
+  })
+
+  it('passes a creative action through as written', () => {
+    expect(composeAction({ kind: 'custom', text: '  I kick the bench into his knees.  ' })).toBe(
+      'I kick the bench into his knees.',
+    )
+  })
+
+  it('never emits a double space or a stray comma', () => {
+    const drafts = [
+      { kind: 'attack', weapon: 'longbow', target: null, lethal: true },
+      { kind: 'attack', weapon: 'longbow', target: 'Sabat', lethal: false },
+      { kind: 'spell', spell: 'Cure Wounds', level: 0, target: null },
+      { kind: 'spell', spell: 'Cure Wounds', level: 3, target: 'Vessa' },
+    ] as const
+    for (const draft of drafts) {
+      const line = composeAction(draft)
+      expect(line, line).not.toMatch(/ {2}/)
+      expect(line, line).not.toMatch(/[ ,]\./)
+    }
+  })
+})
+
+describe('readiness', () => {
+  it('needs a weapon, a spell name, or some text', () => {
+    expect(isReady(null)).toBe(false)
+    expect(isReady({ kind: 'attack', weapon: '', target: 'x', lethal: true })).toBe(false)
+    expect(isReady({ kind: 'attack', weapon: 'longbow', target: null, lethal: true })).toBe(true)
+    expect(isReady({ kind: 'spell', spell: '   ', level: 1, target: null })).toBe(false)
+    expect(isReady({ kind: 'custom', text: '  ' })).toBe(false)
+    expect(isReady({ kind: 'custom', text: 'I run' })).toBe(true)
+  })
+})
+
+describe('spell level labels', () => {
+  it('reads the way a player says it', () => {
+    expect([0, 1, 2, 3, 4, 9].map(spellLevelLabel)).toEqual([
+      'cantrip',
+      '1st',
+      '2nd',
+      '3rd',
+      '4th',
+      '9th',
+    ])
+  })
+})
+
+describe('nothing is chosen for you', () => {
+  it('composes without a target until one is picked', () => {
+    // The modal starts with no target, so the sentence has to read correctly
+    // without one rather than relying on a default nobody asked for.
+    expect(composeAction({ kind: 'attack', weapon: 'shortsword', target: null, lethal: false })).toBe(
+      'I attack with my shortsword. Pull the blow — knock them out rather than kill.',
+    )
+    expect(isReady({ kind: 'attack', weapon: 'shortsword', target: null, lethal: true })).toBe(true)
+  })
+})
+
+describe('spells and items come off the table, not out of thin air', () => {
+  const cast = (caster: string, spell: string, level: number) =>
+    ({ t: 'spell', caster, spell, level, slotLevel: level }) as const
+
+  const withEvents = (events: unknown[]) =>
+    ({ ...state, events } as unknown as TableState)
+
+  it('lists the spells this character has actually cast', () => {
+    const sheet = actionSheet(
+      withEvents([cast('vessa', "Hunter's Mark", 1), cast('vessa', 'Cure Wounds', 1)]),
+      'vessa',
+    )!
+    expect(sheet.spells.map((s) => s.name)).toEqual(['Cure Wounds', "Hunter's Mark"])
+  })
+
+  it('does not offer somebody else’s spells', () => {
+    const sheet = actionSheet(withEvents([cast('vreeke', 'Shield', 1)]), 'vessa')!
+    expect(sheet.spells).toEqual([])
+  })
+
+  it('remembers a spell once, at the level it was last cast', () => {
+    const sheet = actionSheet(
+      withEvents([cast('vessa', 'Cure Wounds', 1), cast('vessa', 'Cure Wounds', 3)]),
+      'vessa',
+    )!
+    expect(sheet.spells).toEqual([{ name: 'Cure Wounds', level: 3 }])
+  })
+
+  it('carries the pack through for using an item', () => {
+    const packed = {
+      ...state,
+      creatures: [{ ...vessa, items: [{ name: 'Potion of healing', qty: 2 }] }, vreeke],
+    } as unknown as TableState
+    const sheet = actionSheet(packed, 'vessa')!
+    expect(sheet.items).toEqual([{ name: 'Potion of healing', qty: 2 }])
+  })
+
+  it('composes using an item, with and without a target', () => {
+    expect(composeAction({ kind: 'item', item: 'Potion of healing', target: null })).toBe(
+      'I use my Potion of healing.',
+    )
+    expect(composeAction({ kind: 'item', item: 'Rope, hempen (50 ft)', target: 'Tolm Vreeke' })).toBe(
+      'I use my Rope, hempen (50 ft) on Tolm Vreeke.',
+    )
+    expect(isReady({ kind: 'item', item: '', target: null })).toBe(false)
+    expect(isReady({ kind: 'item', item: 'Arrows (20)', target: null })).toBe(true)
+  })
+})

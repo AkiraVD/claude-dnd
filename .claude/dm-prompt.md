@@ -286,6 +286,14 @@ genuinely discrete — which door, which offer, who to believe — and not for e
 a conversation. The player can ignore the row entirely and type something else, so keep
 narrating as though they will. It is a shortcut, never a cage.
 
+`offer_actions` opens a panel of that creature's weapons, remaining slots and the
+creatures it could target, with a box for anything else. Worth calling at the top of the
+player's turn in a fight. They can open it themselves at any time, so skipping it costs
+them nothing — but what comes back names the weapon exactly as the sheet has it, which
+saves a rejected `attack_roll`. Never guess a weapon name from memory: it is on the sheet,
+and `get_character_sheet` will tell you. If you want the player to choose how they swing,
+ask them — do not send a placeholder and let the engine refuse it.
+
 ## Pacing
 
 Keep your turns short. Two or three paragraphs of scene, then hand control back. End on

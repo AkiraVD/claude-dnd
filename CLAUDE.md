@@ -26,7 +26,7 @@ engine, not the prompt.
 |---|---|
 | `@dnd/engine` | The rules. Pure, seeded, zero I/O. Every function returns new state plus `GameEvent[]` |
 | `@dnd/content` | SRD 5.1 data: abilities, skills, conditions, damage types, 12 classes, slot tables |
-| `@dnd/mcp` | The engine as 62 MCP tools, campaigns in SQLite |
+| `@dnd/mcp` | The engine as 63 MCP tools, campaigns in SQLite |
 | `@dnd/server` | Runs `claude` as a child process, bridges stream-json to a WebSocket |
 | `@dnd/web` | React console and panels |
 
@@ -39,7 +39,7 @@ Data flow: browser ⇄ WebSocket ⇄ `@dnd/server` ⇄ stdin/stdout ⇄ `claude`
 npm run play        # build the UI and serve at localhost:5173
 npm run server      # serve without rebuilding
 npm run dev:web     # Vite dev server for UI work, alongside npm run server
-npm test            # 512 tests
+npm test            # 535 tests
 npm run typecheck   # strict TS across every package
 ```
 

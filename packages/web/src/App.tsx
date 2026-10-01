@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { Actions } from './Actions.js'
+import { actionSheet, defaultActor } from './actions.js'
 import { Character } from './Character.js'
 import { DiceCard } from './DiceCard.js'
 import { blocks, type Block } from './markdown.js'
@@ -79,6 +81,12 @@ function Console({
   useEffect(() => {
     input.current?.focus()
   }, [])
+
+  // Opened either by the player's own button or by `offer_actions`; the sheet
+  // itself is derived from state the browser already holds, so there is one
+  // derivation behind both doors.
+  const sheet = table.actionsFor === null ? null : actionSheet(table.state, table.actionsFor)
+  const me = defaultActor(table.state)
 
   const submit = (): void => {
     const text = draft.trim()
@@ -164,6 +172,17 @@ function Console({
         </div>
       )}
 
+      {sheet !== null && (
+        <Actions
+          sheet={sheet}
+          onCompose={(text) => {
+            setDraft(text)
+            input.current?.focus()
+          }}
+          onClose={table.closeActions}
+        />
+      )}
+
       <div className="composer">
         <textarea
           ref={input}
@@ -179,6 +198,17 @@ function Console({
             }
           }}
         />
+        {me !== null && (
+          <button
+            type="button"
+            className="composer-actions"
+            onClick={() => table.openActions(me.id)}
+            disabled={!table.connected}
+            title="Your weapons, spells and targets"
+          >
+            options
+          </button>
+        )}
         <button type="button" onClick={submit} disabled={!table.connected || draft.trim() === ''}>
           send
         </button>

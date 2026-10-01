@@ -1053,3 +1053,97 @@ button.ghost:hover { border-color: var(--text-faint); color: var(--text); }
   letter-spacing: 0.04em;
   user-select: all;
 }
+
+/* ── your options ────────────────────────────────────────────────────────── */
+
+.modal-actions { max-width: 640px; }
+
+.sheet-section { margin-bottom: 16px; }
+.sheet-section:last-of-type { margin-bottom: 0; }
+.sheet-section h4 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.sheet-targets { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip-pick {
+  border: 1px solid var(--line);
+  background: var(--bg-sunken);
+  color: var(--text-dim);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+.chip-pick em { font-style: normal; color: var(--text-faint); }
+.chip-pick:hover { border-color: var(--text-faint); }
+.chip-pick[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--text);
+  background: color-mix(in oklab, var(--accent) 14%, var(--bg-sunken));
+}
+
+.sheet-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 7px; }
+.sheet-weapon { padding: 8px 10px; }
+.sheet-weapon-name {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.sheet-dice { font-size: 11.5px; color: var(--text-dim); }
+
+/* Slots are shown even when empty: "none left" is worth seeing before you plan
+   a turn around a spell you cannot cast. */
+.sheet-slots { display: flex; gap: 10px; letter-spacing: 0.1em; text-transform: none; }
+.sheet-slot { font-size: 10.5px; color: var(--text-faint); letter-spacing: 0.04em; }
+
+.sheet-cast { display: flex; gap: 7px; }
+.sheet-cast input { flex: 1; }
+.sheet-cast input,
+.sheet-cast select {
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-sunken);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+.sheet-cast select { cursor: pointer; }
+
+.sheet-lethal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.sheet-lethal input { cursor: pointer; }
+
+.modal-actions textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-sunken);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  resize: vertical;
+}
+
+.composer-actions {
+  margin-right: 6px;
+  white-space: nowrap;
+}
+.sheet-spells { margin-bottom: 8px; }

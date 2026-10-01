@@ -65,6 +65,10 @@ export interface Table {
   choice: Choice | null
   /** The open counter, or null. */
   shop: Shop | null
+  /** Whose options are open, from `offer_actions` or the player's own button. */
+  actionsFor: string | null
+  openActions: (id: string) => void
+  closeActions: () => void
   say: (text: string) => void
   dismissChoice: () => void
   closeShop: () => void
@@ -91,6 +95,7 @@ export function useTable(): Table {
   const [costUsd, setCostUsd] = useState<number | null>(null)
   const [choice, setChoice] = useState<Choice | null>(null)
   const [shop, setShop] = useState<Shop | null>(null)
+  const [actionsFor, setActionsFor] = useState<string | null>(null)
 
   useEffect(() => {
     const url = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`
@@ -178,6 +183,8 @@ export function useTable(): Table {
             if (offered !== undefined) setChoice(offered)
             const counter = data['shop'] as Shop | undefined
             if (counter !== undefined) setShop(counter)
+            const options = data['actions'] as { actorId: string } | undefined
+            if (options !== undefined) setActionsFor(options.actorId)
           }
 
           // Bookkeeping calls do not earn a card; only failures surface.
@@ -233,6 +240,9 @@ export function useTable(): Table {
     costUsd,
     choice,
     shop,
+    actionsFor,
+    openActions: setActionsFor,
+    closeActions: () => setActionsFor(null),
     say,
     dismissChoice,
     closeShop,
