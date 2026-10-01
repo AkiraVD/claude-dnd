@@ -134,6 +134,21 @@ export class CampaignDb {
     return this.listCampaigns().find((row) => row.id === id) ?? null
   }
 
+  /**
+   * Mark a campaign as the one in play.
+   *
+   * `updated_at` is what orders `listCampaigns`, and `mostRecentCampaign` is how
+   * the browser decides which campaign to draw. Writing a step bumps it, so in
+   * ordinary play the two agree. Resuming an older campaign does not write
+   * anything, though, so without this the panels keep showing whichever campaign
+   * was touched last until the first mutating call lands.
+   */
+  touchCampaign(id: number): void {
+    this.#db
+      .prepare('UPDATE campaigns SET updated_at = ? WHERE id = ?')
+      .run(new Date().toISOString(), id)
+  }
+
   mostRecentCampaign(): CampaignRow | null {
     return this.listCampaigns()[0] ?? null
   }

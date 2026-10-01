@@ -502,3 +502,36 @@ describe('steps record which engine run wrote them', () => {
     expect(db.latestSession(1)).toBe('abc123')
   })
 })
+
+describe('the browser follows the campaign in play', () => {
+  /**
+   * `readTable` draws whatever `mostRecentCampaign` returns, and that is ordered
+   * by `updated_at`. Writing a step bumps it, so ordinary play is fine — but a
+   * resume writes nothing, and the panels used to stay on the previously played
+   * campaign until the first mutating call landed. Which is the whole of the
+   * start of a session: the recap, the "last time you were…", the first look at
+   * the character sheet.
+   */
+  it('makes a resumed campaign the most recent one', async () => {
+    const play = await session()
+
+    // Two campaigns, the second played after the first.
+    await play.call('new_campaign', { name: 'Older' })
+    await play.call('set_scene', { scene: 'The older road.' })
+    const older = (await play.call('list_campaigns')).data!['current'] as number
+
+    await play.call('new_campaign', { name: 'Newer' })
+    await play.call('set_scene', { scene: 'The newer road.' })
+
+    const db = new CampaignDb(dbPath)
+    open.push({ db })
+    expect(db.mostRecentCampaign()!.name).toBe('Newer')
+
+    // Resuming the older one is a read, not a write — nothing is committed.
+    await play.call('load_campaign', { id: older })
+
+    expect(db.mostRecentCampaign()!.name).toBe('Older')
+    expect(db.latestSnapshot(older)!.scene).toBe('The older road.')
+    play.close()
+  })
+})

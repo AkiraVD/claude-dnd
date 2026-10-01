@@ -101,7 +101,10 @@ export class GameStore {
         `no campaign with id ${id}. Known campaigns: ${known === '' ? '(none)' : known}`,
       )
     }
-    this.#campaign = found
+    // Loading is playing: the browser follows the most recently touched
+    // campaign, so a resume has to say so or the panels stay on the last one.
+    this.#db.touchCampaign(found.id)
+    this.#campaign = this.#db.findCampaign(found.id) ?? found
     this.#hydrate()
     return this.campaign
   }
