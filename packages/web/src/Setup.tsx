@@ -111,8 +111,10 @@ export function Setup({
                       }}
                     />
                   )}
-                  {label}
-                  <em>{description}</em>
+                  <span className="opt-text">
+                    {label}
+                    <em>{description}</em>
+                  </span>
                 </button>
               ))}
             </div>

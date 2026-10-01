@@ -665,6 +665,7 @@ button.ghost:hover { border-color: var(--text-faint); color: var(--text); }
   border-color: var(--accent);
   background: color-mix(in oklab, var(--accent) 12%, var(--bg-sunken));
 }
+.opt-text { display: block; }
 .opt em {
   display: block;
   margin-top: 2px;
@@ -968,8 +969,11 @@ button.ghost:hover { border-color: var(--text-faint); color: var(--text); }
   /* The renders fade to black at the edges, so let them meet the card border. */
   border-bottom: 1px solid var(--line);
 }
-.opt-art > :not(img) { padding-inline: 11px; }
-.opt-art em { padding-inline: 11px; }
+/* The inset goes on .opt-text, not on the card and not on a child selector.
+   `.opt-art > :not(img)` looked like it covered the title, but the title is a
+   bare text node and a selector cannot match one — so it sat flush against the
+   border while the description under it was inset, on every card with art. */
+.opt-art .opt-text { padding-inline: 11px; }
 
 /* ── pre-rendered art ────────────────────────────────────────────────────── */
 
