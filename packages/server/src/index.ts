@@ -4,8 +4,14 @@ import { extname, join, normalize, resolve } from 'node:path'
 import { CampaignDb } from '@dnd/mcp/db.js'
 import { WebSocketServer, type WebSocket } from 'ws'
 import { ClaudeSession, type SessionEvent } from './claude-session.js'
-import { readTable as readTableFrom } from './table.js'
-import type { ClientMessage, ServerMessage, TableState, ToolCallView } from './protocol.js'
+import { campaignHeader, readTable as readTableFrom } from './table.js'
+import type {
+  CampaignHeader,
+  ClientMessage,
+  ServerMessage,
+  TableState,
+  ToolCallView,
+} from './protocol.js'
 
 const ROOT = resolve(process.env['DND_ROOT'] ?? process.cwd())
 const DB_PATH = process.env['DND_DB'] ?? join(ROOT, 'campaign.db')
@@ -176,7 +182,8 @@ function serveStatic(request: IncomingMessage, response: ServerResponse): void {
   // is a spoiler, and it is the one thing the browser cannot work out from state.
   if (url.pathname === '/api/campaigns') {
     response.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
-    response.end(JSON.stringify({ campaigns: db.listCampaigns(), current: db.mostRecentCampaign()?.id ?? null }))
+    const campaigns: CampaignHeader[] = db.listCampaigns().map(campaignHeader)
+    response.end(JSON.stringify({ campaigns, current: db.mostRecentCampaign()?.id ?? null }))
     return
   }
 

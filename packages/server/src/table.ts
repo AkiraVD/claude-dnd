@@ -1,7 +1,32 @@
 import type { Creature } from '@dnd/engine'
 import { redactCreature, redactStory, restoreCreature } from '@dnd/engine'
 import type { CampaignDb } from '@dnd/mcp/db.js'
-import type { TableState } from './protocol.js'
+import type { CampaignHeader, TableState } from './protocol.js'
+
+/**
+ * A campaign row as the browser's `CampaignHeader`.
+ *
+ * The row calls it `updatedAt` and the protocol calls it `lastPlayed`, and
+ * nothing forced the two to meet: the saves route serialised rows straight to
+ * JSON, so every entry in the session picker arrived with `lastPlayed`
+ * undefined and showed no time at all. Going through one typed function is what
+ * makes that a compile error rather than a blank in the UI.
+ */
+export function campaignHeader(campaign: {
+  id: number
+  name: string
+  steps: number
+  seed: number
+  updatedAt: string
+}): CampaignHeader {
+  return {
+    id: campaign.id,
+    name: campaign.name,
+    steps: campaign.steps,
+    seed: campaign.seed,
+    lastPlayed: campaign.updatedAt,
+  }
+}
 
 /**
  * The campaign as the browser is allowed to see it.
@@ -29,13 +54,7 @@ export function readTable(db: CampaignDb): TableState {
 
   const snapshot = db.latestSnapshot(campaign.id)
   return {
-    campaign: {
-      id: campaign.id,
-      name: campaign.name,
-      steps: campaign.steps,
-      seed: campaign.seed,
-      lastPlayed: campaign.updatedAt,
-    },
+    campaign: campaignHeader(campaign),
     scene: snapshot?.scene ?? 'No scene set yet.',
     creatures: (snapshot?.creatures ?? []).map((creature: Creature) =>
       redactCreature(restoreCreature(creature)),

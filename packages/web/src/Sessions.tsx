@@ -55,14 +55,21 @@ export function Sessions({
             {campaigns.length === 0 && <p className="brief">No campaigns yet.</p>}
             {campaigns.map((campaign) => {
               const here = campaign.id === current
+              // Nothing has been committed to it, so there is no game in it yet.
+              // Worth saying outright: the campaign you are standing in when the
+              // setup modal is open is this one, and calling that "at the table"
+              // reads as though a session were already under way.
+              const started = campaign.steps > 0
               return (
                 <div key={campaign.id} className={`save${here ? ' save-here' : ''}`}>
                   <span className="save-name">
                     {campaign.name}
-                    {here && <em>at the table</em>}
+                    {here && <em>{started ? 'at the table' : 'this one, not started'}</em>}
                   </span>
                   <span className="save-meta">
-                    {campaign.steps} steps · {when(campaign.lastPlayed)}
+                    {started
+                      ? `${campaign.steps} steps · ${when(campaign.lastPlayed)}`
+                      : 'empty — nothing has happened in it yet'}
                   </span>
                   <button
                     type="button"

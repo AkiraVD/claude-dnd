@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { COMMONER, addNote, createCreature, createStory, updateProfile } from '@dnd/engine'
 import { CampaignDb } from '@dnd/mcp/db.js'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { readTable } from './table.js'
+import { campaignHeader, readTable } from './table.js'
 
 /**
  * The spoiler boundary.
@@ -169,5 +169,22 @@ describe('what crosses the wire', () => {
     expect(table.creatures).toEqual([])
     expect(table.story).toBeNull()
     expect(table.campaign.name).toBe('No campaign yet')
+  })
+
+  it('gives the saves list a time the browser can read', () => {
+    // The row says updatedAt and the protocol says lastPlayed. The session
+    // picker formats that field, so a row handed over unmapped shows a campaign
+    // with no time against it — which is what it did until this went through one
+    // function.
+    const campaign = db.createCampaign('Ashfall', 11)
+    const [row] = db.listCampaigns()
+
+    const header = campaignHeader(row!)
+
+    expect(header.id).toBe(campaign.id)
+    expect(header.name).toBe('Ashfall')
+    expect(header.lastPlayed).toBe(row!.updatedAt)
+    expect(Number.isNaN(new Date(header.lastPlayed).getTime())).toBe(false)
+    expect(header).not.toHaveProperty('updatedAt')
   })
 })
