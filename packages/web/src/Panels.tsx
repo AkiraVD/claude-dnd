@@ -10,6 +10,14 @@ const modifier = (score: number): string => {
   return value >= 0 ? `+${value}` : `${value}`
 }
 
+/**
+ * How far to crop the panel portrait.
+ *
+ * Gentler than the recorded zoom, which was aimed at a 34px circle and crops to
+ * a nose at this size.
+ */
+const PANEL_ZOOM = 1.3
+
 export function Panels({ state }: { state: TableState | null }): JSX.Element {
   if (state === null) return <aside className="panels panels-empty">connecting…</aside>
 
@@ -183,31 +191,53 @@ function Slots({ creature }: { creature: Creature }): JSX.Element | null {
 }
 
 function Sheet({ creature, full }: { creature: Creature; full?: boolean }): JSX.Element {
+  // Only the player's own panel carries a face. The board below is a list of
+  // everyone else and already has its thumbnails; a second portrait of the same
+  // size on every card would make the panel that matters look like one of them.
+  const face = full === true ? portraitFor(creature.profile.portrait) : null
+
   return (
     <section className={`panel sheet ${lifeClass(creature)}`}>
-      <h3>
-        {creature.name}
-        <Conditions creature={creature} />
-        <span className="panel-tag">
-          {creature.className === null ? '' : `${creature.className} `}
-          {creature.level}
-        </span>
-      </h3>
-
-      <HpBar creature={creature} />
-
-      <div className="stats">
-        <span className="stat">
-          <em>AC</em> {creature.ac}
-        </span>
-        <span className="stat">
-          <em>Speed</em> {creature.speed}
-        </span>
-        {creature.concentration !== null && (
-          <span className="stat stat-wide">
-            <em>Concentrating</em> {creature.concentration.spell}
+      <div className="sheet-top">
+        {face !== null && (
+          <span className="sheet-face">
+            <img
+              src={face}
+              alt=""
+              style={{ transform: faceTransform(creature.profile.portrait, PANEL_ZOOM) }}
+              onError={(event) => {
+                event.currentTarget.style.display = 'none'
+              }}
+            />
           </span>
         )}
+
+        <div className="sheet-vitals">
+          <h3>
+            {creature.name}
+            <Conditions creature={creature} />
+            <span className="panel-tag">
+              {creature.className === null ? '' : `${creature.className} `}
+              {creature.level}
+            </span>
+          </h3>
+
+          <HpBar creature={creature} />
+
+          <div className="stats">
+            <span className="stat">
+              <em>AC</em> {creature.ac}
+            </span>
+            <span className="stat">
+              <em>Speed</em> {creature.speed}
+            </span>
+            {creature.concentration !== null && (
+              <span className="stat stat-wide">
+                <em>Concentrating</em> {creature.concentration.spell}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
       {full === true && (

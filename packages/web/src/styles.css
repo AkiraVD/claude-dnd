@@ -444,6 +444,39 @@ body {
 .foe.is-dead .foe-name .conditions { text-decoration: none; }
 .sheet h3 .conditions { margin-left: 8px; }
 
+/* The player's own panel: a face on the left, and everything that changes
+   during a fight stacked beside it. The portrait is square and fixed so the
+   column next to it keeps a predictable width in a sidebar this narrow. */
+.sheet-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+}
+.sheet-face {
+  width: 72px;
+  height: 72px;
+  flex: none;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+  overflow: hidden;
+  display: block;
+  position: relative;
+}
+.sheet-face img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+.sheet-vitals {
+  min-width: 0;
+  flex: 1;
+}
+.sheet-vitals h3 { margin-bottom: 7px; }
+/* Beside a portrait there is no room for two columns of stats, and the first
+   thing to lose is the gap, not the numbers. */
+.sheet-top .stats { margin-top: 8px; gap: 5px 12px; }
+
 .stats { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; font-size: 12.5px; }
 .stat em { color: var(--text-faint); font-style: normal; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; }
 .stat-wide { flex-basis: 100%; }
