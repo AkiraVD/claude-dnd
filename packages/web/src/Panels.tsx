@@ -1,6 +1,6 @@
 import type { Creature } from '@dnd/engine'
 import type { TableState } from '@dnd/server/protocol.js'
-import { backdropFor, portraitFor } from './art.js'
+import { backdropFor, isWholeBody, portraitFor } from './art.js'
 import type { JSX } from 'react'
 
 const ABILITIES = ['str', 'dex', 'con', 'int', 'wis', 'cha'] as const
@@ -256,7 +256,7 @@ function Foe({ creature }: { creature: Creature }): JSX.Element {
       <span className="foe-name">
         {portrait !== null && (
           <img
-            className="foe-face"
+            className={`foe-face${isWholeBody(creature.profile.portrait) ? ' face-whole' : ''}`}
             src={portrait}
             alt=""
             onError={(event) => {

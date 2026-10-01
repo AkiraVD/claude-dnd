@@ -91,3 +91,82 @@ export const PORTRAIT_LIST = Object.keys(PORTRAITS) as PortraitName[]
 export function isPortrait(value: string): value is PortraitName {
   return value in PORTRAITS
 }
+
+/**
+ * The bestiary.
+ *
+ * Kept apart from PORTRAITS for two reasons. The DM asks for these by the
+ * creature's own name rather than by race and role, and lumping them together
+ * would hand it a hundred-odd entries every time it wanted a face for a barkeep.
+ *
+ * Framed whole rather than head-and-shoulders: a displacer beast or a
+ * will-o'-wisp has no head worth cropping to. The browser leans the crop upward
+ * for these so a standing figure still shows its face in a small circle.
+ */
+export const BESTIARY = {
+  'goblin': 'Small, wiry, notched ear, crude spear',
+  'hobgoblin': 'Disciplined, orange-skinned, lamellar armour',
+  'bugbear': 'Hulking, matted fur, morningstar',
+  'orc': 'Tusked, war paint, heavy axe',
+  'kobold': 'Small, rust-red scales, sling',
+  'gnoll': 'Hyena-headed, strings of teeth, stooped',
+  'bandit': 'Hooded, shortbow, road-worn leathers',
+  'cultist': 'Robed and hooded, curved dagger',
+  'skeleton': 'Bare bones, rusted helm and shield',
+  'zombie': 'Slack-jawed, grey, dragging one leg',
+  'ghoul': 'Crouched, gaunt, long claws and teeth',
+  'wolf': 'Grey, lean, head low',
+  'dire-wolf': 'Huge and black, shoulders at a man’s chest',
+  'giant-spider': 'Legs splayed, eight eyes, bristled',
+  'giant-rat': 'Wet fur, yellow teeth, long tail',
+  'ogre': 'Vast belly, dull-eyed, club over the shoulder',
+  'troll': 'Long-limbed, green, rubbery, hunched',
+  'harpy': 'Perched, ragged feathers, a woman’s face',
+  'lizardfolk': 'Green scales, flat eyes, bone spear',
+  'owlbear': 'Reared up, beak and matted brown fur',
+  'wight': 'Old armour, cold light where the eyes were',
+  'bandit-captain': 'Scimitar, red cloak, better armour than his men',
+  'hill-giant': 'Massive, filthy, a tree trunk for a club',
+  'minotaur': 'Bull-headed, horned, greataxe',
+  'drow-raider': 'White hair, dark skin, hand crossbow, crouched',
+  'vampire-spawn': 'Pale, crouched, bloodied mouth, claws out',
+  'mummy': 'Wrapped and trailing bandages, arms reaching',
+  'ghost': 'Translucent, drifting, mouth open in a wail',
+  'banshee': 'Tattered grey, screaming, hair streaming',
+  'doppelganger': 'Mid-shift, grey, a blank and featureless face',
+  'mind-flayer': 'Tentacled mouth, dark robes, long fingers',
+  'beholder': 'Floating sphere, one great eye, many eyestalks',
+  'medusa': 'Snakes for hair, bow drawn, green-skinned',
+  'hell-hound': 'Burning maw, smoking hide, embers in the fur',
+  'imp': 'Small, red, barbed tail, bat wings',
+  'werewolf': 'Caught mid-change, half man, half wolf',
+  'wererat': 'Hunched, long snout, patchy fur, quick',
+  'sahuagin': 'Shark-like, finned, trident',
+  'yuan-ti': 'Snake-bodied from the waist, bow in hand',
+  'kuo-toa': 'Bulging fish eyes, slick grey skin, net',
+  'duergar': 'Grey dwarf, dour, war hammer',
+  'drow-priestess': 'Dark elf, spider motifs worked into her armour',
+  'death-knight': 'Black plate, greatsword, light in the visor',
+  'lich': 'Skeletal, crowned, staff, cold blue fire',
+  'red-wyrmling': 'Young red dragon, wings spread, snarling',
+  'green-dragon': 'Young green dragon, coiled, horned frill',
+  'gargoyle': 'Stone, perched and hunched, wings folded',
+  'animated-armour': 'Empty plate standing on its own, sword raised',
+  'will-o-wisp': 'A pale drifting light with the faintest shape in it',
+  'displacer-beast': 'Black panther, two barbed tentacles from its shoulders',
+} as const
+
+export type BeastName = keyof typeof BESTIARY
+
+export const BESTIARY_LIST = Object.keys(BESTIARY) as BeastName[]
+
+export function isBeast(value: string): value is BeastName {
+  return value in BESTIARY
+}
+
+/** Either library, for anything that just needs to resolve a name to a file. */
+export function portraitKind(value: string): 'folk' | 'monster' | null {
+  if (value in PORTRAITS) return 'folk'
+  if (value in BESTIARY) return 'monster'
+  return null
+}

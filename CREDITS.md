@@ -24,8 +24,8 @@ By artist:
 Scenery and the setup background were generated locally with Stable Diffusion (SDXL) and
 are not third-party work.
 
-The sixty-six NPC portraits came from OpenAI's GPT Image, cut out of three generated
-sheets — two of twenty-five and one of sixteen. Each sheet was asked for as an evenly
+The sixty-six NPC portraits and the fifty-creature bestiary came from OpenAI's GPT Image, cut out of three generated
+sheets — four of twenty-five and one of sixteen. Each sheet was asked for as an evenly
 spaced grid on one plain dark background with a roster given in reading order, so the
 cells could be sliced at a fixed stride and named without guessing. The sixteen that were
 originally made locally were regenerated this way so the library reads as one set.

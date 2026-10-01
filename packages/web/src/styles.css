@@ -1192,3 +1192,8 @@ button.ghost:hover { border-color: var(--text-faint); color: var(--text); }
 /* A level with nothing left still opens — you may be reading what it does. */
 .sheet-levels [aria-pressed='false'] em { opacity: 0.6; }
 .sheet-offsheet { margin: 6px 0 0; font-size: 11.5px; color: var(--text-faint); }
+
+/* The bestiary is framed whole, so a standing creature keeps its head in the
+   top third. Leaning the crop upward puts the face in the circle instead of
+   the belt buckle. */
+.face-whole { object-position: center 22%; }

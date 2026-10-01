@@ -1,6 +1,8 @@
 import {
   ABILITIES,
   CLASS_LIST,
+  BESTIARY,
+  BESTIARY_LIST,
   PORTRAITS,
   PORTRAIT_LIST,
   CONDITION_LIST,
@@ -1982,15 +1984,26 @@ export function registerProgressionTools(server: McpServer, store: GameStore): v
     {
       title: 'The stock portrait library',
       description:
-        'Every pre-rendered NPC portrait the browser has, named race-role-description. Pass one ' +
-        'to update_npc as `portrait`. For a walk-on part pick the closest match to what you have ' +
-        'already described rather than describing them to fit the art.',
-      inputSchema: {},
+        'Pre-rendered art the browser already has. Pass a name to update_npc as `portrait`. ' +
+        'Two libraries: `folk` are people, named race-role-description, for anyone the player ' +
+        'might talk to; `monster` are creatures, named plainly — goblin, owlbear, beholder — ' +
+        'for anything on the other side of a fight. Ask for the one you need rather than both. ' +
+        'For a walk-on part pick the closest match to what you have already described, rather ' +
+        'than describing them to fit the art.',
+      inputSchema: {
+        kind: z
+          .enum(['folk', 'monster'])
+          .optional()
+          .describe('Which library. Omit for both, which is a long list.'),
+      },
     },
-    () =>
-      ok(`${PORTRAIT_LIST.length} portraits`, {
-        portraits: PORTRAIT_LIST.map((name) => ({ name, looks: PORTRAITS[name] })),
-      }),
+    ({ kind }) => {
+      const folk = PORTRAIT_LIST.map((name) => ({ name, looks: PORTRAITS[name] }))
+      const monsters = BESTIARY_LIST.map((name) => ({ name, looks: BESTIARY[name] }))
+      const picked =
+        kind === 'folk' ? folk : kind === 'monster' ? monsters : [...folk, ...monsters]
+      return ok(`${picked.length} portraits`, { portraits: picked })
+    },
   )
 
   server.registerTool(

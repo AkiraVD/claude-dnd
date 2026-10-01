@@ -1,3 +1,4 @@
+import { isBeast } from '@dnd/content'
 /**
  * Picking pre-rendered art.
  *
@@ -47,9 +48,23 @@ export function backdropFor(backdrop: string | null, scene: string): string | nu
 /** The stock portrait for an NPC, or null when none was chosen. */
 export function portraitFor(portrait: string | null | undefined): string | null {
   if (portrait === undefined || portrait === null || portrait.trim() === '') return null
-  // Names come from the catalogue in @dnd/content; anything else is a typo and
-  // the <img> onError hides it rather than showing a broken frame.
-  return `/npcs/${portrait}.webp`
+  // Names come from the catalogues in @dnd/content; anything else is a typo and
+  // the <img> onError hides it rather than showing a broken frame. Which of the
+  // two it is decides the directory, so a caller never has to know.
+  const name = portrait.trim()
+  return isBeast(name) ? `/monsters/${name}.webp` : `/npcs/${name}.webp`
+}
+
+/**
+ * Whether this portrait is framed whole rather than head-and-shoulders.
+ *
+ * The folk are shot at head height, so a circle on the middle of the image
+ * lands on the face. The bestiary is framed whole, and a standing goblin keeps
+ * its head in the top third — without this the cast list would show everything
+ * from the waist.
+ */
+export function isWholeBody(portrait: string | null | undefined): boolean {
+  return portrait !== undefined && portrait !== null && isBeast(portrait.trim())
 }
 
 /**

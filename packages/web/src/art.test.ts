@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { PORTRAIT_LIST, PORTRAITS } from '@dnd/content'
+import { BESTIARY, BESTIARY_LIST, PORTRAIT_LIST, PORTRAITS } from '@dnd/content'
 import { describe, expect, it } from 'vitest'
 import {
   BACKDROPS,
@@ -9,6 +9,7 @@ import {
   backdropFor,
   hash,
   itemArtFor,
+  isWholeBody,
   portraitFor,
 } from './art.js'
 
@@ -98,6 +99,40 @@ describe('portraitFor', () => {
     for (const name of PORTRAIT_LIST) {
       expect(PORTRAITS[name].length).toBeGreaterThan(10)
     }
+  })
+
+  it('has a file for every creature in the bestiary', () => {
+    expect(BESTIARY_LIST.length).toBeGreaterThan(0)
+    for (const name of BESTIARY_LIST) {
+      const path = portraitFor(name)!
+      expect(path, `${name} should resolve into /monsters/`).toContain('/monsters/')
+      expect(existsSync(asset(path)), `${name}: ${path} is missing`).toBe(true)
+    }
+  })
+
+  it('describes every creature too', () => {
+    for (const name of BESTIARY_LIST) {
+      expect(BESTIARY[name].length).toBeGreaterThan(10)
+    }
+  })
+
+  it('keeps the two libraries apart, by name and by directory', () => {
+    // A name in both would resolve to one directory and be described by the
+    // other, which is the kind of thing that only shows up as a missing image.
+    const clash = PORTRAIT_LIST.filter((n) => (BESTIARY_LIST as string[]).includes(n))
+    expect(clash, `in both libraries: ${clash.join(', ')}`).toEqual([])
+    for (const name of PORTRAIT_LIST) expect(portraitFor(name)).toContain('/npcs/')
+  })
+
+  it('knows which portraits are framed whole', () => {
+    // The crop leans upward only for the bestiary; getting this backwards would
+    // put every innkeeper's forehead in the circle.
+    expect(isWholeBody('goblin')).toBe(true)
+    expect(isWholeBody('beholder')).toBe(true)
+    expect(isWholeBody('human-baker-floured')).toBe(false)
+    expect(isWholeBody(null)).toBe(false)
+    expect(isWholeBody('  ')).toBe(false)
+    expect(isWholeBody('not-a-real-name')).toBe(false)
   })
 })
 

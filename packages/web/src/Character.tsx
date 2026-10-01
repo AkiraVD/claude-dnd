@@ -1,5 +1,5 @@
 import { abilityModifier, formatCoin, type Creature } from '@dnd/engine'
-import { itemArtFor, portraitFor } from './art.js'
+import { isWholeBody, itemArtFor, portraitFor } from './art.js'
 import type { TableState } from '@dnd/server/protocol.js'
 import { useState } from 'react'
 import type { JSX } from 'react'
@@ -215,7 +215,7 @@ function Cast({ cast }: { cast: Creature[] }): JSX.Element {
             <div className="npc-head">
               {portraitFor(npc.profile.portrait) !== null && (
                 <img
-                  className="npc-face"
+                  className={`npc-face${isWholeBody(npc.profile.portrait) ? ' face-whole' : ''}`}
                   src={portraitFor(npc.profile.portrait)!}
                   alt=""
                   onError={(event) => {
