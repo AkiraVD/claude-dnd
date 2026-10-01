@@ -9,6 +9,7 @@ import {
   type Creature,
   type D20TestResult,
 } from '@dnd/engine'
+import { SESSION_ID } from './session.js'
 import type { GameStore } from './store.js'
 
 /** A short status line: the shape most tool results carry back. */
@@ -119,6 +120,9 @@ export function conditionReference(): string {
 export function stateSummary(store: GameStore) {
   const combat = store.combat
   return {
+    // Which run of the engine this is. Quote it when reporting anything odd:
+    // steps are stamped with it, so the journal can be read back per session.
+    session: SESSION_ID,
     scene: store.scene,
     combat:
       combat && combat.active

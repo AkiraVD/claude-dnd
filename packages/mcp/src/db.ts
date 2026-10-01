@@ -22,6 +22,8 @@ export interface CampaignSnapshot {
   combat: CombatState | null
   /** Absent in campaigns saved before the backbone existed. */
   story?: Story | null
+  /** Which scenery set the browser should show. Absent on older saves. */
+  backdrop?: string | null
 }
 
 export interface CampaignRow {
@@ -38,6 +40,8 @@ export interface StepRow {
   label: string
   events: GameEvent[]
   createdAt: string
+  /** Which run of the engine wrote it. Null for steps written before sessions. */
+  session: string | null
 }
 
 const SCHEMA = `
@@ -57,6 +61,7 @@ CREATE TABLE IF NOT EXISTS steps (
   event_count INTEGER NOT NULL,
   state       TEXT    NOT NULL,
   created_at  TEXT    NOT NULL,
+  session     TEXT,
   PRIMARY KEY (campaign_id, seq)
 );
 
@@ -71,6 +76,19 @@ export class CampaignDb {
     this.#db.exec('PRAGMA journal_mode = WAL')
     this.#db.exec('PRAGMA foreign_keys = ON')
     this.#db.exec(SCHEMA)
+    this.#migrate()
+  }
+
+  /**
+   * CREATE TABLE IF NOT EXISTS leaves an existing table alone, so a column
+   * added later has to be added by hand. Nullable, so old rows stay valid and
+   * read back as "written before sessions existed".
+   */
+  #migrate(): void {
+    const columns = this.#db.prepare('PRAGMA table_info(steps)').all() as Array<{ name: string }>
+    if (!columns.some((column) => column.name === 'session')) {
+      this.#db.exec('ALTER TABLE steps ADD COLUMN session TEXT')
+    }
   }
 
   close(): void {
@@ -135,13 +153,14 @@ export class CampaignDb {
     label: string,
     events: readonly GameEvent[],
     state: CampaignSnapshot,
+    session: string | null = null,
   ): number {
     const now = new Date().toISOString()
     const next = this.stepCount(campaignId) + 1
     this.#db
       .prepare(
-        `INSERT INTO steps (campaign_id, seq, label, events, event_count, state, created_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO steps (campaign_id, seq, label, events, event_count, state, created_at, session)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         campaignId,
@@ -151,6 +170,7 @@ export class CampaignDb {
         events.length,
         JSON.stringify(state),
         now,
+        session,
       )
     this.#db.prepare('UPDATE campaigns SET updated_at = ? WHERE id = ?').run(now, campaignId)
     return next
@@ -191,10 +211,18 @@ export class CampaignDb {
     return String(row['label'])
   }
 
+  /** The session that wrote the newest step, or null if nothing has been written. */
+  latestSession(campaignId: number): string | null {
+    const row = this.#db
+      .prepare('SELECT session FROM steps WHERE campaign_id = ? ORDER BY seq DESC LIMIT 1')
+      .get(campaignId) as { session?: unknown } | undefined
+    return row?.session == null ? null : String(row.session)
+  }
+
   recentSteps(campaignId: number, limit: number): StepRow[] {
     const rows = this.#db
       .prepare(
-        'SELECT seq, label, events, created_at FROM steps WHERE campaign_id = ? ORDER BY seq DESC LIMIT ?',
+        'SELECT seq, label, events, created_at, session FROM steps WHERE campaign_id = ? ORDER BY seq DESC LIMIT ?',
       )
       .all(campaignId, limit) as Array<Record<string, unknown>>
 
@@ -204,6 +232,7 @@ export class CampaignDb {
         label: String(row['label']),
         events: JSON.parse(String(row['events'])) as GameEvent[],
         createdAt: String(row['created_at']),
+        session: row['session'] == null ? null : String(row['session']),
       }))
       .reverse()
   }

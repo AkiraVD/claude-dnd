@@ -56,6 +56,8 @@ export interface Table {
   connected: boolean
   thinking: boolean
   model: string | null
+  /** The `claude` conversation driving the table, from the stream. */
+  claudeSession: string | null
   state: TableState | null
   log: LogEntry[]
   costUsd: number | null
@@ -83,6 +85,7 @@ export function useTable(): Table {
   const [connected, setConnected] = useState(false)
   const [thinking, setThinking] = useState(false)
   const [model, setModel] = useState<string | null>(null)
+  const [claudeSession, setClaudeSession] = useState<string | null>(null)
   const [state, setState] = useState<TableState | null>(null)
   const [log, setLog] = useState<LogEntry[]>([])
   const [costUsd, setCostUsd] = useState<number | null>(null)
@@ -106,11 +109,13 @@ export function useTable(): Table {
       switch (message.type) {
         case 'hello':
           setModel(message.model)
+          setClaudeSession(message.sessionId)
           setState(message.state)
           return
 
         case 'status':
           setModel(message.model)
+          setClaudeSession(message.sessionId)
           return
 
         case 'state':
@@ -222,6 +227,7 @@ export function useTable(): Table {
     connected,
     thinking,
     model,
+    claudeSession,
     state,
     log,
     costUsd,

@@ -427,3 +427,78 @@ describe('campaign management', () => {
     play.close()
   })
 })
+
+describe('steps record which engine run wrote them', () => {
+  it('stamps every step with the session', async () => {
+    const play = await session()
+    await play.call('add_creature', BRANN)
+    await play.call('set_scene', { scene: 'A road.' })
+
+    const db = new CampaignDb(dbPath)
+    open.push({ db })
+    const campaign = db.mostRecentCampaign()!
+    const steps = db.recentSteps(campaign.id, 10)
+
+    expect(steps.length).toBeGreaterThan(0)
+    for (const step of steps) {
+      expect(step.session, `step ${step.seq} "${step.label}" has no session`).toBeTruthy()
+    }
+    // One process, so one session across the lot.
+    expect(new Set(steps.map((s) => s.session)).size).toBe(1)
+    expect(db.latestSession(campaign.id)).toBe(steps.at(-1)!.session)
+    play.close()
+  })
+
+  it('reads back as null for steps written before sessions existed', () => {
+    const db = new CampaignDb(dbPath)
+    open.push({ db })
+    const campaign = db.createCampaign('Old', 1)
+    // appendStep's session argument defaults to null, which is exactly what an
+    // older build wrote.
+    db.appendStep(campaign.id, 'ancient', [], {
+      rngState: 1,
+      scene: 'Long ago.',
+      creatures: [],
+      combat: null,
+    })
+
+    expect(db.recentSteps(campaign.id, 1)[0]!.session).toBeNull()
+    expect(db.latestSession(campaign.id)).toBeNull()
+  })
+
+  it('survives a database created before the column existed', () => {
+    const { DatabaseSync } = require('node:sqlite') as typeof import('node:sqlite')
+    const legacyPath = join(dir, 'legacy.db')
+    const raw = new DatabaseSync(legacyPath)
+    raw.exec(`
+      CREATE TABLE campaigns (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL,
+        seed INTEGER NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+      CREATE TABLE steps (campaign_id INTEGER NOT NULL, seq INTEGER NOT NULL, label TEXT NOT NULL,
+        events TEXT NOT NULL, event_count INTEGER NOT NULL, state TEXT NOT NULL,
+        created_at TEXT NOT NULL, PRIMARY KEY (campaign_id, seq));
+    `)
+    raw.exec(
+      `INSERT INTO campaigns (name, seed, created_at, updated_at) VALUES ('Legacy', 7, 'then', 'then')`,
+    )
+    raw.exec(
+      `INSERT INTO steps (campaign_id, seq, label, events, event_count, state, created_at)
+       VALUES (1, 1, 'old step', '[]', 0, '{"rngState":1,"scene":"x","creatures":[],"combat":null}', 'then')`,
+    )
+    raw.close()
+
+    // Opening it must add the column rather than throw.
+    const db = new CampaignDb(legacyPath)
+    open.push({ db })
+
+    expect(db.recentSteps(1, 5)[0]!.session).toBeNull()
+    expect(() =>
+      db.appendStep(1, 'new step', [], {
+        rngState: 2,
+        scene: 'now',
+        creatures: [],
+        combat: null,
+      }, 'abc123'),
+    ).not.toThrow()
+    expect(db.latestSession(1)).toBe('abc123')
+  })
+})

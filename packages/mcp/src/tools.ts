@@ -1,6 +1,8 @@
 import {
   ABILITIES,
   CLASS_LIST,
+  PORTRAITS,
+  PORTRAIT_LIST,
   CONDITION_LIST,
   DAMAGE_TYPES,
   SKILL_LIST,
@@ -309,10 +311,18 @@ export function registerTools(server: McpServer, store: GameStore): void {
           ...(args.hp === undefined ? {} : { hp: args.hp }),
           ac: args.ac ?? COMMONER.ac,
           ...(args.speed === undefined ? {} : { speed: args.speed }),
+          // Spread conditionally rather than defaulting to []: createCreature
+          // fills saves in from the class only when the field is *undefined*,
+          // and an empty array is a caller saying "none", which silently threw
+          // away a fighter's STR/CON proficiencies.
           proficiencies: {
-            saves: args.save_proficiencies ?? [],
-            skills: args.skill_proficiencies ?? [],
-            expertise: args.expertise ?? [],
+            ...(args.save_proficiencies === undefined
+              ? {}
+              : { saves: args.save_proficiencies }),
+            ...(args.skill_proficiencies === undefined
+              ? {}
+              : { skills: args.skill_proficiencies }),
+            ...(args.expertise === undefined ? {} : { expertise: args.expertise }),
           },
           defenses: {
             resistances: args.resistances ?? [],
@@ -407,14 +417,27 @@ export function registerTools(server: McpServer, store: GameStore): void {
     'set_scene',
     {
       title: 'Set the scene',
-      description: 'Record where the party is and what is happening, for the state panel and recaps.',
-      inputSchema: { scene: z.string() },
+      description:
+        'Record where the party is, in a sentence or two. Pass `backdrop` to change the art ' +
+        'behind it in the browser \u2014 the player sees one of several pre-rendered images for ' +
+        'that kind of place, picked from the scene text so it stays put while the scene does.',
+      inputSchema: {
+        scene: z.string(),
+        backdrop: z
+          .enum(['tavern', 'dungeon', 'road', 'city', 'ruins'])
+          .nullable()
+          .optional()
+          .describe('The kind of place. Null clears the art. Omit to leave it as it was.'),
+      },
     },
-    ({ scene }) =>
+    ({ scene, backdrop }) =>
       guard(() => {
-        store.setScene(scene)
+        store.setScene(scene, backdrop)
         store.commit('set_scene', [{ t: 'scene', scene }])
-        return ok('Scene set', { scene })
+        return ok(`Scene set: ${scene}`, {
+          scene,
+          backdrop: store.backdrop,
+        })
       }),
   )
 
@@ -1813,6 +1836,16 @@ export function registerProgressionTools(server: McpServer, store: GameStore): v
               'matters is a spoiler.',
           ),
         want: z.string().optional().describe('What they are after. DM-only, always.'),
+        portrait: z
+          .string()
+          .nullable()
+          .optional()
+          .describe(
+            'A stock portrait from the browser\u2019s library, named race-role-description, e.g. ' +
+              '"dwarf-smith-broad" or "half-orc-guard-tusked". Pick the closest to how you have ' +
+              'described them. get_portraits lists what exists. Pre-rendered, so the same NPC ' +
+              'shows the same face every session.',
+          ),
         presence: z
           .enum(['present', 'offscreen'])
           .optional()
@@ -1892,6 +1925,22 @@ export function registerProgressionTools(server: McpServer, store: GameStore): v
         return ok(`Revealed on ${outcome.creature.name}`, {
           profile: profileView(outcome.creature),
         })
+      }),
+  )
+
+  server.registerTool(
+    'get_portraits',
+    {
+      title: 'The stock portrait library',
+      description:
+        'Every pre-rendered NPC portrait the browser has, named race-role-description. Pass one ' +
+        'to update_npc as `portrait`. For a walk-on part pick the closest match to what you have ' +
+        'already described rather than describing them to fit the art.',
+      inputSchema: {},
+    },
+    () =>
+      ok(`${PORTRAIT_LIST.length} portraits`, {
+        portraits: PORTRAIT_LIST.map((name) => ({ name, looks: PORTRAITS[name] })),
       }),
   )
 

@@ -10,6 +10,7 @@ import {
   type Story,
 } from '@dnd/engine'
 import type { CampaignDb, CampaignRow, CampaignSnapshot, StepRow } from './db.js'
+import { SESSION_ID } from './session.js'
 
 export const DEFAULT_SCENE = 'No scene set yet.'
 
@@ -38,6 +39,7 @@ export class GameStore {
   #combat: CombatState | null = null
   #scene = DEFAULT_SCENE
   #story: Story | null = null
+  #backdrop: string | null = null
 
   private constructor(db: CampaignDb, campaign: CampaignRow) {
     this.#db = db
@@ -84,6 +86,7 @@ export class GameStore {
     this.#combat = null
     this.#scene = DEFAULT_SCENE
     this.#story = null
+    this.#backdrop = null
     return this.campaign
   }
 
@@ -133,6 +136,7 @@ export class GameStore {
     this.#combat = null
     this.#scene = DEFAULT_SCENE
     this.#story = null
+    this.#backdrop = null
     this.#rng = new SeededRng(randomSeed())
     this.commit('reset_campaign')
   }
@@ -154,12 +158,13 @@ export class GameStore {
       creatures: this.all(),
       combat: this.#combat,
       story: this.#story,
+      backdrop: this.#backdrop,
     }
   }
 
   /** Persist the current state as a new step, with the events that caused it. */
   commit(label: string, events: readonly GameEvent[] = []): void {
-    this.#db.appendStep(this.#campaign.id, label, events, this.snapshot())
+    this.#db.appendStep(this.#campaign.id, label, events, this.snapshot(), SESSION_ID)
   }
 
   #hydrate(): void {
@@ -170,12 +175,14 @@ export class GameStore {
       this.#combat = null
       this.#scene = DEFAULT_SCENE
       this.#story = null
+      this.#backdrop = null
       return
     }
     this.#rng = SeededRng.fromState(snapshot.rngState)
     this.#scene = snapshot.scene
     this.#combat = snapshot.combat
     this.#story = snapshot.story ?? null
+    this.#backdrop = snapshot.backdrop ?? null
     // Through restoreCreature, because a campaign saved before purses and
     // profiles existed is missing those fields entirely.
     this.#creatures = new Map(
@@ -194,8 +201,13 @@ export class GameStore {
     return this.#scene
   }
 
-  setScene(scene: string): void {
+  setScene(scene: string, backdrop?: string | null): void {
     this.#scene = scene
+    if (backdrop !== undefined) this.#backdrop = backdrop
+  }
+
+  get backdrop(): string | null {
+    return this.#backdrop
   }
 
   get story(): Story | null {

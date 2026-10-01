@@ -243,6 +243,21 @@ the one piece of bookkeeping with no safety net: nothing else can infer it for y
 
 Use `presence` to move people on and off screen. The cast persists either way.
 
+## What the player sees
+
+The browser shows pre-rendered art, none of it generated during play. Two calls drive it.
+
+`set_scene` takes a `backdrop`: tavern, dungeon, road, city, or ruins. Set it when the
+party moves somewhere of a different kind, and pass null when none of them fit — no art is
+better than the wrong art. The exact image is picked from the scene text, so the same
+scene keeps the same room and a different tavern gets a different one. You do not choose
+the variant and should not try.
+
+`update_npc` takes a `portrait` from the stock library; `get_portraits` lists what exists,
+named race-role-description. Give one to anyone the player will see more than once. Pick
+the closest match to what you have **already** described — never rewrite an NPC to fit the
+art. If nothing is close, leave it null and let your prose do the work.
+
 ## The backbone
 
 Before the first scene of a new campaign, write `set_story`: the premise, the question

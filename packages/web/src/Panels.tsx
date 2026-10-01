@@ -1,5 +1,6 @@
 import type { Creature } from '@dnd/engine'
 import type { TableState } from '@dnd/server/protocol.js'
+import { backdropFor, portraitFor } from './art.js'
 
 const ABILITIES = ['str', 'dex', 'con', 'int', 'wis', 'cha'] as const
 
@@ -16,10 +17,7 @@ export function Panels({ state }: { state: TableState | null }): JSX.Element {
 
   return (
     <aside className="panels">
-      <section className="panel panel-scene">
-        <h2>{state.campaign.name}</h2>
-        <p>{state.scene}</p>
-      </section>
+      <SceneCard state={state} />
 
       {state.combat?.active === true && <Initiative state={state} />}
 
@@ -38,6 +36,30 @@ export function Panels({ state }: { state: TableState | null }): JSX.Element {
         </section>
       )}
     </aside>
+  )
+}
+
+function SceneCard({ state }: { state: TableState }): JSX.Element {
+  const art = backdropFor(state.backdrop, state.scene)
+
+  return (
+    <section className={`panel panel-scene${art === null ? '' : ' has-art'}`}>
+      {art !== null && (
+        <img
+          className="scene-art"
+          src={art}
+          alt=""
+          // A backdrop is decoration; if it 404s the scene text must still read.
+          onError={(event) => {
+            event.currentTarget.style.display = 'none'
+          }}
+        />
+      )}
+      <div className="scene-body">
+        <h2>{state.campaign.name}</h2>
+        <p>{state.scene}</p>
+      </div>
+    </section>
   )
 }
 
@@ -216,9 +238,23 @@ function Sheet({ creature, full }: { creature: Creature; full?: boolean }): JSX.
 }
 
 function Foe({ creature }: { creature: Creature }): JSX.Element {
+  const portrait = portraitFor(creature.profile.portrait)
+
   return (
     <div className={`foe ${lifeClass(creature)}`}>
-      <span className="foe-name">{creature.name}</span>
+      <span className="foe-name">
+        {portrait !== null && (
+          <img
+            className="foe-face"
+            src={portrait}
+            alt=""
+            onError={(event) => {
+              event.currentTarget.style.display = 'none'
+            }}
+          />
+        )}
+        {creature.name}
+      </span>
       <HpBar creature={creature} />
       <Conditions creature={creature} />
     </div>

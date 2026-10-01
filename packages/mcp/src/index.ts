@@ -1,4 +1,5 @@
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
+import { SESSION_ID } from './session.js'
 import { buildServer } from './server.js'
 
 /**
@@ -35,6 +36,6 @@ await server.connect(new StdioServerTransport())
 
 const campaign = store.campaign
 console.error(
-  `dnd engine ready · campaign ${campaign.id} "${campaign.name}" · ` +
+  `dnd engine ready · session ${SESSION_ID} · campaign ${campaign.id} "${campaign.name}" · ` +
     `${campaign.steps} step(s) · ${store.all().length} creature(s) · seed ${campaign.seed}`,
 )

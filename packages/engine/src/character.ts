@@ -102,6 +102,12 @@ export interface CreatureProfile {
   readonly principal: boolean
   /** What they are after. DM-only. */
   readonly want: string | null
+  /**
+   * Name of a stock portrait in the web app's library, e.g. "dwarf-smith-broad".
+   * Pre-rendered rather than generated per session: the same NPC shows the same
+   * face every time, and nothing has to call an image model mid-game.
+   */
+  readonly portrait: string | null
   readonly notes: readonly ProfileNote[]
 }
 
@@ -115,6 +121,7 @@ export const EMPTY_PROFILE: CreatureProfile = {
   attitude: null,
   principal: false,
   want: null,
+  portrait: null,
   notes: [],
 }
 

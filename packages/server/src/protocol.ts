@@ -22,6 +22,10 @@ export interface TableState {
   combat: CombatState | null
   /** Premise, question, and only the beats the player has learned. */
   story: Story | null
+  /** Which scenery set to show behind the scene, or null for none. */
+  backdrop: string | null
+  /** The engine run that wrote the newest step. Shown in the header for debugging. */
+  session: string | null
   events: GameEvent[]
 }
 

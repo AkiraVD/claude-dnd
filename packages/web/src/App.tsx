@@ -99,6 +99,15 @@ function Console({
             Character{met > 0 && <span className="count"> · {met} met</span>}
           </button>
         )}
+        <span
+          className="console-session"
+          title={
+            `engine session: ${table.state?.session ?? 'none yet — no step written by a ' +
+              'session-aware engine'}\nclaude session: ${table.claudeSession ?? 'unknown'}`
+          }
+        >
+          {table.state?.session ?? '—'}
+        </span>
         {table.costUsd !== null && (
           <span className="console-cost">${table.costUsd.toFixed(2)}</span>
         )}

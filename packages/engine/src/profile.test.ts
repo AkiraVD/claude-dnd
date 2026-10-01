@@ -33,6 +33,7 @@ describe('createCreature', () => {
       attitude: null,
       principal: false,
       want: null,
+      portrait: null,
       notes: [],
     })
     expect(npc().purse).toBe(0)
@@ -170,6 +171,12 @@ describe('redactCreature', () => {
     expect(seen.profile.want).toBeNull()
     expect(seen.profile.principal).toBe(false)
     expect(seen.profile.notes).toEqual([{ text: 'Turned the locket over twice.', revealed: true }])
+  })
+
+  it('keeps the portrait, which is not a secret', () => {
+    const seen = redactCreature(npc({ profile: { portrait: 'dwarf-innkeeper-grey' } }))
+
+    expect(seen.profile.portrait).toBe('dwarf-innkeeper-grey')
   })
 
   it('keeps what is plainly visible about them', () => {

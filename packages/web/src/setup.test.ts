@@ -145,3 +145,25 @@ describe('briefSummary', () => {
     expect(summary[0]!.length).toBeLessThanOrEqual(31)
   })
 })
+
+describe('class art', () => {
+  it('points every class at an asset that exists', async () => {
+    const { existsSync } = await import('node:fs')
+    const { fileURLToPath } = await import('node:url')
+    const tab = SETUP_TABS.find((t) => t.key === 'class')!
+
+    expect(tab.imageFor).toBeDefined()
+    for (const [label] of tab.options) {
+      const path = fileURLToPath(
+        new URL(`../public${tab.imageFor!(label)}`, import.meta.url),
+      )
+      expect(existsSync(path), `${label}: ${tab.imageFor!(label)} is missing`).toBe(true)
+    }
+  })
+
+  it('leaves the other tabs without art', () => {
+    for (const tab of SETUP_TABS) {
+      if (tab.key !== 'class') expect(tab.imageFor, tab.key).toBeUndefined()
+    }
+  })
+})

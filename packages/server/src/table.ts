@@ -21,6 +21,8 @@ export function readTable(db: CampaignDb): TableState {
       creatures: [],
       combat: null,
       story: null,
+      backdrop: null,
+      session: null,
       events: [],
     }
   }
@@ -40,6 +42,8 @@ export function readTable(db: CampaignDb): TableState {
     ),
     combat: snapshot?.combat ?? null,
     story: snapshot?.story == null ? null : redactStory(snapshot.story),
+    backdrop: snapshot?.backdrop ?? null,
+    session: db.latestSession(campaign.id),
     events: db.recentEvents(campaign.id, 60),
   }
 }

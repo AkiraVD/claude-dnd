@@ -22,6 +22,15 @@ export interface SetupTab {
   options: readonly (readonly [string, string])[]
   /** How the answer reads in the brief. */
   phrase: (value: string) => string
+  /**
+   * Art for each option card, by label.
+   *
+   * Painted busts, all rendered on one fixed seed with an identical style
+   * clause and only the subject swapped. That is what buys the set its common
+   * framing and lighting — twelve different seeds produced twelve compositions
+   * that visibly disagreed.
+   */
+  imageFor?: (label: string) => string
 }
 
 const LANGUAGES: readonly (readonly [string, string])[] = [
@@ -65,6 +74,7 @@ export const SETUP_TABS: readonly SetupTab[] = [
     placeholder: 'A hedge-witch who learned from a book she should not have…',
     options: classOptions,
     phrase: (value) => `Class: ${value}`,
+    imageFor: (label) => `/classes/${label.toLowerCase()}.webp`,
   },
   {
     key: 'adventure',

@@ -1,4 +1,5 @@
 import { abilityModifier, formatCoin, type Creature } from '@dnd/engine'
+import { itemArtFor, portraitFor } from './art.js'
 import type { TableState } from '@dnd/server/protocol.js'
 import { useState } from 'react'
 
@@ -135,6 +136,7 @@ function Sheet({ you }: { you: Creature }): JSX.Element {
           {you.items.map((item) => (
             <div key={item.name} className="row">
               <span className="nm">
+                <ItemArt name={item.name} />
                 {item.name}
                 {item.notes !== undefined && <span className="hint"> — {item.notes}</span>}
               </span>
@@ -183,6 +185,20 @@ function Sheet({ you }: { you: Creature }): JSX.Element {
   )
 }
 
+/** A small picture for an item, when one of the stock pieces matches its name. */
+function ItemArt({ name }: { name: string }): JSX.Element | null {
+  const art = itemArtFor(name)
+  if (art === null) return null
+
+  return (
+    <span
+      className="item-art"
+      role="presentation"
+      style={{ WebkitMaskImage: `url(${art})`, maskImage: `url(${art})` }}
+    />
+  )
+}
+
 function Cast({ cast }: { cast: Creature[] }): JSX.Element {
   if (cast.length === 0) return <Empty>You have not met anyone yet.</Empty>
 
@@ -196,6 +212,16 @@ function Cast({ cast }: { cast: Creature[] }): JSX.Element {
         return (
           <div key={npc.id} className="npc">
             <div className="npc-head">
+              {portraitFor(npc.profile.portrait) !== null && (
+                <img
+                  className="npc-face"
+                  src={portraitFor(npc.profile.portrait)!}
+                  alt=""
+                  onError={(event) => {
+                    event.currentTarget.style.display = 'none'
+                  }}
+                />
+              )}
               <span className="nm">{npc.name}</span>
               <span className="who">{who === '' ? '—' : who}</span>
               <span className="npc-meta">

@@ -1,5 +1,6 @@
 import { formatCoin } from '@dnd/engine'
 import { useState } from 'react'
+import { itemArtFor } from './art.js'
 import type { Shop as ShopData } from './useTable.js'
 
 /**
@@ -77,6 +78,16 @@ export function Shop({
                       className={`good${taken > 0 ? ' picked' : ''}${item.qty === 0 ? ' out' : ''}`}
                     >
                       <div className="name">
+                        {itemArtFor(item.name) !== null && (
+                          <span
+                            className="item-art"
+                            role="presentation"
+                            style={{
+                              WebkitMaskImage: `url(${itemArtFor(item.name)!})`,
+                              maskImage: `url(${itemArtFor(item.name)!})`,
+                            }}
+                          />
+                        )}
                         {item.name}
                         <em>{item.qty === 0 ? 'sold out' : (item.notes ?? `${item.qty} in stock`)}</em>
                       </div>
@@ -125,7 +136,19 @@ export function Shop({
                         }
                       >
                         <span className="tick">{offering[item.name] === true ? '✓' : ''}</span>
-                        <span className="name">{item.name}</span>
+                        <span className="name">
+                          {itemArtFor(item.name) !== null && (
+                            <span
+                            className="item-art"
+                            role="presentation"
+                            style={{
+                              WebkitMaskImage: `url(${itemArtFor(item.name)!})`,
+                              maskImage: `url(${itemArtFor(item.name)!})`,
+                            }}
+                          />
+                          )}
+                          {item.name}
+                        </span>
                         <span className="offer">×{item.qty}</span>
                       </button>
                     ))}

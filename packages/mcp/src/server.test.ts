@@ -400,3 +400,105 @@ describe('scene and log', () => {
     expect(data!.creatures).toEqual([])
   })
 })
+
+describe('class defaults survive the tool layer', () => {
+  /*
+   * Found in play: add_creature with class_name "fighter" gave the d10 hit die
+   * but left both save proficiencies false. createCreature was right — it fills
+   * saves from the class when the field is undefined — but the tool passed
+   * `args.save_proficiencies ?? []`, and [] is a caller saying "none". These
+   * tests are at the tool layer because the engine's own tests already pass.
+   */
+  it('grants the class save proficiencies when none are passed', async () => {
+    const added = await call('add_creature', {
+      id: 'akin',
+      name: 'Akin',
+      kind: 'pc',
+      class_name: 'fighter',
+      str: 16,
+      dex: 14,
+      con: 15,
+      int: 10,
+      wis: 12,
+      cha: 8,
+      max_hp: 12,
+      ac: 16,
+    })
+
+    expect(added.isError).toBe(false)
+    const sheet = added.data!.sheet
+    expect(sheet.abilities.str.saveProficient).toBe(true)
+    expect(sheet.abilities.con.saveProficient).toBe(true)
+    expect(sheet.abilities.dex.saveProficient).toBe(false)
+  })
+
+  it('still gives the hit die, which was never the broken part', async () => {
+    await call('add_creature', {
+      id: 'akin',
+      name: 'Akin',
+      class_name: 'fighter',
+      str: 16, dex: 14, con: 15, int: 10, wis: 12, cha: 8,
+      max_hp: 12,
+      ac: 16,
+    })
+    // The sheet reports hit dice as a spendable resource, not a bare number.
+    const resources = (await call('list_resources', { id: 'akin' })).data!.resources
+    const hitDice = resources.find((r: { label: string }) => /hit dice/i.test(r.label))
+
+    expect(hitDice?.label).toContain('d10')
+  })
+
+  it('lets an explicit list override the class', async () => {
+    const added = await call('add_creature', {
+      id: 'odd',
+      name: 'Odd Fighter',
+      class_name: 'fighter',
+      save_proficiencies: ['dex', 'wis'],
+      str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10,
+      max_hp: 10,
+      ac: 10,
+    })
+
+    expect(added.data!.sheet.abilities.dex.saveProficient).toBe(true)
+    expect(added.data!.sheet.abilities.str.saveProficient).toBe(false)
+  })
+
+  it('treats an explicit empty list as "none", not as "use the class"', async () => {
+    const added = await call('add_creature', {
+      id: 'none',
+      name: 'No Saves',
+      class_name: 'fighter',
+      save_proficiencies: [],
+      str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10,
+      max_hp: 10,
+      ac: 10,
+    })
+
+    expect(added.data!.sheet.abilities.str.saveProficient).toBe(false)
+    expect(added.data!.sheet.abilities.con.saveProficient).toBe(false)
+  })
+
+  it('gives every class its own two saves', async () => {
+    const expected: Array<[string, string, string]> = [
+      ['barbarian', 'str', 'con'],
+      ['rogue', 'dex', 'int'],
+      ['wizard', 'int', 'wis'],
+      ['cleric', 'wis', 'cha'],
+      ['monk', 'str', 'dex'],
+    ]
+
+    for (const [className, a, b] of expected) {
+      const added = await call('add_creature', {
+        id: className,
+        name: className,
+        class_name: className,
+        str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10,
+        max_hp: 10,
+        ac: 10,
+      })
+      const abilities = added.data!.sheet.abilities
+      expect(abilities[a].saveProficient, `${className}/${a}`).toBe(true)
+      expect(abilities[b].saveProficient, `${className}/${b}`).toBe(true)
+    }
+  })
+})

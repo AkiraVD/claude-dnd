@@ -51,7 +51,7 @@ export function Setup({
     })
 
   return (
-    <div className="scrim">
+    <div className="scrim scrim-art">
       <div className="modal modal-setup">
         <div className="modal-head">
           <h3>Before we begin</h3>
@@ -96,10 +96,20 @@ export function Setup({
                 <button
                   key={label}
                   type="button"
-                  className="opt"
+                  className={`opt${tab.imageFor === undefined ? '' : ' opt-art'}`}
                   aria-pressed={answers.picked[tab.key] === label}
                   onClick={() => pick(label)}
                 >
+                  {tab.imageFor !== undefined && (
+                    <img
+                      src={tab.imageFor(label)}
+                      alt=""
+                      // A missing asset should cost the art, not the card.
+                      onError={(event) => {
+                        event.currentTarget.style.display = 'none'
+                      }}
+                    />
+                  )}
                   {label}
                   <em>{description}</em>
                 </button>
@@ -147,7 +157,7 @@ function LanguageGate({ onPick }: { onPick: (language: string) => void }): JSX.E
   const chosen = custom.trim()
 
   return (
-    <div className="scrim">
+    <div className="scrim scrim-art">
       <div className="modal modal-language">
         <div className="modal-head">
           <h3>Language</h3>
