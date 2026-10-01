@@ -1443,6 +1443,8 @@ export function registerProgressionTools(server: McpServer, store: GameStore): v
           level,
           ...(slot_level === undefined ? {} : { slotLevel: slot_level }),
           ...(effect === undefined ? {} : { effect }),
+          // The table's own choice, made when the campaign started.
+          ...(store.rules.strictSpells ? { requireKnown: true } : {}),
         })
         store.put(outcome.creature)
         store.commit('cast_spell', outcome.events)
@@ -2153,6 +2155,39 @@ export function registerProgressionTools(server: McpServer, store: GameStore): v
       },
     },
     ({ prompt, options }) => ok(prompt, { choice: { prompt, options } }),
+  )
+
+  server.registerTool(
+    'set_rules',
+    {
+      title: 'How strictly to hold the table',
+      description:
+        'Set at the start of a campaign, from what the player asked for in their opening ' +
+        'brief. `strict_spells` makes the sheet a rule rather than a reminder: cast_spell ' +
+        'then refuses anything not written down with learn_spell, no slot is spent, and the ' +
+        'refusal lists what they do know. Leave it off and an unknown spell still casts, with ' +
+        'the result telling you it was not on the sheet so you can rule on it yourself. ' +
+        'Changeable later if the player asks.',
+      inputSchema: {
+        strict_spells: z
+          .boolean()
+          .optional()
+          .describe('Refuse a cast of anything not on the caster’s sheet. Defaults to off.'),
+      },
+    },
+    ({ strict_spells }) =>
+      guard(() => {
+        const rules = store.setRules(
+          strict_spells === undefined ? {} : { strictSpells: strict_spells },
+        )
+        store.commit('set_rules', [])
+        return ok(
+          rules.strictSpells
+            ? 'Spells must be on the sheet before they can be cast'
+            : 'Spells off the sheet still cast; you will be told when they are',
+          { rules },
+        )
+      }),
   )
 
   server.registerTool(

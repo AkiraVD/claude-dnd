@@ -9,7 +9,7 @@ import {
   type GameEvent,
   type Story,
 } from '@dnd/engine'
-import type { CampaignDb, CampaignRow, CampaignSnapshot, StepRow } from './db.js'
+import type { CampaignDb, CampaignRow, CampaignRules, CampaignSnapshot, StepRow } from './db.js'
 import { SESSION_ID } from './session.js'
 
 export const DEFAULT_SCENE = 'No scene set yet.'
@@ -40,6 +40,7 @@ export class GameStore {
   #scene = DEFAULT_SCENE
   #story: Story | null = null
   #backdrop: string | null = null
+  #rules: CampaignRules = { strictSpells: false }
 
   private constructor(db: CampaignDb, campaign: CampaignRow) {
     this.#db = db
@@ -162,6 +163,7 @@ export class GameStore {
       combat: this.#combat,
       story: this.#story,
       backdrop: this.#backdrop,
+      rules: this.#rules,
     }
   }
 
@@ -179,6 +181,7 @@ export class GameStore {
       this.#scene = DEFAULT_SCENE
       this.#story = null
       this.#backdrop = null
+      this.#rules = { strictSpells: false }
       return
     }
     this.#rng = SeededRng.fromState(snapshot.rngState)
@@ -186,6 +189,8 @@ export class GameStore {
     this.#combat = snapshot.combat
     this.#story = snapshot.story ?? null
     this.#backdrop = snapshot.backdrop ?? null
+    // Campaigns saved before the table could choose default to the loose rule.
+    this.#rules = snapshot.rules ?? { strictSpells: false }
     // Through restoreCreature, because a campaign saved before purses and
     // profiles existed is missing those fields entirely.
     this.#creatures = new Map(
@@ -194,6 +199,16 @@ export class GameStore {
   }
 
   // ── live state ───────────────────────────────────────────────────────────────
+
+  /** How strictly this table is held. Chosen when the campaign starts. */
+  get rules(): CampaignRules {
+    return this.#rules
+  }
+
+  setRules(next: Partial<CampaignRules>): CampaignRules {
+    this.#rules = { ...this.#rules, ...next }
+    return this.#rules
+  }
 
   /** One generator per campaign, its position saved with every step. */
   get rng(): SeededRng {

@@ -183,3 +183,35 @@ describe('class art', () => {
     }
   })
 })
+
+describe('the rules tab', () => {
+  const tab = SETUP_TABS.find((t) => t.key === 'rules')!
+
+  it('exists, with the loose option named as well as the strict one', () => {
+    expect(tab).toBeDefined()
+    expect(tab.options.map(([label]) => label)).toEqual([
+      'Hold me to the sheet',
+      'Let the DM judge',
+    ])
+  })
+
+  it('asks for the tool call by name when strict is chosen', () => {
+    // The engine enforces this one, so the brief has to say what to turn on
+    // rather than express a mood the DM might only half-act on.
+    const line = tab.phrase('Hold me to the sheet')
+    expect(line).toContain('set_rules')
+    expect(line).toContain('strict_spells')
+  })
+
+  it('does not ask for it when the DM is left to judge', () => {
+    expect(tab.phrase('Let the DM judge')).not.toContain('set_rules')
+  })
+
+  it('carries a chosen answer into the brief', () => {
+    const brief = composeBrief({
+      ...EMPTY_ANSWERS,
+      picked: { ...EMPTY_ANSWERS.picked, rules: 'Hold me to the sheet' },
+    })
+    expect(brief).toContain('strict_spells')
+  })
+})

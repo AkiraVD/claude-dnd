@@ -66,7 +66,7 @@ const ROLL_TOOLS = new Set([
 
 /** Tools after which the panels are stale and should be re-read. */
 const STATE_TOOLS =
-  /^(add_creature|remove_creature|apply_|heal|attack_roll|death_save|stabilise|kill|set_|remove_condition|start_c|next_turn|end_combat|remove_from_combat|cast_spell|spend_|short_rest|long_rest|award_xp|level_up|add_resource|learn_spell|concentration_save|undo|reset_campaign|new_campaign|load_campaign|rename_campaign|earn_money|spend_money|give_item|take_item|buy|sell|update_npc|add_note|reveal_note|amend_story|beat)/
+  /^(add_creature|remove_creature|apply_|heal|attack_roll|death_save|stabilise|kill|set_|remove_condition|start_c|next_turn|end_combat|remove_from_combat|cast_spell|spend_|short_rest|long_rest|award_xp|level_up|add_resource|learn_spell|set_rules|concentration_save|undo|reset_campaign|new_campaign|load_campaign|rename_campaign|earn_money|spend_money|give_item|take_item|buy|sell|update_npc|add_note|reveal_note|amend_story|beat)/
 
 session.on('event', (event: SessionEvent) => {
   switch (event.type) {

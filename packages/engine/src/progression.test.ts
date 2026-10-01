@@ -420,3 +420,46 @@ describe('casting something that is not on the sheet', () => {
     expect(castSpell(creature, { spell: 'FIREBALL', level: 3 }).known).toBe(true)
   })
 })
+
+describe('holding the table to the sheet', () => {
+  it('refuses a spell that was never written down', () => {
+    expect(() => castSpell(wizard(5), { spell: 'fireball', level: 3, requireKnown: true })).toThrow(
+      /not on .*sheet/,
+    )
+  })
+
+  it('spends no slot when it refuses', () => {
+    const before = wizard(5)
+    try {
+      castSpell(before, { spell: 'fireball', level: 3, requireKnown: true })
+    } catch {
+      /* expected */
+    }
+    // The refusal is not a cast: the slot has to still be there afterwards.
+    expect(availableSlots(before).find((s) => s.level === 3)!.remaining).toBe(2)
+  })
+
+  it('says what they do know, so the refusal is useful', () => {
+    const { creature } = learnSpell(wizard(5), { name: 'Magic Missile', level: 1 })
+    expect(() => castSpell(creature, { spell: 'fireball', level: 3, requireKnown: true })).toThrow(
+      /Knows: Magic Missile/,
+    )
+  })
+
+  it('points at learn_spell when nothing is written down at all', () => {
+    expect(() => castSpell(wizard(5), { spell: 'fireball', level: 3, requireKnown: true })).toThrow(
+      /learn_spell/,
+    )
+  })
+
+  it('casts what is on the sheet exactly as before', () => {
+    const { creature } = learnSpell(wizard(5), { name: 'Fireball', level: 3 })
+    const out = castSpell(creature, { spell: 'fireball', level: 3, requireKnown: true })
+    expect(out.known).toBe(true)
+    expect(out.slotLevel).toBe(3)
+  })
+
+  it('is off unless asked for, so an old campaign still casts', () => {
+    expect(castSpell(wizard(5), { spell: 'fireball', level: 3 }).slotLevel).toBe(3)
+  })
+})

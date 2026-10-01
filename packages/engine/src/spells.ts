@@ -18,6 +18,15 @@ export interface CastOptions {
    * player what they cast last time. The DM remains the authority on the effect.
    */
   effect?: string
+  /**
+   * Refuse a spell that is not on the caster's sheet.
+   *
+   * Off by default, because a campaign whose spells were never written down
+   * would otherwise be unable to cast at all. Turned on at the table's choice,
+   * it makes the sheet a rule rather than a reminder: the slot is not spent,
+   * nothing is journalled, and the player is told what they actually know.
+   */
+  requireKnown?: boolean
 }
 
 export interface CastResult {
@@ -74,6 +83,17 @@ export function castSpell(creature: Creature, options: CastOptions): CastResult 
     )
   }
 
+  const known = creature.spells.some((s) => s.name.toLowerCase() === spell.trim().toLowerCase())
+  if (options.requireKnown === true && !known) {
+    const sheet = creature.spells.map((s) => s.name)
+    throw new RulesError(
+      `${spell} is not on ${creature.name}'s sheet. ` +
+        (sheet.length > 0
+          ? `Knows: ${sheet.join(', ')}. Write it down with learn_spell first if they have learned it.`
+          : 'Nothing is written down yet — use learn_spell before they cast.'),
+    )
+  }
+
   const casting = spellcasting(creature)
   const events: GameEvent[] = []
   let next = creature
@@ -127,7 +147,7 @@ export function castSpell(creature: Creature, options: CastOptions): CastResult 
     slotsRemaining: availableSlots(next),
     saveDc: casting?.saveDc ?? null,
     spellAttackBonus: casting?.attackBonus ?? null,
-    known: creature.spells.some((s) => s.name.toLowerCase() === spell.trim().toLowerCase()),
+    known,
     events,
   }
 }

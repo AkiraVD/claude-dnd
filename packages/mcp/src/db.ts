@@ -24,6 +24,13 @@ export interface CampaignSnapshot {
   story?: Story | null
   /** Which scenery set the browser should show. Absent on older saves. */
   backdrop?: string | null
+  /** How strictly the engine holds the table. Absent on older saves. */
+  rules?: CampaignRules
+}
+
+export interface CampaignRules {
+  /** Refuse a cast of anything not written onto the caster's sheet. */
+  strictSpells: boolean
 }
 
 export interface CampaignRow {

@@ -116,6 +116,12 @@ exactly as you wrote it, the way a weapon does.
 Describe it when you write it, not later. A spell on the sheet with no line is a spell
 the player still has to ask you about.
 
+**The player chooses how tightly to be held, in their opening brief.** If they asked to be
+held to the sheet, call `set_rules` with `strict_spells: true` before play starts, and from
+then on the engine refuses a spell that is not written down — so write their spells down
+with `spells` or `learn_spell` before they need them, or they will be refused mid-fight.
+Otherwise leave it off; the rest of this section is then yours to enforce by judgement.
+
 **The sheet is the authority on what a character knows, and you are the authority on the
 sheet.** The engine cannot refuse an unknown spell — it has no catalogue, and a character
 whose spells were never written down would be unable to cast at all — so it spends the

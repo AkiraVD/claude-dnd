@@ -129,6 +129,30 @@ export const SETUP_TABS: readonly SetupTab[] = [
     phrase: (value) => `Difficulty: ${value}`,
   },
   {
+    key: 'rules',
+    label: 'Rules',
+    prompt: 'How tightly should the engine hold you?',
+    custom: 'Or say how you want it held',
+    placeholder: 'Strict about spells, relaxed about encumbrance…',
+    wide: true,
+    options: [
+      [
+        'Hold me to the sheet',
+        'A spell has to be written down before you can cast it. The engine refuses the rest',
+      ],
+      [
+        'Let the DM judge',
+        'Anything can be attempted; the DM is told when it is not on your sheet and rules on it',
+      ],
+    ],
+    // The engine enforces the first of these — the DM calls `set_rules` off this
+    // line — so the wording has to say which, not merely imply a preference.
+    phrase: (value) =>
+      value === 'Hold me to the sheet'
+        ? 'Rules: strict — call set_rules with strict_spells true, so a spell must be on my sheet before I can cast it'
+        : `Rules: ${value}`,
+  },
+  {
     key: 'tone',
     label: 'Tone',
     prompt: 'How should it feel?',
