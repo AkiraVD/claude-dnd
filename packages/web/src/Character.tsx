@@ -31,6 +31,22 @@ export function Character({
     <div className="scrim">
       <div className="modal modal-character">
         <div className="modal-head">
+          {/* Your own face, where the cast's faces are: beside the name, same
+              size, same crop. Only on the You tab, because it is yours and the
+              other two are about other people. The head keeps its height either
+              way, so switching tabs does not shunt the panel about. */}
+          {tab === 'you' && portraitFor(you?.profile.portrait) !== null && (
+            <span className="you-face">
+              <img
+                src={portraitFor(you?.profile.portrait)!}
+                alt=""
+                style={{ transform: faceTransform(you?.profile.portrait) }}
+                onError={(event) => {
+                  event.currentTarget.style.display = 'none'
+                }}
+              />
+            </span>
+          )}
           <h3>{tab === 'you' ? (you?.name ?? 'No character yet') : tab === 'met' ? 'Met' : 'Journal'}</h3>
           <span className="modal-sub">
             {tab === 'you'
