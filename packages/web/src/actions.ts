@@ -55,6 +55,14 @@ export interface ActionSheet {
   spells: ActionSpell[]
   items: ActionItem[]
   targets: ActionTarget[]
+  /**
+   * Whether to show the Cast section at all.
+   *
+   * A fighter has no slots and has never cast anything, so the section is not
+   * empty for them — it is absent. The free-text box is still there if they
+   * want to try something with a scroll.
+   */
+  canCast: boolean
   round: number | null
   /** True when a fight is running and the actor is the one up. */
   yourTurn: boolean
@@ -133,6 +141,7 @@ export function actionSheet(state: TableState | null, actorId: string): ActionSh
     spells,
     items,
     targets,
+    canCast: slots.length > 0 || spells.length > 0,
     round: combat !== null && combat.active ? combat.round : null,
     yourTurn: upNow === actorId,
   }

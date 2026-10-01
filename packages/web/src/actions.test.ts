@@ -304,3 +304,38 @@ describe('the level chooses the list', () => {
     expect(defaultLevel([])).toBe(0)
   })
 })
+
+describe('a fighter is not offered spells', () => {
+  const noCaster = (over: Record<string, unknown> = {}) =>
+    ({
+      ...state,
+      creatures: [{ ...vessa, resources: [{ name: 'hit-dice', label: 'Hit dice (d10)', max: 5, current: 5, recharge: 'long-rest' }] }, vreeke],
+      ...over,
+    }) as unknown as TableState
+
+  it('hides the whole cast section for a class with no slots', () => {
+    const sheet = actionSheet(noCaster(), 'vessa')!
+    expect(sheet.slots).toEqual([])
+    expect(sheet.spells).toEqual([])
+    expect(sheet.canCast).toBe(false)
+  })
+
+  it('still shows their weapons and pack', () => {
+    const sheet = actionSheet(noCaster(), 'vessa')!
+    expect(sheet.attacks.map((a) => a.name)).toEqual(['longbow', 'shortsword'])
+  })
+
+  it('shows the section for anyone who has slots', () => {
+    expect(actionSheet(state, 'vessa')!.canCast).toBe(true)
+  })
+
+  it('shows it for a slotless caster who has cast a cantrip', () => {
+    // No slots, but a cantrip on the journal: they can clearly cast something.
+    const sheet = actionSheet(
+      noCaster({ events: [{ t: 'spell', caster: 'vessa', spell: 'Fire Bolt', level: 0, slotLevel: null }] }),
+      'vessa',
+    )!
+    expect(sheet.canCast).toBe(true)
+    expect(sheet.spells).toEqual([{ name: 'Fire Bolt', level: 0 }])
+  })
+})

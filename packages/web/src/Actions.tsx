@@ -137,7 +137,7 @@ export function Actions({
           </section>
         )}
 
-        {(sheet.slots.length > 0 || sheet.spells.length > 0) && (
+        {sheet.canCast && (
           <section className="sheet-section">
             <h4>Cast</h4>
 
