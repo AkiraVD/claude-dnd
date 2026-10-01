@@ -26,6 +26,18 @@ export function App(): JSX.Element {
   const met = table.state?.creatures.filter((c) => c.kind !== 'pc').length ?? 0
   const hasCharacter = table.state?.creatures.some((c) => c.kind === 'pc') === true
 
+  const showSetup = fresh && !skippedSetup && table.connected
+  // The setup modal offers a way back to a saved game, so it needs the list
+  // before it is drawn. Loaded once, when the modal appears — the Sessions panel
+  // reloads it for itself when it opens.
+  useEffect(() => {
+    if (showSetup) table.loadCampaigns()
+  }, [showSetup])
+
+  const otherSaves = table.campaigns.filter(
+    (campaign) => campaign.id !== table.state?.campaign.id,
+  ).length
+
   return (
     <div className="table">
       <Console
@@ -37,8 +49,13 @@ export function App(): JSX.Element {
       />
       <Panels state={table.state} />
 
-      {fresh && !skippedSetup && table.connected && (
-        <Setup onBegin={table.say} onSkip={() => setSkippedSetup(true)} />
+      {showSetup && (
+        <Setup
+          onBegin={table.say}
+          onSkip={() => setSkippedSetup(true)}
+          saves={otherSaves}
+          onResume={() => setSessionsOpen(true)}
+        />
       )}
 
       {table.shop !== null && (

@@ -30,15 +30,26 @@ function pickFrom(tabs: typeof SETUP_TABS, key: string): string {
 export function Setup({
   onBegin,
   onSkip,
+  saves,
+  onResume,
 }: {
   onBegin: (brief: string) => void
   onSkip: () => void
+  /** Campaigns on disk other than this empty one. */
+  saves: number
+  onResume: () => void
 }): JSX.Element {
   const [answers, setAnswers] = useState<SetupAnswers>(EMPTY_ANSWERS)
   const [active, setActive] = useState(SETUP_TABS[0]!.key)
 
   if (answers.language === '') {
-    return <LanguageGate onPick={(language) => setAnswers({ ...answers, language })} />
+    return (
+      <LanguageGate
+        onPick={(language) => setAnswers({ ...answers, language })}
+        saves={saves}
+        onResume={onResume}
+      />
+    )
   }
 
   const tab = SETUP_TABS.find((t) => t.key === active)!
@@ -65,6 +76,7 @@ export function Setup({
         <div className="modal-head">
           <h3>Before we begin</h3>
           <span className="modal-sub">{SETUP_TABS.length} questions, all optional</span>
+          <ResumeLink saves={saves} onResume={onResume} />
         </div>
 
         <div className="tabs" role="tablist">
@@ -203,7 +215,34 @@ export function Setup({
   )
 }
 
-function LanguageGate({ onPick }: { onPick: (language: string) => void }): JSX.Element {
+/**
+ * The way back to a game already in progress.
+ *
+ * This modal only appears on an empty campaign, and an empty campaign is what
+ * you get by pressing the button that makes one — including by accident. Without
+ * this the only way back to last week's game was to answer seven questions you
+ * did not want to answer, or know that the campaign name in the corner was a
+ * button. Hidden when there is nothing to go back to.
+ */
+function ResumeLink({ saves, onResume }: { saves: number; onResume: () => void }): JSX.Element | null {
+  if (saves === 0) return null
+  return (
+    <button type="button" className="ghost resume-link" onClick={onResume}>
+      Resume a campaign
+      <em>{saves} saved</em>
+    </button>
+  )
+}
+
+function LanguageGate({
+  onPick,
+  saves,
+  onResume,
+}: {
+  onPick: (language: string) => void
+  saves: number
+  onResume: () => void
+}): JSX.Element {
   const [custom, setCustom] = useState('')
   const chosen = custom.trim()
 
@@ -213,6 +252,7 @@ function LanguageGate({ onPick }: { onPick: (language: string) => void }): JSX.E
         <div className="modal-head">
           <h3>Language</h3>
           <span className="modal-sub">ngôn ngữ · idioma · 言語</span>
+          <ResumeLink saves={saves} onResume={onResume} />
         </div>
 
         <div className="modal-body">

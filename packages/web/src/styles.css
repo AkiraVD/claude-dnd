@@ -541,6 +541,21 @@ body {
 .modal-head .modal-sub { font-size: 12px; color: var(--text-faint); }
 .modal-head .chip { margin-left: auto; }
 
+/* The way out of the setup modal, in the corner opposite the title. Quiet: it is
+   the second thing most people want, and the loud button is Begin. */
+.resume-link {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+.resume-link em {
+  font-style: normal;
+  color: var(--text-faint);
+}
+
 /* You, at the top of your own tab: a portrait worth looking at, and beside it
    whatever the DM has written down about you. Starts at the top rather than
    centring, because the prose grows downward and a centred face drifts with it. */
