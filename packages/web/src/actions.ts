@@ -28,11 +28,39 @@ export interface ActionSlot {
   max: number
 }
 
+/**
+ * Which side of the fight someone is on, as far as the engine can tell.
+ *
+ * Attitude is the DM's own record and drifts with events, so this is a read of
+ * it rather than a second opinion. Three states, because the colour is there to
+ * stop you shooting the innkeeper, not to grade a relationship: everything that
+ * is not clearly for you or against you stays neutral and uncoloured.
+ */
+export type Stance = 'hostile' | 'friendly' | 'neutral'
+
+export function stanceOf(kind: 'pc' | 'npc', attitude: string | null | undefined): Stance {
+  // Another player character is on your side by construction.
+  if (kind === 'pc') return 'friendly'
+  switch (attitude) {
+    case 'hostile':
+    case 'unfriendly':
+      return 'hostile'
+    case 'friendly':
+    case 'helpful':
+      return 'friendly'
+    default:
+      return 'neutral'
+  }
+}
+
 export interface ActionTarget {
   id: string
   name: string
   hp: string
   kind: 'pc' | 'npc'
+  stance: Stance
+  /** The word behind the colour, so the chip can say it rather than only show it. */
+  attitude: string | null
   /** Whether a fight is running and it is this creature's turn. */
   acting: boolean
 }
@@ -131,6 +159,8 @@ export function actionSheet(state: TableState | null, actorId: string): ActionSh
       name: c.name,
       hp: `${c.hp.current}/${c.hp.max}`,
       kind: c.kind,
+      stance: stanceOf(c.kind, c.profile?.attitude),
+      attitude: c.profile?.attitude ?? null,
       acting: c.id === upNow,
     }))
 

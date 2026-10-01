@@ -98,10 +98,14 @@ export function Actions({
                 <button
                   key={t.id}
                   type="button"
-                  className="chip chip-pick"
+                  className={`chip chip-pick stance-${t.stance}`}
                   aria-pressed={target === t.name}
+                  // The colour is a reminder, not the only signal: the attitude
+                  // is spelled out here for anyone who cannot use it.
+                  title={t.attitude === null ? t.name : `${t.name} — ${t.attitude}`}
                   onClick={() => setTarget(target === t.name ? null : t.name)}
                 >
+                  <span className="stance-dot" aria-hidden="true" />
                   {t.name} <em>{t.hp}</em>
                 </button>
               ))}

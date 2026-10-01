@@ -1151,3 +1151,28 @@ button.ghost:hover { border-color: var(--text-faint); color: var(--text); }
 .sheet-levels em { font-style: normal; letter-spacing: 0.08em; color: var(--text-faint); }
 .chip-pick:disabled { opacity: 0.35; cursor: not-allowed; }
 .sheet-spells em { margin-left: 5px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* Enemy, ally, neither — a reminder on the target chips so a misclick does not
+   put an arrow through the quartermaster. Colour is never the only signal: the
+   chip's title carries the attitude in words. */
+.stance-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  vertical-align: middle;
+}
+.stance-hostile .stance-dot { background: var(--bad); }
+.stance-friendly .stance-dot { background: var(--good); }
+.stance-hostile { border-color: color-mix(in oklab, var(--bad) 45%, var(--line)); }
+.stance-friendly { border-color: color-mix(in oklab, var(--good) 45%, var(--line)); }
+.stance-hostile[aria-pressed='true'] {
+  border-color: var(--bad);
+  background: color-mix(in oklab, var(--bad) 16%, var(--bg-sunken));
+}
+.stance-friendly[aria-pressed='true'] {
+  border-color: var(--good);
+  background: color-mix(in oklab, var(--good) 16%, var(--bg-sunken));
+}

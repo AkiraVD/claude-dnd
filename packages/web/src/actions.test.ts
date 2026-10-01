@@ -7,6 +7,7 @@ import {
   isReady,
   spellLevelLabel,
   spellsForLevel,
+  stanceOf,
 } from './actions.js'
 import type { TableState } from '@dnd/server/protocol.js'
 
@@ -394,5 +395,45 @@ describe('slots that did not come from a class', () => {
     // nothing to open on and cantrips are all that remain.
     expect(sheet.slots[0]!.current).toBe(0)
     expect(defaultLevel(sheet.slots)).toBe(0)
+  })
+})
+
+describe('telling friend from foe', () => {
+  it('reads the attitude the DM has been keeping', () => {
+    expect(stanceOf('npc', 'hostile')).toBe('hostile')
+    expect(stanceOf('npc', 'unfriendly')).toBe('hostile')
+    expect(stanceOf('npc', 'friendly')).toBe('friendly')
+    expect(stanceOf('npc', 'helpful')).toBe('friendly')
+  })
+
+  it('leaves anyone it cannot place alone', () => {
+    // Uncoloured is the honest answer for the quartermaster who has not picked
+    // a side; guessing would be worse than saying nothing.
+    expect(stanceOf('npc', 'indifferent')).toBe('neutral')
+    expect(stanceOf('npc', null)).toBe('neutral')
+    expect(stanceOf('npc', undefined)).toBe('neutral')
+    expect(stanceOf('npc', 'nonsense')).toBe('neutral')
+  })
+
+  it('counts another player character as an ally', () => {
+    expect(stanceOf('pc', null)).toBe('friendly')
+    expect(stanceOf('pc', 'hostile')).toBe('friendly')
+  })
+
+  it('puts the stance and the word on every target', () => {
+    const board = {
+      ...state,
+      creatures: [
+        vessa,
+        { ...vreeke, profile: { attitude: 'hostile' } },
+        { ...vreeke, id: 'hask', name: 'Corvin Hask', profile: { attitude: 'indifferent' } },
+      ],
+      events: [],
+    } as unknown as TableState
+    const sheet = actionSheet(board, 'vessa')!
+    expect(sheet.targets.map((t) => [t.name, t.stance, t.attitude])).toEqual([
+      ['Tolm Vreeke', 'hostile', 'hostile'],
+      ['Corvin Hask', 'neutral', 'indifferent'],
+    ])
   })
 })
