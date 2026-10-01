@@ -1448,12 +1448,16 @@ export function registerProgressionTools(server: McpServer, store: GameStore): v
         store.commit('cast_spell', outcome.events)
 
         const parts = [`${outcome.creature.name} casts ${spell}`]
+        if (!outcome.known) {
+          parts.push(`NOT on ${store.creature(id).name}'s sheet — yours to allow or refuse`)
+        }
         if (outcome.slotLevel === null) parts.push('cantrip, no slot spent')
         else parts.push(`level ${outcome.slotLevel} slot spent`)
         if (outcome.saveDc !== null) parts.push(`spell save DC ${outcome.saveDc}`)
 
         return ok(parts.join(' · '), {
           slotLevel: outcome.slotLevel,
+          known: outcome.known,
           saveDc: outcome.saveDc,
           spellAttackBonus: outcome.spellAttackBonus,
           slotsRemaining: outcome.slotsRemaining,

@@ -29,6 +29,17 @@ export interface CastResult {
   slotsRemaining: Array<{ level: number; remaining: number }>
   saveDc: number | null
   spellAttackBonus: number | null
+  /**
+   * Whether this spell is on the caster's sheet.
+   *
+   * The engine cannot refuse an unknown spell — it has no catalogue, and a
+   * character whose spells were never written down would be unable to cast at
+   * all. So it does not pretend to decide: it spends the slot and says plainly
+   * that the spell was not on the sheet, and the DM rules on it. Being told is
+   * the thing that stops a made-up spell going through unnoticed across three
+   * hours of play.
+   */
+  known: boolean
   events: GameEvent[]
 }
 
@@ -116,6 +127,7 @@ export function castSpell(creature: Creature, options: CastOptions): CastResult 
     slotsRemaining: availableSlots(next),
     saveDc: casting?.saveDc ?? null,
     spellAttackBonus: casting?.attackBonus ?? null,
+    known: creature.spells.some((s) => s.name.toLowerCase() === spell.trim().toLowerCase()),
     events,
   }
 }

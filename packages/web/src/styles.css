@@ -436,7 +436,13 @@ body {
 .hp-label { font-size: 11.5px; font-variant-numeric: tabular-nums; color: var(--text-dim); }
 .hp-label em { color: var(--info); font-style: normal; }
 
-.conditions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+/* Beside the name, so a tag belongs to the creature it is about rather than
+   hanging in the gap before the next one. */
+.conditions { display: inline-flex; flex-wrap: wrap; gap: 4px; margin-left: 7px; vertical-align: middle; }
+.foe-name { display: flex; align-items: center; flex-wrap: wrap; }
+/* The strike-through is for the name, not for the tag explaining it. */
+.foe.is-dead .foe-name .conditions { text-decoration: none; }
+.sheet h3 .conditions { margin-left: 8px; }
 
 .stats { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; font-size: 12.5px; }
 .stat em { color: var(--text-faint); font-style: normal; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; }
@@ -477,7 +483,7 @@ body {
 
 .foes { display: grid; gap: 10px; }
 .foe.is-dead { opacity: 0.45; }
-.foe-name { display: block; font-size: 12.5px; margin-bottom: 4px; }
+.foe-name { font-size: 12.5px; margin-bottom: 4px; }
 .foe.is-dead .foe-name { text-decoration: line-through; }
 
 @media (max-width: 900px) {
@@ -1185,3 +1191,4 @@ button.ghost:hover { border-color: var(--text-faint); color: var(--text); }
 }
 /* A level with nothing left still opens — you may be reading what it does. */
 .sheet-levels [aria-pressed='false'] em { opacity: 0.6; }
+.sheet-offsheet { margin: 6px 0 0; font-size: 11.5px; color: var(--text-faint); }

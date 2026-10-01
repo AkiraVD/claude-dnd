@@ -42,6 +42,9 @@ export function Actions({
   const [level, setLevel] = useState(defaultLevel(sheet.slots))
   const [custom, setCustom] = useState('')
 
+  const onSheet = (name: string): boolean =>
+    sheet.spells.some((s) => s.name.toLowerCase() === name.trim().toLowerCase())
+
   // The draft is rebuilt from the controls rather than stored, so changing the
   // target after picking a weapon does not leave a stale sentence behind.
   const current: ActionDraft | null =
@@ -50,7 +53,7 @@ export function Actions({
       : draft.kind === 'attack'
         ? { kind: 'attack', weapon: draft.weapon, target, lethal }
         : draft.kind === 'spell'
-          ? { kind: 'spell', spell, level, target }
+          ? { kind: 'spell', spell, level, target, known: onSheet(spell) }
           : draft.kind === 'item'
             ? { kind: 'item', item: draft.item, target }
             : { kind: 'custom', text: custom }
@@ -64,7 +67,7 @@ export function Actions({
     const stillThere = spellsForLevel(sheet.spells, next).some((s) => s.name === spell)
     const kept = stillThere || sheet.spells.every((s) => s.name !== spell) ? spell : ''
     setSpell(kept)
-    if (draft?.kind === 'spell') setDraft({ kind: 'spell', spell: kept, level: next, target })
+    if (draft?.kind === 'spell') setDraft({ kind: 'spell', spell: kept, level: next, target, known: onSheet(kept) })
   }
 
   // A spent level is still worth opening — it is where you look up what a spell
@@ -203,7 +206,7 @@ export function Actions({
                     }
                     onClick={() => {
                       setSpell(known.name)
-                      setDraft({ kind: 'spell', spell: known.name, level, target })
+                      setDraft({ kind: 'spell', spell: known.name, level, target, known: true })
                     }}
                   >
                     {known.name}
@@ -219,18 +222,23 @@ export function Actions({
                 type="text"
                 placeholder={
                   castable.length > 0
-                    ? 'or another spell…'
+                    ? 'or ask for another spell…'
                     : sheet.spells.length > 0
-                      ? `nothing cast at ${spellLevelLabel(level)} yet — name one…`
-                      : 'spell name…'
+                      ? `nothing at ${spellLevelLabel(level)} on your sheet — ask for one…`
+                      : 'ask for a spell…'
                 }
                 value={spell}
                 onChange={(event) => {
                   setSpell(event.target.value)
-                  setDraft({ kind: 'spell', spell: event.target.value, level, target })
+                  setDraft({ kind: 'spell', spell: event.target.value, level, target, known: onSheet(event.target.value) })
                 }}
               />
             </div>
+            {spell.trim() !== '' && !onSheet(spell) && (
+              <p className="sheet-offsheet">
+                Not on your sheet — this asks the DM rather than telling them.
+              </p>
+            )}
           </section>
         )}
 

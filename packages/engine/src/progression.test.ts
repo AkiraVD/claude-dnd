@@ -6,7 +6,7 @@ import { kill } from './damage.js'
 import { awardXp, levelUp } from './progression.js'
 import { availableSlots, findResource, spendResource } from './resources.js'
 import { longRest, shortRest, spendHitDie } from './rest.js'
-import { canCast, castSpell } from './spells.js'
+import { canCast, castSpell, learnSpell } from './spells.js'
 import { scriptedRng } from './testing.js'
 
 const SCORES = { str: 16, dex: 14, con: 14, int: 16, wis: 12, cha: 10 }
@@ -402,5 +402,21 @@ describe('armour and skills', () => {
   it('knows heavy armour hampers stealth', () => {
     expect(fighter().armour).toEqual({ name: 'chain mail', stealthDisadvantage: true })
     expect(wizard().armour).toBeNull()
+  })
+})
+
+describe('casting something that is not on the sheet', () => {
+  it('says so rather than refusing, because the engine has no catalogue', () => {
+    // It cannot know whether a wizard should have Fireball, and a character
+    // whose spells were never written down must still be able to cast. So it
+    // reports and lets the DM rule — being told is what stops it sliding.
+    const out = castSpell(wizard(5), { spell: 'fireball', level: 3 })
+    expect(out.known).toBe(false)
+    expect(out.slotLevel).toBe(3)
+  })
+
+  it('knows a spell that was written down, however it is capitalised', () => {
+    const { creature } = learnSpell(wizard(5), { name: 'Fireball', level: 3 })
+    expect(castSpell(creature, { spell: 'FIREBALL', level: 3 }).known).toBe(true)
   })
 })

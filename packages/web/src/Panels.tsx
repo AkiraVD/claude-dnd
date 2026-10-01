@@ -127,6 +127,13 @@ function HpBar({ creature }: { creature: Creature }): JSX.Element {
   )
 }
 
+/**
+ * The condition chips, rendered beside the name rather than under the bar.
+ *
+ * Under the bar they sat in the gap between one creature and the next, which
+ * reads as belonging to whichever one you were already looking at — "dead"
+ * floating above Sabat rather than attached to Vreeke.
+ */
 function Conditions({ creature }: { creature: Creature }): JSX.Element | null {
   // Display labels, not engine conditions: 'dead', 'dying', 'stable' and
   // 'exhaustion N' all belong on a chip but none of them is a SimpleCondition,
@@ -180,6 +187,7 @@ function Sheet({ creature, full }: { creature: Creature; full?: boolean }): JSX.
     <section className={`panel sheet ${lifeClass(creature)}`}>
       <h3>
         {creature.name}
+        <Conditions creature={creature} />
         <span className="panel-tag">
           {creature.className === null ? '' : `${creature.className} `}
           {creature.level}
@@ -187,7 +195,6 @@ function Sheet({ creature, full }: { creature: Creature; full?: boolean }): JSX.
       </h3>
 
       <HpBar creature={creature} />
-      <Conditions creature={creature} />
 
       <div className="stats">
         <span className="stat">
@@ -258,9 +265,9 @@ function Foe({ creature }: { creature: Creature }): JSX.Element {
           />
         )}
         {creature.name}
+        <Conditions creature={creature} />
       </span>
       <HpBar creature={creature} />
-      <Conditions creature={creature} />
     </div>
   )
 }

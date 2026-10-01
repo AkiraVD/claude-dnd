@@ -198,7 +198,14 @@ export function actionSheet(state: TableState | null, actorId: string): ActionSh
 
 export type ActionDraft =
   | { kind: 'attack'; weapon: string; target: string | null; lethal: boolean }
-  | { kind: 'spell'; spell: string; level: number; target: string | null }
+  | {
+      kind: 'spell'
+      spell: string
+      level: number
+      target: string | null
+      /** On the character's sheet. Off-sheet asks rather than declares. */
+      known: boolean
+    }
   | { kind: 'item'; item: string; target: string | null }
   | { kind: 'custom'; text: string }
 
@@ -257,6 +264,13 @@ export function composeAction(draft: ActionDraft): string {
     case 'spell': {
       const at = draft.target === null ? '' : ` on ${draft.target}`
       const level = draft.level === 0 ? ' as a cantrip' : `, ${spellLevelLabel(draft.level)} level`
+      // A spell on the sheet is a thing the character does. One typed in is a
+      // request, and has to read like one — the player can write anything in
+      // that box, and a sentence that declares it invites the DM to go along
+      // with it rather than rule on it.
+      if (!draft.known) {
+        return `Can I cast ${draft.spell}${at}${level}? It is not on my sheet — your call.`
+      }
       return `I cast ${draft.spell}${at}${level}.`
     }
     case 'item': {

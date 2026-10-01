@@ -161,9 +161,9 @@ describe('the sentence it composes', () => {
 
   it('casts at a level, and knows a cantrip spends nothing', () => {
     expect(
-      composeAction({ kind: 'spell', spell: "Hunter's Mark", level: 1, target: 'Tolm Vreeke' }),
+      composeAction({ kind: 'spell', spell: "Hunter's Mark", level: 1, target: 'Tolm Vreeke' , known: true}),
     ).toBe("I cast Hunter's Mark on Tolm Vreeke, 1st level.")
-    expect(composeAction({ kind: 'spell', spell: 'Fire Bolt', level: 0, target: null })).toBe(
+    expect(composeAction({ kind: 'spell', spell: 'Fire Bolt', level: 0, target: null , known: true})).toBe(
       'I cast Fire Bolt as a cantrip.',
     )
   })
@@ -178,8 +178,8 @@ describe('the sentence it composes', () => {
     const drafts = [
       { kind: 'attack', weapon: 'longbow', target: null, lethal: true },
       { kind: 'attack', weapon: 'longbow', target: 'Sabat', lethal: false },
-      { kind: 'spell', spell: 'Cure Wounds', level: 0, target: null },
-      { kind: 'spell', spell: 'Cure Wounds', level: 3, target: 'Vessa' },
+      { kind: 'spell', spell: 'Cure Wounds', level: 0, target: null , known: true},
+      { kind: 'spell', spell: 'Cure Wounds', level: 3, target: 'Vessa' , known: true},
     ] as const
     for (const draft of drafts) {
       const line = composeAction(draft)
@@ -194,7 +194,7 @@ describe('readiness', () => {
     expect(isReady(null)).toBe(false)
     expect(isReady({ kind: 'attack', weapon: '', target: 'x', lethal: true })).toBe(false)
     expect(isReady({ kind: 'attack', weapon: 'longbow', target: null, lethal: true })).toBe(true)
-    expect(isReady({ kind: 'spell', spell: '   ', level: 1, target: null })).toBe(false)
+    expect(isReady({ kind: 'spell', spell: '   ', level: 1, target: null , known: true})).toBe(false)
     expect(isReady({ kind: 'custom', text: '  ' })).toBe(false)
     expect(isReady({ kind: 'custom', text: 'I run' })).toBe(true)
   })
@@ -518,5 +518,43 @@ describe('spells written onto the sheet', () => {
       events: [{ t: 'spell', caster: 'vessa', spell: 'Fog Cloud', level: 1, slotLevel: 1 }],
     } as unknown as TableState
     expect(actionSheet(board, 'vessa')!.spells.map((s) => s.name)).toEqual(['Fog Cloud'])
+  })
+})
+
+describe('a spell the character does not have', () => {
+  it('asks instead of declaring', () => {
+    // The box takes any text. A sentence that announces the cast invites the DM
+    // to go along with it; one that asks makes it rule.
+    expect(
+      composeAction({
+        kind: 'spell',
+        spell: 'Wish',
+        level: 1,
+        target: 'Tolm Vreeke',
+        known: false,
+      }),
+    ).toBe('Can I cast Wish on Tolm Vreeke, 1st level? It is not on my sheet — your call.')
+  })
+
+  it('still declares a spell that is on the sheet', () => {
+    expect(
+      composeAction({ kind: 'spell', spell: "Hunter's Mark", level: 1, target: null, known: true }),
+    ).toBe("I cast Hunter's Mark, 1st level.")
+  })
+
+  it('asks for an unknown cantrip too', () => {
+    expect(composeAction({ kind: 'spell', spell: 'Eldritch Blast', level: 0, target: null, known: false })).toBe(
+      'Can I cast Eldritch Blast as a cantrip? It is not on my sheet — your call.',
+    )
+  })
+
+  it('never phrases an unknown spell as a statement of fact', () => {
+    for (const level of [0, 1, 5]) {
+      for (const target of [null, 'Sabat']) {
+        const line = composeAction({ kind: 'spell', spell: 'Made Up', level, target, known: false })
+        expect(line, line).toMatch(/^Can I cast /)
+        expect(line, line).toContain('your call')
+      }
+    }
   })
 })
