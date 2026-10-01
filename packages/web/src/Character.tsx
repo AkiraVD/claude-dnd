@@ -6,6 +6,9 @@ import type { JSX } from 'react'
 
 const ABILITIES = ['str', 'dex', 'con', 'int', 'wis', 'cha'] as const
 
+/** How far to crop the one portrait that gets shown large. */
+const CARD_ZOOM = 1.35
+
 /**
  * You, the cast, and the journal.
  *
@@ -31,22 +34,6 @@ export function Character({
     <div className="scrim">
       <div className="modal modal-character">
         <div className="modal-head">
-          {/* Your own face, where the cast's faces are: beside the name, same
-              size, same crop. Only on the You tab, because it is yours and the
-              other two are about other people. The head keeps its height either
-              way, so switching tabs does not shunt the panel about. */}
-          {tab === 'you' && portraitFor(you?.profile.portrait) !== null && (
-            <span className="you-face">
-              <img
-                src={portraitFor(you?.profile.portrait)!}
-                alt=""
-                style={{ transform: faceTransform(you?.profile.portrait) }}
-                onError={(event) => {
-                  event.currentTarget.style.display = 'none'
-                }}
-              />
-            </span>
-          )}
           <h3>{tab === 'you' ? (you?.name ?? 'No character yet') : tab === 'met' ? 'Met' : 'Journal'}</h3>
           <span className="modal-sub">
             {tab === 'you'
@@ -107,9 +94,55 @@ function Empty({ children }: { children: React.ReactNode }): JSX.Element {
 
 function Sheet({ you }: { you: Creature }): JSX.Element {
   const ratio = Math.max(0, Math.min(1, you.hp.current / you.hp.max))
+  const face = portraitFor(you.profile.portrait)
+  // What the DM has actually written down about you, in the order it reads:
+  // what you look like, then how you carry it, then anything learned since.
+  const told = [you.profile.appearance, you.profile.manner]
+    .filter((part): part is string => part !== null && part !== '')
+  const where = [you.profile.role, you.profile.location]
+    .filter((part): part is string => part !== null && part !== '')
+    .join(' · ')
 
   return (
     <>
+      {/* You, above your numbers. Bigger than the cast's thumbnails because this
+          one is the character the whole panel is about — and at 96px the recorded
+          zoom is wrong for it: that number was aimed at making a face legible in
+          a 34px circle, and at this size it crops to a nose. A gentler one shows
+          the head and shoulders, still centred on the face by the same maths. */}
+      <div className="you-card">
+        {face !== null && (
+          <span className="you-face">
+            <img
+              src={face}
+              alt=""
+              style={{ transform: faceTransform(you.profile.portrait, CARD_ZOOM) }}
+              onError={(event) => {
+                event.currentTarget.style.display = 'none'
+              }}
+            />
+          </span>
+        )}
+        <div className="you-told">
+          {where !== '' && <p className="you-where">{where}</p>}
+          {told.map((part) => (
+            <p key={part} className="npc-note">
+              {part}
+            </p>
+          ))}
+          {you.profile.notes.map((note) => (
+            <p key={note.text} className="npc-note">
+              {note.text}
+            </p>
+          ))}
+          {told.length === 0 && you.profile.notes.length === 0 && (
+            <p className="npc-note unknown">
+              The DM has not written down what you look like yet.
+            </p>
+          )}
+        </div>
+      </div>
+
       <div className="hpline">
         <span className="hp-label">HP</span>
         <span className="hp-track">

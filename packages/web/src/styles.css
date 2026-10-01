@@ -541,17 +541,42 @@ body {
 .modal-head .modal-sub { font-size: 12px; color: var(--text-faint); }
 .modal-head .chip { margin-left: auto; }
 
-/* Your face sits beside your name, so the head centres rather than sitting on a
-   baseline — and reserves its height on every tab, or switching to Met would
-   snap the panel up by the height of the portrait. */
-.modal-character .modal-head {
-  align-items: center;
-  min-height: 62px;
+/* You, at the top of your own tab: a portrait worth looking at, and beside it
+   whatever the DM has written down about you. Starts at the top rather than
+   centring, because the prose grows downward and a centred face drifts with it. */
+.you-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 14px;
 }
 .you-face {
-  width: 36px;
-  height: 36px;
-  border-color: var(--accent);
+  width: 96px;
+  height: 96px;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  flex: none;
+  overflow: hidden;
+  display: block;
+  position: relative;
+}
+.you-told {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-top: 2px;
+}
+.you-where {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+@media (max-width: 520px) {
+  .you-card { flex-wrap: wrap; }
 }
 
 .modal-body {
@@ -1022,7 +1047,7 @@ button.ghost:hover { border-color: var(--text-faint); color: var(--text); }
 }
 .panel-scene.has-art p { color: var(--text); }
 
-.npc-face, .foe-face, .you-face {
+.npc-face, .foe-face {
   width: 34px;
   height: 34px;
   border-radius: 50%;
