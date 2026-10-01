@@ -14,7 +14,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "gallery": "tsx scripts/gallery.ts"
+    "gallery": "tsx scripts/gallery.ts",
+    "faces": "tsx scripts/faces-editor.ts",
+    "faces:apply": "tsx scripts/faces-apply.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.3",

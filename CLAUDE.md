@@ -42,6 +42,8 @@ npm run dev:web     # Vite dev server for UI work, alongside npm run server
 npm test            # 580 tests
 npm run typecheck   # strict TS across every package
 npm run gallery     # build /gallery.html: every picture the game can reach, on one page
+npm run faces       # build /faces.html: drag a ring onto each face, crops follow live
+npm run faces:apply # pipe the editor's JSON in to write it into faces.json
 ```
 
 ## Conventions
@@ -100,6 +102,8 @@ the snapshot before.
   one conversation, one shared prompt block, and how to slice and wire the result.
 - `scripts/gallery.ts` — generates the asset gallery from the catalogues, so the page
   cannot quietly disagree with what ships. Not committed; run it when you want it.
+- `scripts/faces-editor.ts` / `faces-apply.ts` — the focal-point editor and the way its
+  adjustments get back onto disk. Edits live in the browser until applied.
 - `PLAN.md` — the build plan, what each phase covered, and what was deliberately skipped.
 - `playtests/` — real sessions with findings. The first one drove most of the engine's depth.
   **Run a playtest after changing rules or the prompt**, and write the findings down; they
