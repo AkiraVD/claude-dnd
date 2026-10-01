@@ -165,12 +165,33 @@ describe('portraitFor', () => {
   })
 
   it('aims the zoom at the face', () => {
-    // A face already in the middle needs no shift; one high in the frame has to
-    // be pulled down into the circle.
+    // A face already in the middle needs no shift; one high in the frame is
+    // pulled down into the circle.
     expect(faceTransform('not-a-real-name')).toBe('scale(2) translate(0%, 0%)')
-    expect(faceTransform('hill-giant')).toBe('scale(2) translate(0%, 40%)')
-    expect(faceTransform('wererat')).toBe('scale(2) translate(-30%, 32%)')
-    expect(faceTransform('beholder', 1.5)).toBe('scale(1.5) translate(0%, 5%)')
+    expect(faceTransform('beholder')).toBe('scale(2) translate(0%, 5%)')
+  })
+
+  it('never shifts so far that the background shows through', () => {
+    // Scaling by z leaves (z - 1) of overflow to play with, half each side, and
+    // the translate is scaled as well. Past that limit the image edge comes
+    // inside the box and the circle gets a bite taken out of it.
+    for (const zoom of [1.5, 2, 3]) {
+      const limit = ((zoom - 1) / (2 * zoom)) * 100
+      for (const name of [...PORTRAIT_LIST, ...BESTIARY_LIST]) {
+        const [, x, y] = /translate\((-?[\d.]+)%, (-?[\d.]+)%\)/.exec(
+          faceTransform(name, zoom),
+        )!
+        expect(Math.abs(Number(x)), `${name} x at zoom ${zoom}`).toBeLessThanOrEqual(limit + 1e-9)
+        expect(Math.abs(Number(y)), `${name} y at zoom ${zoom}`).toBeLessThanOrEqual(limit + 1e-9)
+      }
+    }
+  })
+
+  it('clamps the faces that sit nearest the edge', () => {
+    // hill-giant's face is at 11% — well past what a 2x zoom can centre — so it
+    // rides as high in the circle as it can without leaving a gap.
+    expect(faceTransform('hill-giant')).toBe('scale(2) translate(-7%, 25%)')
+    expect(faceTransform('hill-giant', 3)).toBe('scale(3) translate(-7%, 33.33333333333333%)')
   })
 })
 

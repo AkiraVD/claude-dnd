@@ -129,8 +129,16 @@ actually rendered and tiled — a four-legged creature carries its head low, whi
 opposite of the assumption that a standing figure's head is near the top. Always do the
 render-and-tile pass; it takes one command and catches what the eye missed.
 
-Two of the monster cells have no head in frame at all, because the creature was taller than
-its cell on the source sheet. No metadata fixes that — it needs regenerating.
+If a creature comes out taller than its cell, its head is simply not in the picture and no
+metadata will save it. Regenerate those: a 2×2 is plenty, and the instruction that works is
+that the *entire* creature including the top of its head must sit inside its own cell with
+clear space above it, framing smaller if that is what it takes.
+
+**Clamp the translate.** Scaling by `z` leaves `(z - 1)` of overflow, half on each side, and
+the translate is scaled too — so the shift cannot exceed `(z - 1) / 2z`. Past that the image
+edge comes inside the box and the circle gets a bite of background taken out of it. Most of
+these faces sit high enough to hit that limit, so they ride high in the circle rather than
+centred, which is correct and is what the rendered check shows.
 
 ## 7. Show the work
 

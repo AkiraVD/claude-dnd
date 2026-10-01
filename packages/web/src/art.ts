@@ -104,8 +104,15 @@ export function faceOf(portrait: string | null | undefined): Face {
  */
 export function faceTransform(portrait: string | null | undefined, zoom = 2): string {
   const face = faceOf(portrait)
-  const dx = -(face.x - 50)
-  const dy = -(face.y - 50)
+  // How far the image can be shifted before its edge comes inside the box and
+  // the background shows through. Scaling by z leaves (z - 1) of overflow, half
+  // of it on each side, and the translate is scaled too — hence the 2z. Without
+  // this a face near the top of the frame pulls the image down far enough to
+  // leave a bite of empty background at the top of the circle.
+  const limit = ((zoom - 1) / (2 * zoom)) * 100
+  const clamp = (value: number): number => Math.max(-limit, Math.min(limit, value))
+  const dx = clamp(50 - face.x)
+  const dy = clamp(50 - face.y)
   return `scale(${zoom}) translate(${dx}%, ${dy}%)`
 }
 
