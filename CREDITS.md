@@ -37,8 +37,9 @@ card shows a people rather than a person and the picker implies nothing about ge
 The adventure cards are places rather than people, and carry no figure close enough to
 read a face — the card describes the kind of game, not who you are in it.
 
-The difficulty, tone and rules cards are still lifes on one table under one lamp. They
-describe abstractions, and a tone drawn as a face would be a caricature of whoever was
-drawn, so there are no people in them at all.
+The difficulty, tone and rules cards are scenes with people in them, figures held at
+middle distance so the scene is the subject rather than any one face. They describe
+abstractions, so the thing shown is what the abstraction costs somebody: a hand out of a
+stream, a bandage at a campfire, a bench gone over in a taproom.
 
 Game content is SRD 5.1, CC BY 4.0. See the note in CLAUDE.md.
