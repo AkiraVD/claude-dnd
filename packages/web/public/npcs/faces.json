@@ -1,267 +1,267 @@
 {
  "_": "Face centre of each portrait as [x, y] percentages. Read off the source sheets by eye, then checked against a rendered crop. Used to aim the circular crop in the cast list.",
  "dragonborn-caravan-bronze": [
-  50,
-  18
+  59,
+  22
  ],
  "dragonborn-dockmaster-green": [
-  60,
-  28
+  63,
+  33
  ],
  "dragonborn-oracle-white": [
-  45,
-  18
- ],
- "dragonborn-pitfighter-red": [
-  55,
-  18
- ],
- "dragonborn-soldier-scaled": [
-  70,
-  18
- ],
- "dwarf-brewer-young": [
-  45,
-  18
- ],
- "dwarf-gaoler-keys": [
-  55,
-  13
- ],
- "dwarf-innkeeper-grey": [
-  55,
-  18
- ],
- "dwarf-moneychanger-shrewd": [
-  70,
-  22
- ],
- "dwarf-sapper-sooted": [
-  50,
-  13
- ],
- "dwarf-silversmith-loupe": [
-  55,
-  28
- ],
- "dwarf-smith-broad": [
-  50,
-  15
- ],
- "dwarf-warden-plaited": [
-  45,
-  18
- ],
- "elf-apothecary-spectacled": [
-  50,
-  23
- ],
- "elf-archivist-severe": [
-  50,
-  13
- ],
- "elf-draper-cold": [
-  50,
-  18
- ],
- "elf-duellist-scarred": [
-  45,
-  18
- ],
- "elf-lamplighter-sooty": [
-  40,
-  20
- ],
- "elf-priestess-circlet": [
-  55,
-  18
- ],
- "elf-scholar-cold": [
-  60,
-  18
- ],
- "elf-scout-lean": [
-  60,
-  18
- ],
- "gnome-clockmaker-white": [
-  50,
+  62,
   32
  ],
- "gnome-forger-loupe": [
-  40,
-  13
+ "dragonborn-pitfighter-red": [
+  60,
+  33
  ],
- "gnome-hedgewitch-tangled": [
-  50,
-  22
- ],
- "gnome-lensgrinder-goggled": [
-  30,
+ "dragonborn-soldier-scaled": [
+  66,
   28
  ],
- "gnome-tinker-spectacled": [
+ "dwarf-brewer-young": [
+  59,
+  34
+ ],
+ "dwarf-gaoler-keys": [
+  61,
+  36
+ ],
+ "dwarf-innkeeper-grey": [
+  54,
+  31
+ ],
+ "dwarf-moneychanger-shrewd": [
+  63,
+  36
+ ],
+ "dwarf-sapper-sooted": [
+  60,
+  31
+ ],
+ "dwarf-silversmith-loupe": [
+  62,
+  42
+ ],
+ "dwarf-smith-broad": [
+  60,
+  27
+ ],
+ "dwarf-warden-plaited": [
+  53,
+  33
+ ],
+ "elf-apothecary-spectacled": [
   55,
-  18
+  38
+ ],
+ "elf-archivist-severe": [
+  60,
+  31
+ ],
+ "elf-draper-cold": [
+  60,
+  29
+ ],
+ "elf-duellist-scarred": [
+  58,
+  27
+ ],
+ "elf-lamplighter-sooty": [
+  55,
+  29
+ ],
+ "elf-priestess-circlet": [
+  57,
+  34
+ ],
+ "elf-scholar-cold": [
+  61,
+  31
+ ],
+ "elf-scout-lean": [
+  58,
+  34
+ ],
+ "gnome-clockmaker-white": [
+  60,
+  39
+ ],
+ "gnome-forger-loupe": [
+  54,
+  36
+ ],
+ "gnome-hedgewitch-tangled": [
+  63,
+  37
+ ],
+ "gnome-lensgrinder-goggled": [
+  57,
+  35
+ ],
+ "gnome-tinker-spectacled": [
+  58,
+  40
  ],
  "half-elf-courier-windburnt": [
-  55,
-  22
+  60,
+  32
  ],
  "half-elf-innkeeper-unimpressed": [
-  50,
-  22
+  54,
+  36
  ],
  "half-elf-sailor-tanned": [
   60,
-  18
+  34
  ],
  "half-elf-scribe-inked": [
-  55,
-  28
+  58,
+  35
  ],
  "half-elf-spymaster-grey": [
-  50,
-  18
+  59,
+  37
  ],
  "half-orc-blacksmith-grey": [
-  55,
-  22
+  63,
+  34
  ],
  "half-orc-butcher-aproned": [
-  70,
-  23
+  63,
+  34
  ],
  "half-orc-drummer-painted": [
-  45,
-  18
+  57,
+  29
  ],
  "half-orc-guard-tusked": [
-  55,
-  15
+  56,
+  30
  ],
  "half-orc-labourer-huge": [
-  65,
-  15
+  62,
+  30
  ],
  "half-orc-mercenary-shaven": [
-  60,
-  18
+  61,
+  33
  ],
  "half-orc-quarryman-dusted": [
-  52,
-  18
+  62,
+  24
  ],
  "half-orc-veteran-oneeyed": [
-  55,
-  13
+  61,
+  31
  ],
  "halfling-cheesemonger-round": [
   50,
-  18
+  32
  ],
  "halfling-cook-round": [
-  45,
-  15
+  58,
+  34
  ],
  "halfling-laundress-strong": [
   52,
-  18
+  25
  ],
  "halfling-pickpocket-sharp": [
-  55,
-  18
+  56,
+  37
  ],
  "halfling-poisoner-pleasant": [
-  50,
-  13
+  56,
+  33
  ],
  "halfling-server-braided": [
   55,
-  28
+  37
  ],
  "halfling-sexton-spade": [
-  55,
-  18
+  62,
+  30
  ],
  "halfling-thief-quick": [
-  55,
-  15
+  57,
+  34
  ],
  "human-abbess-wimple": [
   60,
-  18
+  31
  ],
  "human-baker-floured": [
-  50,
-  28
+  58,
+  36
  ],
  "human-bounty-hooded": [
-  60,
-  18
+  58,
+  31
  ],
  "human-farmer-weathered": [
-  55,
-  18
+  52,
+  36
  ],
  "human-fishwife-salted": [
-  65,
-  18
+  55,
+  27
  ],
  "human-guard-scarred": [
-  55,
-  18
+  57,
+  33
  ],
  "human-herbalist-kerchief": [
-  60,
-  28
+  56,
+  31
  ],
  "human-merchant-stout": [
-  55,
-  18
+  54,
+  34
  ],
  "human-novice-shaven": [
-  55,
-  18
+  56,
+  29
  ],
  "human-priest-gaunt": [
-  60,
-  18
- ],
- "human-sergeant-broken": [
-  50,
-  18
- ],
- "human-stablehand-straw": [
-  55,
-  28
- ],
- "tiefling-fence-horned": [
-  50,
-  18
- ],
- "tiefling-fortuneteller-white": [
-  55,
-  20
- ],
- "tiefling-gravekeeper-ash": [
-  60,
-  22
- ],
- "tiefling-inquisitor-black": [
-  45,
-  18
- ],
- "tiefling-moneylender-swept": [
-  45,
+  59,
   32
  ],
+ "human-sergeant-broken": [
+  60,
+  31
+ ],
+ "human-stablehand-straw": [
+  57,
+  38
+ ],
+ "tiefling-fence-horned": [
+  60,
+  36
+ ],
+ "tiefling-fortuneteller-white": [
+  53,
+  28
+ ],
+ "tiefling-gravekeeper-ash": [
+  59,
+  32
+ ],
+ "tiefling-inquisitor-black": [
+  59,
+  32
+ ],
+ "tiefling-moneylender-swept": [
+  56,
+  34
+ ],
  "tiefling-pawnbroker-blue": [
-  75,
-  18
+  68,
+  37
  ],
  "tiefling-preacher-fervent": [
-  75,
-  13
+  64,
+  30
  ]
 }

@@ -1,203 +1,203 @@
 {
  "_": "Face centre of each portrait as [x, y] percentages. Read off the source sheets by eye, then checked against a rendered crop. Used to aim the circular crop in the cast list.",
  "animated-armour": [
-  50,
-  14
+  56,
+  18
  ],
  "bandit": [
-  44,
-  18
+  57,
+  23
  ],
  "bandit-captain": [
-  62,
-  7
+  54,
+  5
  ],
  "banshee": [
-  55,
-  8
+  68,
+  15
  ],
  "beholder": [
-  50,
-  45
+  53,
+  58
  ],
  "bugbear": [
-  55,
-  14
+  62,
+  30
  ],
  "cultist": [
-  50,
-  18
+  56,
+  24
  ],
  "death-knight": [
-  55,
-  10
+  49,
+  16
  ],
  "dire-wolf": [
-  75,
-  25
+  66,
+  49
  ],
  "displacer-beast": [
-  63,
-  62
+  74,
+  55
  ],
  "doppelganger": [
   70,
-  8
+  13
  ],
  "drow-priestess": [
-  50,
-  13
+  54,
+  21
  ],
  "drow-raider": [
-  75,
-  12
+  54,
+  10
  ],
  "duergar": [
-  45,
-  13
+  59,
+  26
  ],
  "gargoyle": [
-  70,
-  13
+  80,
+  30
  ],
  "ghost": [
-  65,
-  8
+  70,
+  17
  ],
  "ghoul": [
   63,
-  10
+  24
  ],
  "giant-rat": [
-  66,
-  52
+  84,
+  49
  ],
  "giant-spider": [
-  50,
-  25
+  51,
+  54
  ],
  "gnoll": [
-  55,
-  14
+  64,
+  25
  ],
  "goblin": [
-  57,
-  17
+  59,
+  33
  ],
  "green-dragon": [
-  70,
-  13
+  84,
+  38
  ],
  "harpy": [
-  65,
+  72,
   23
  ],
  "hell-hound": [
-  75,
-  45
+  81,
+  58
  ],
  "hill-giant": [
-  57,
-  11
+  50,
+  17
  ],
  "hobgoblin": [
-  48,
-  14
+  49,
+  25
  ],
  "imp": [
-  70,
-  30
+  64,
+  40
  ],
  "kobold": [
-  60,
-  14
+  58,
+  29
  ],
  "kuo-toa": [
-  70,
-  13
+  66,
+  30
  ],
  "lich": [
-  50,
-  13
+  54,
+  20
  ],
  "lizardfolk": [
-  50,
-  13
+  56,
+  11
  ],
  "medusa": [
-  50,
+  53,
   28
  ],
  "mind-flayer": [
-  35,
-  18
+  54,
+  16
  ],
  "minotaur": [
-  62,
-  12
+  56,
+  17
  ],
  "mummy": [
-  55,
-  10
+  60,
+  16
  ],
  "ogre": [
-  53,
-  10
+  56,
+  11
  ],
  "orc": [
-  50,
-  13
+  54,
+  25
  ],
  "owlbear": [
-  65,
-  18
+  75,
+  12
  ],
  "red-wyrmling": [
-  80,
-  22
+  73,
+  39
  ],
  "sahuagin": [
   45,
   13
  ],
  "skeleton": [
-  57,
-  15
+  51,
+  23
  ],
  "troll": [
-  55,
-  13
+  68,
+  15
  ],
  "vampire-spawn": [
-  58,
-  14
+  63,
+  11
  ],
  "wererat": [
-  80,
-  18
+  91,
+  36
  ],
  "werewolf": [
   75,
   13
  ],
  "wight": [
-  53,
-  12
+  55,
+  9
  ],
  "will-o-wisp": [
-  55,
-  13
+  60,
+  24
  ],
  "wolf": [
-  70,
-  22
+  68,
+  34
  ],
  "yuan-ti": [
   50,
   13
  ],
  "zombie": [
-  60,
-  14
+  63,
+  15
  ]
 }

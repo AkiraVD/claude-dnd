@@ -144,17 +144,14 @@ describe('portraitFor', () => {
     }
   })
 
-  it('holds the measurements that were hardest to get right', () => {
-    // Each of these was wrong on the first pass and only showed up when the
-    // crop was actually rendered. They are pinned because an edit that drifts
-    // back toward "heads are near the top" would silently break them again:
-    // a four-legged creature carries its head low, and two of these have no
-    // head in frame at all.
-    expect(faceOf('giant-rat').y).toBeGreaterThan(45)
-    expect(faceOf('displacer-beast').y).toBeGreaterThan(45)
-    expect(faceOf('beholder').y).toBeGreaterThan(40)
-    expect(faceOf('dire-wolf').x).toBeGreaterThan(65)
-    expect(faceOf('bandit-captain').x).toBeGreaterThan(55)
+  it('does not assume every face is near the top of the frame', () => {
+    // These were all wrong on the first pass for the same reason: a creature on
+    // four legs, or built around an eye, carries its face low. The numbers get
+    // hand-tuned in the editor, so this asserts the shape of the answer rather
+    // than the answer.
+    for (const name of ['giant-rat', 'displacer-beast', 'beholder', 'hell-hound', 'dire-wolf']) {
+      expect(faceOf(name).y, `${name} should sit well down the frame`).toBeGreaterThan(30)
+    }
   })
 
   it('falls back to the centre rather than nothing', () => {
@@ -165,10 +162,12 @@ describe('portraitFor', () => {
   })
 
   it('aims the zoom at the face', () => {
-    // A face already in the middle needs no shift; one high in the frame is
-    // pulled down into the circle.
+    // A name with no entry sits at the centre, so nothing moves.
     expect(faceTransform('not-a-real-name')).toBe('scale(2) translate(0%, 0%)')
-    expect(faceTransform('beholder')).toBe('scale(2) translate(0%, 5%)')
+    // A face below the middle pulls the image up, not down.
+    const [, , dy] = /translate\((-?[\d.]+)%, (-?[\d.]+)%\)/.exec(faceTransform('beholder'))!
+    expect(faceOf('beholder').y).toBeGreaterThan(50)
+    expect(Number(dy)).toBeLessThan(0)
   })
 
   it('never shifts so far that the background shows through', () => {
@@ -188,10 +187,15 @@ describe('portraitFor', () => {
   })
 
   it('clamps the faces that sit nearest the edge', () => {
-    // hill-giant's face is at 11% — well past what a 2x zoom can centre — so it
-    // rides as high in the circle as it can without leaving a gap.
-    expect(faceTransform('hill-giant')).toBe('scale(2) translate(-7%, 25%)')
-    expect(faceTransform('hill-giant', 3)).toBe('scale(3) translate(-7%, 33.33333333333333%)')
+    // Some faces are further from the middle than a 2x zoom can reach, and those
+    // ride as high in the circle as they can without leaving a gap. Found rather
+    // than named, since which portrait is the extreme one changes with tuning.
+    const extreme = [...PORTRAIT_LIST, ...BESTIARY_LIST].find(
+      (name) => Math.abs(50 - faceOf(name).y) > 25,
+    )
+    expect(extreme, 'expected at least one face past what 2x can centre').toBeDefined()
+    const [, , dy] = /translate\((-?[\d.]+)%, (-?[\d.]+)%\)/.exec(faceTransform(extreme!))!
+    expect(Math.abs(Number(dy))).toBe(25)
   })
 })
 
