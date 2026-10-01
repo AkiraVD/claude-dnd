@@ -95,6 +95,8 @@ the snapshot before.
   source file; a change here alters the game more than most code does.
 - `.claude/skills/play-dnd/SKILL.md` — session bootstrap: resume or create, character
   creation.
+- `.claude/skills/make-art/SKILL.md` — how every asset in `packages/web/public/` was made:
+  one conversation, one shared prompt block, and how to slice and wire the result.
 - `PLAN.md` — the build plan, what each phase covered, and what was deliberately skipped.
 - `playtests/` — real sessions with findings. The first one drove most of the engine's depth.
   **Run a playtest after changing rules or the prompt**, and write the findings down; they
