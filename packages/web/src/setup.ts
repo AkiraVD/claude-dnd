@@ -200,6 +200,8 @@ export const SETUP_TABS: readonly SetupTab[] = [
 ]
 
 export interface SetupAnswers {
+  /** A stock portrait name, from rolling a character. Empty when unset. */
+  portrait: string
   language: string
   name: string
   /** Keyed by tab: a chosen preset, or '' when none is picked. */
@@ -208,7 +210,13 @@ export interface SetupAnswers {
   custom: Record<string, string>
 }
 
-export const EMPTY_ANSWERS: SetupAnswers = { language: '', name: '', picked: {}, custom: {} }
+export const EMPTY_ANSWERS: SetupAnswers = {
+  language: '',
+  name: '',
+  portrait: '',
+  picked: {},
+  custom: {},
+}
 
 /** What a tab resolves to: the custom text if there is any, else the preset. */
 export function answerFor(answers: SetupAnswers, key: string): string {
@@ -240,6 +248,14 @@ export function composeBrief(answers: SetupAnswers): string {
   if (name !== '' && concept !== '') lines.push(`I am ${name}. ${concept}`)
   else if (name !== '') lines.push(`I am ${name}.`)
   else if (concept !== '') lines.push(concept)
+
+  // The portrait is a name from the stock library rather than prose, so it is
+  // named as an instruction: the DM has to put it on the sheet with update_npc
+  // or it is a picture nobody ever sees.
+  const portrait = answers.portrait.trim()
+  if (portrait !== '') {
+    lines.push(`Use the stock portrait "${portrait}" for me — set it with update_npc once I exist.`)
+  }
 
   const details = SETUP_TABS.filter((tab) => tab.key !== 'character')
     .map((tab) => ({ tab, value: answerFor(answers, tab.key) }))

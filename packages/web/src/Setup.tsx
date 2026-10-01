@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { faceTransform, portraitFor } from './art.js'
+import { rollCharacter } from './roll-character.js'
 import {
   EMPTY_ANSWERS,
   LANGUAGE_OPTIONS,
@@ -19,6 +21,12 @@ import type { JSX } from 'react'
  * a footer that shows exactly what will be sent. Nothing here is a tool call:
  * there is no DM yet to ask, so it composes one ordinary first message.
  */
+/** A random option from a tab, for when the player has not chosen one. */
+function pickFrom(tabs: typeof SETUP_TABS, key: string): string {
+  const options = tabs.find((tab) => tab.key === key)?.options ?? []
+  return options.length === 0 ? '' : options[Math.floor(Math.random() * options.length)]![0]
+}
+
 export function Setup({
   onBegin,
   onSkip,
@@ -77,6 +85,45 @@ export function Setup({
 
         <div className="modal-body">
           <p className="field-label">{tab.prompt}</p>
+
+          {tab.named === true && (
+            <div className="roller">
+              <button
+                type="button"
+                className="ghost"
+                onClick={() => {
+                  // Race and class are what a roll is made of, so settle them
+                  // first rather than inventing a character with no shape.
+                  const race = answers.picked['race'] ?? pickFrom(SETUP_TABS, 'race')
+                  const className = answers.picked['class'] ?? pickFrom(SETUP_TABS, 'class')
+                  const rolled = rollCharacter(race, className)
+                  setAnswers({
+                    ...answers,
+                    name: rolled.name,
+                    picked: { ...answers.picked, race, class: className },
+                    custom: { ...answers.custom, character: rolled.concept },
+                    portrait: rolled.portrait ?? '',
+                  })
+                }}
+              >
+                Roll a character
+              </button>
+              <span>
+                {answers.picked['race'] === undefined || answers.picked['class'] === undefined
+                  ? 'Rolls a race and class too, if you have not picked them'
+                  : `A ${answers.picked['race']} ${answers.picked['class']}`}
+              </span>
+              {answers.portrait !== '' && portraitFor(answers.portrait) !== null && (
+                <span className="roller-face">
+                  <img
+                    src={portraitFor(answers.portrait)!}
+                    alt=""
+                    style={{ transform: faceTransform(answers.portrait) }}
+                  />
+                </span>
+              )}
+            </div>
+          )}
 
           {tab.named === true && (
             <div className="custom named">

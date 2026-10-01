@@ -1252,3 +1252,32 @@ button.ghost:hover { border-color: var(--text-faint); color: var(--text); }
 .quit b { display: block; font-size: 12.5px; margin-bottom: 2px; }
 .quit span { font-size: 11.5px; color: var(--text-faint); }
 .quit button { flex: none; }
+
+/* Rolling a character: the button, what it will roll, and the face it landed on. */
+.roller {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 14px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-sunken);
+}
+.roller span { font-size: 11.5px; color: var(--text-faint); }
+.roller-face {
+  width: 38px;
+  height: 38px;
+  margin-left: auto;
+  border-radius: 50%;
+  border: 1px solid var(--accent);
+  flex: none;
+  overflow: hidden;
+}
+
+.roller-face img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
