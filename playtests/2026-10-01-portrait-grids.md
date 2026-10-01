@@ -27,9 +27,12 @@ identical framing and eye line, one plain dark background behind every head, no 
 name plates anywhere. With that, slicing is `crop` at a fixed 250 px stride and nothing
 bleeds between cells.
 
-## Still mismatched
+## The original sixteen, regenerated
 
-The sixteen original portraits came from a different generator and sit noticeably flatter
-and more cartoonish beside the fifty new ones — different backgrounds, different
-lighting, one of them on cream rather than dark. The library works, but it does not look
-like one set. Regenerating the original sixteen as a third 5×5 would fix it.
+They came from the local SDXL setup and sat noticeably flatter beside the fifty new ones —
+lighter backgrounds, one on cream rather than dark, a couple frankly cartoonish. Replaced
+with a 4×4 built the same way, feeding back the descriptions already in `PORTRAITS` so
+every name and every line of prose stayed exactly as it was and only the files changed.
+
+16 in one picture is 313 px a cell, comfortably over the 256 px stored, so the replacements
+are if anything sharper than the batches of 25. The library now reads as one set.
