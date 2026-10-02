@@ -246,7 +246,14 @@ export function registerTools(server: McpServer, store: GameStore): void {
         xp: z.number().int().min(0).optional(),
         purse: z.string().optional().describe('Coin carried, e.g. "8 gp 4 sp"'),
         race: z.string().optional(),
-        pronouns: z.string().optional(),
+        pronouns: z
+          .string()
+          .optional()
+          .describe(
+            'e.g. "he/him". Filled from the portrait when you leave it out, since the picture ' +
+              'is what the player can see; pass it to override, or for a portrait that commits ' +
+              'to nothing.',
+          ),
         role: z.string().optional().describe('e.g. "quartermaster"'),
         attitude: attitudeEnum.optional(),
 
@@ -1876,7 +1883,14 @@ export function registerProgressionTools(server: McpServer, store: GameStore): v
       inputSchema: {
         id: z.string(),
         race: z.string().optional(),
-        pronouns: z.string().optional(),
+        pronouns: z
+          .string()
+          .optional()
+          .describe(
+            'e.g. "he/him". Filled from the portrait when you leave it out, since the picture ' +
+              'is what the player can see; pass it to override, or for a portrait that commits ' +
+              'to nothing.',
+          ),
         role: z.string().optional().describe('e.g. "quartermaster", "priest of the Hollow"'),
         appearance: z.string().optional(),
         manner: z.string().optional().describe('How they talk and carry themselves'),

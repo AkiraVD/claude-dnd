@@ -12,11 +12,26 @@
  * already holds, preferring one whose role suits the class and settling for any
  * face of the right race.
  */
-import { BESTIARY, PORTRAITS, UNKNOWN_PORTRAIT, type PortraitName } from '@dnd/content'
+import {
+  BESTIARY,
+  PORTRAITS,
+  UNKNOWN_PORTRAIT,
+  genderOfPortrait,
+  pronounsForPortrait,
+  type PortraitName,
+} from '@dnd/content'
 
 export interface RolledCharacter {
   name: string
   concept: string
+  /**
+   * What the DM should call them, taken from the face.
+   *
+   * Null only when the portrait commits to nothing — the dragonborn are scales
+   * and harness — in which case the DM is left to decide rather than told
+   * wrongly.
+   */
+  pronouns: string | null
   /**
    * A portrait from the stock library. Never null: a race the library has no
    * faces for gets the hood rather than an empty frame.
@@ -34,16 +49,55 @@ const pick = <T,>(list: readonly T[], rng: Rng): T => list[Math.floor(rng() * li
  * a name the DM can say out loud twice without stumbling is worth more than a
  * clever one.
  */
-const NAMES: Record<string, readonly string[]> = {
-  human: ['Alder Venn', 'Mira Castell', 'Tobin Rask', 'Sela Marchant', 'Garrin Hale', 'Noa Pell', 'Edric Vance', 'Wren Carrow'],
-  dwarf: ['Borin Stonecarl', 'Hilda Oreheart', 'Dural Kettleback', 'Vigga Ironmoot', 'Thrain Copperfell', 'Sigrun Deepwell', 'Balder Grimsson', 'Orla Flintmarrow'],
-  elf: ['Aelrin Thessaly', 'Ysolde Fairweather', 'Caeleth Morrow', 'Nienor Silverbough', 'Thalien Ashgrove', 'Maelis Quen', 'Erevan Dusklight', 'Saria Vaelen'],
-  halfling: ['Pip Burrowell', 'Dayla Tunbridge', 'Milo Hearthwick', 'Rosie Appledore', 'Fenwick Marsh', 'Tilly Goodbarrow', 'Samwise Till', 'Bex Hollyhock'],
-  'half-elf': ['Kaelen Ivor', 'Lyra Sandoval', 'Corwin Aldreth', 'Nessa Ferrow', 'Dorian Vale', 'Imogen Rask', 'Soren Ilyes', 'Ava Lenn'],
-  'half-orc': ['Grask Ironjaw', 'Mura Blackfen', 'Dren Halfhand', 'Yara Stonetooth', 'Vosk Redmire', 'Ghel Saltbrand', 'Torgan Ash', 'Nima Drex'],
-  gnome: ['Fizwick Trundle', 'Bibi Sprocket', 'Ondry Pell', 'Nix Underbough', 'Wendel Quill', 'Tappa Glim', 'Orwin Fettle', 'Sila Coggs'],
-  dragonborn: ['Rhogar Ashscale', 'Sora Brasswing', 'Kriv Emberfang', 'Nala Goldmaw', 'Tarhun Stormhide', 'Ixen Verath', 'Donaar Brightclaw', 'Sesh Ironscale'],
-  tiefling: ['Ashmodai Crane', 'Nemeia Vash', 'Corvus Belial', 'Sable Morrigen', 'Dust Kallus', 'Vesper Ilarion', 'Grim Antony', 'Lileth Fane'],
+/**
+ * Names, by race and by gender.
+ *
+ * Split, because the roll has to agree with the face. Picking a name and a
+ * portrait independently produced Vigga Ironmoot wearing a bearded dwarf, and
+ * the DM resolved that contradiction by following the name — which an English
+ * reader barely notices and a Vietnamese one cannot avoid, since the verb is
+ * marked.
+ *
+ * Written to sound like the people rather than to be unusual: a name the DM can
+ * say out loud twice without stumbling is worth more than a clever one.
+ */
+const NAMES: Record<string, { male: readonly string[]; female: readonly string[] }> = {
+  human: {
+    male: ['Alder Venn', 'Tobin Rask', 'Garrin Hale', 'Edric Vance'],
+    female: ['Mira Castell', 'Sela Marchant', 'Noa Pell', 'Wren Carrow'],
+  },
+  dwarf: {
+    male: ['Borin Stonecarl', 'Dural Kettleback', 'Thrain Copperfell', 'Balder Grimsson'],
+    female: ['Hilda Oreheart', 'Vigga Ironmoot', 'Sigrun Deepwell', 'Orla Flintmarrow'],
+  },
+  elf: {
+    male: ['Aelrin Thessaly', 'Caeleth Morrow', 'Thalien Ashgrove', 'Erevan Dusklight'],
+    female: ['Ysolde Fairweather', 'Nienor Silverbough', 'Maelis Quen', 'Saria Vaelen'],
+  },
+  halfling: {
+    male: ['Pip Burrowell', 'Milo Hearthwick', 'Fenwick Marsh', 'Samwise Till'],
+    female: ['Dayla Tunbridge', 'Rosie Appledore', 'Tilly Goodbarrow', 'Bex Hollyhock'],
+  },
+  'half-elf': {
+    male: ['Kaelen Ivor', 'Corwin Aldreth', 'Dorian Vale', 'Soren Ilyes'],
+    female: ['Lyra Sandoval', 'Nessa Ferrow', 'Imogen Rask', 'Ava Lenn'],
+  },
+  'half-orc': {
+    male: ['Grask Ironjaw', 'Dren Halfhand', 'Vosk Redmire', 'Torgan Ash'],
+    female: ['Mura Blackfen', 'Yara Stonetooth', 'Ghel Saltbrand', 'Nima Drex'],
+  },
+  gnome: {
+    male: ['Fizwick Trundle', 'Ondry Pell', 'Wendel Quill', 'Orwin Fettle'],
+    female: ['Bibi Sprocket', 'Nix Underbough', 'Tappa Glim', 'Sila Coggs'],
+  },
+  dragonborn: {
+    male: ['Rhogar Ashscale', 'Kriv Emberfang', 'Tarhun Stormhide', 'Donaar Brightclaw'],
+    female: ['Sora Brasswing', 'Nala Goldmaw', 'Ixen Verath', 'Sesh Ironscale'],
+  },
+  tiefling: {
+    male: ['Ashmodai Crane', 'Corvus Belial', 'Dust Kallus', 'Grim Antony'],
+    female: ['Nemeia Vash', 'Sable Morrigen', 'Vesper Ilarion', 'Lileth Fane'],
+  },
 }
 
 /**
@@ -175,12 +229,24 @@ export function avatarFor(race: string, className: string): PortraitName {
  * inventing a character with no shape.
  */
 export function rollCharacter(race: string, className: string, rng: Rng = Math.random): RolledCharacter {
-  const names = NAMES[slug(race)] ?? NAMES['human']!
   const concepts = CONCEPTS[slug(className)] ?? CONCEPTS['fighter']!
+  const portrait = avatarFor(race, className)
+
+  // The face is chosen first and the name follows it. The other way round is
+  // what produced a Vigga with a beard: two independent picks, no reason for
+  // them to agree, and a contradiction the DM has to resolve in its first
+  // sentence — in English by picking a pronoun, in Vietnamese by marking every
+  // verb. Where the portrait commits to nothing, either list will do.
+  const names = NAMES[slug(race)] ?? NAMES['human']!
+  const gender = genderOfPortrait(portrait)
+  const pool =
+    gender === 'male' ? names.male : gender === 'female' ? names.female : [...names.male, ...names.female]
+
   return {
-    name: pick(names, rng),
+    name: pick(pool, rng),
     concept: pick(concepts, rng),
-    portrait: avatarFor(race, className),
+    portrait,
+    pronouns: pronounsForPortrait(portrait),
   }
 }
 

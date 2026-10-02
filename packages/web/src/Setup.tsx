@@ -124,15 +124,28 @@ export function Setup({
                     picked: { ...answers.picked, race, class: className },
                     custom: { ...answers.custom, character: rolled.concept },
                     portrait: rolled.portrait,
+                    pronouns: rolled.pronouns ?? '',
                   })
                 }}
               >
                 Roll a character
               </button>
-              <span>
+              <span className="roller-who">
                 {answers.picked['race'] === undefined || answers.picked['class'] === undefined
                   ? 'Rolls a race and class too, if you have not picked them'
                   : `${article(answers.picked['race'])} ${answers.picked['race']} ${answers.picked['class']}`}
+                {/* Shown and changeable, because the portrait settles it for
+                    most faces and settles nothing for a dragonborn. */}
+                <select
+                  aria-label="Pronouns"
+                  value={answers.pronouns}
+                  onChange={(event) => setAnswers({ ...answers, pronouns: event.target.value })}
+                >
+                  <option value="">the DM decides</option>
+                  <option value="he/him">he/him</option>
+                  <option value="she/her">she/her</option>
+                  <option value="they/them">they/them</option>
+                </select>
               </span>
               {answers.portrait !== '' && portraitFor(answers.portrait) !== null && (
                 <span className="roller-face">

@@ -6,6 +6,7 @@
  * a `/clear` she never existed at all. So the profile is state, and the only
  * question the engine answers about it is what the player is allowed to see.
  */
+import { pronounsForPortrait } from '@dnd/content'
 import type { Attitude, Creature, CreatureProfile, Presence, ProfileNote } from './character.js'
 import { RulesError } from './errors.js'
 import type { GameEvent } from './events.js'
@@ -26,6 +27,24 @@ export function updateProfile(
   const profile: CreatureProfile = { ...creature.profile, ...patch }
   const events: GameEvent[] = []
 
+  // A portrait settles the question the prose leaves open.
+  //
+  // A character called Vigga wearing a bearded dwarf is a contradiction, and the
+  // DM has to resolve it in the first sentence of a language that marks gender
+  // on the verb — which is where it went wrong: the name read female, the
+  // picture was a man, and the pronouns followed the name. The picture is the
+  // thing the player can see, so the picture wins.
+  //
+  // Only when nothing has been said. Pronouns given explicitly are never
+  // overwritten, here or anywhere, because a character whose portrait is the
+  // nearest match rather than a likeness is exactly the case this must not
+  // trample.
+  const implied =
+    profile.portrait !== null && (profile.pronouns === null || profile.pronouns === '')
+      ? pronounsForPortrait(profile.portrait)
+      : null
+  const settled: CreatureProfile = implied === null ? profile : { ...profile, pronouns: implied }
+
   if (
     patch.attitude !== undefined &&
     patch.attitude !== null &&
@@ -34,7 +53,7 @@ export function updateProfile(
     events.push({ t: 'attitude', target: creature.id, attitude: patch.attitude })
   }
 
-  return { creature: { ...creature, profile }, events }
+  return { creature: { ...creature, profile: settled }, events }
 }
 
 export function setAttitude(creature: Creature, attitude: Attitude): ProfileOutcome {

@@ -121,7 +121,7 @@ describe('composeBrief', () => {
 
 describe('briefSummary', () => {
   it('is empty when nothing is chosen', () => {
-    expect(briefSummary(answers())).toEqual([])
+    expect(briefSummary(EMPTY_ANSWERS)).toEqual([])
   })
 
   it('lists what will be sent, language first', () => {
@@ -224,5 +224,26 @@ describe('the rules tab', () => {
       picked: { ...EMPTY_ANSWERS.picked, rules: 'Hold me to the sheet' },
     })
     expect(brief).toContain('strict_spells')
+  })
+})
+
+describe('pronouns', () => {
+  it('reach the DM as an instruction, not just a field', () => {
+    const brief = composeBrief({ ...EMPTY_ANSWERS, language: 'English', pronouns: 'they/them' })
+
+    expect(brief).toContain('Refer to me as they/them')
+  })
+
+  it('appear in what the line promises to send', () => {
+    // Set by a roll rather than typed, so the easiest thing on the form to
+    // carry away without noticing.
+    expect(briefSummary({ ...EMPTY_ANSWERS, pronouns: 'he/him' })).toContain('he/him')
+  })
+
+  it('are left out entirely when nobody has said', () => {
+    const brief = composeBrief({ ...EMPTY_ANSWERS, language: 'English' })
+
+    expect(brief).not.toContain('Refer to me as')
+    expect(briefSummary(EMPTY_ANSWERS)).toEqual([])
   })
 })

@@ -10,6 +10,7 @@ dist/
 packages/web/public/gallery.html
 packages/web/public/faces.html
 packages/web/public/cards.html
+packages/web/public/gender.html
 # `npm run cut` inlines the master sheet, so these are megabytes of base64 as
 # well as derived. One per sheet.
 packages/web/public/cut*.html

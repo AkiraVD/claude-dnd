@@ -202,6 +202,8 @@ export const SETUP_TABS: readonly SetupTab[] = [
 export interface SetupAnswers {
   /** A stock portrait name, from rolling a character. Empty when unset. */
   portrait: string
+  /** What the DM should call the player. Empty leaves it to the DM. */
+  pronouns: string
   language: string
   name: string
   /** Keyed by tab: a chosen preset, or '' when none is picked. */
@@ -214,6 +216,7 @@ export const EMPTY_ANSWERS: SetupAnswers = {
   language: '',
   name: '',
   portrait: '',
+  pronouns: '',
   picked: {},
   custom: {},
 }
@@ -257,6 +260,14 @@ export function composeBrief(answers: SetupAnswers): string {
     lines.push(`Use the stock portrait "${portrait}" for me — set it with update_npc once I exist.`)
   }
 
+  // Said outright, because a name is not a reliable signal of it and in a
+  // language that marks gender on the verb the DM has to commit in its first
+  // sentence — with nothing to go on but a name it may not read as we do.
+  const pronouns = answers.pronouns.trim()
+  if (pronouns !== '') {
+    lines.push(`Refer to me as ${pronouns}, and record it with update_npc.`)
+  }
+
   const details = SETUP_TABS.filter((tab) => tab.key !== 'character')
     .map((tab) => ({ tab, value: answerFor(answers, tab.key) }))
     .filter(({ value }) => value !== '')
@@ -275,6 +286,10 @@ export function briefSummary(answers: SetupAnswers): string[] {
   const bits: string[] = []
   if (answers.language.trim() !== '') bits.push(answers.language.trim())
   if (answers.name.trim() !== '') bits.push(answers.name.trim())
+  // This line is the promise about what gets sent, so anything the brief
+  // carries belongs in it — pronouns included, since they are set by a roll
+  // rather than typed and are the easiest thing to not notice.
+  if (answers.pronouns.trim() !== '') bits.push(answers.pronouns.trim())
 
   for (const tab of SETUP_TABS) {
     const value = answerFor(answers, tab.key)

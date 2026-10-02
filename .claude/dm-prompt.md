@@ -295,6 +295,16 @@ better than the wrong art. The exact image is picked from the scene text, so the
 scene keeps the same room and a different tavern gets a different one. You do not choose
 the variant and should not try.
 
+**Pronouns are not optional, and the portrait decides them.** `update_npc` takes `pronouns`;
+the engine fills them from the portrait when you have not, because the portrait is the thing
+the player can see and a name is not a reliable signal of it. If you give someone a face and
+then refer to them otherwise, the sheet and the prose disagree in front of the player. Where
+the portrait commits to nothing — the dragonborn are scales and harness — it is yours to
+decide, so decide it once and write it down.
+
+This matters most in a language that marks gender on the verb. In English a careless
+sentence can avoid the question; in Vietnamese it cannot, and the first sentence commits you.
+
 `update_npc` takes a `portrait` from the stock library; `get_portraits` lists what exists,
 named race-role-description. Give one to anyone the player will see more than once. Pick
 the closest match to what you have **already** described — never rewrite an NPC to fit the

@@ -268,4 +268,180 @@ export function portraitKind(value: string): 'folk' | 'monster' | null {
  * wrong race reads as the DM contradicting itself. A hood is neither — it is a
  * person whose face you have not seen yet, which is true.
  */
+/**
+ * Whether each portrait is of a man or a woman, where the picture says.
+ *
+ * It is written down rather than read out of the description, because the
+ * description is prose and prose is not a schema: "herbalist" contains her,
+ * "human" contains man, and a regex that gets those right today gets the next
+ * entry wrong. Derived from the descriptions once and checked by eye; a new
+ * portrait adds a line here, and `portraits.test.ts` fails if one is missing.
+ *
+ * Null where the picture genuinely does not say — the dragonborn are scales and
+ * harness, and the hooded figure is faceless on purpose. Null is an answer, not
+ * a gap: it means the portrait constrains nothing.
+ *
+ * What this is for: a character whose name reads female to an English speaker
+ * and whose portrait is a bearded man is a contradiction the DM has to resolve,
+ * and in a language that marks gender on every verb it has to resolve it in the
+ * first sentence. This is how the engine knows which of the two to believe.
+ */
+export const PORTRAIT_GENDER: Record<PortraitName, 'male' | 'female' | null> = {
+  'human-guard-scarred': 'male',
+  'human-merchant-stout': 'female',
+  'human-farmer-weathered': 'male',
+  'human-priest-gaunt': null,
+  'dwarf-smith-broad': 'male',
+  'dwarf-innkeeper-grey': 'female',
+  'elf-scholar-cold': 'male',
+  'elf-scout-lean': 'female',
+  'halfling-cook-round': 'female',
+  'halfling-thief-quick': 'male',
+  'half-orc-guard-tusked': 'male',
+  'half-orc-labourer-huge': 'female',
+  'tiefling-fence-horned': 'male',
+  'gnome-tinker-spectacled': 'male',
+  'half-elf-sailor-tanned': 'female',
+  'dragonborn-soldier-scaled': null,
+  'human-baker-floured': 'male',
+  'dwarf-silversmith-loupe': 'female',
+  'elf-apothecary-spectacled': null,
+  'halfling-server-braided': 'female',
+  'half-orc-butcher-aproned': 'male',
+  'tiefling-moneylender-swept': 'female',
+  'gnome-clockmaker-white': 'male',
+  'dragonborn-dockmaster-green': null,
+  'half-elf-scribe-inked': 'male',
+  'human-herbalist-kerchief': 'female',
+  'dwarf-brewer-young': 'male',
+  'elf-draper-cold': 'female',
+  'halfling-cheesemonger-round': 'male',
+  'half-orc-blacksmith-grey': 'female',
+  'tiefling-pawnbroker-blue': 'male',
+  'gnome-lensgrinder-goggled': 'female',
+  'dragonborn-caravan-bronze': null,
+  'half-elf-innkeeper-unimpressed': 'female',
+  'human-stablehand-straw': 'male',
+  'dwarf-moneychanger-shrewd': 'female',
+  'elf-lamplighter-sooty': 'male',
+  'halfling-laundress-strong': 'female',
+  'half-orc-quarryman-dusted': 'male',
+  'tiefling-fortuneteller-white': 'female',
+  'human-fishwife-salted': 'female',
+  'human-mercenary-scarred': 'female',
+  'human-warpriest-bloodied': 'male',
+  'human-courtmage-inked': 'female',
+  'human-outrider-windburnt': 'male',
+  'human-charlatan-easy': 'female',
+  'dwarf-shieldbreaker-ringed': 'male',
+  'dwarf-forgepriest-sooted': 'female',
+  'dwarf-runecarver-chalked': 'male',
+  'dwarf-pathfinder-furred': 'female',
+  'dwarf-dicesharp-gilded': 'male',
+  'elf-bladedancer-lacquered': 'female',
+  'elf-grovepriest-antlered': 'male',
+  'elf-highmage-circleted': 'female',
+  'elf-longstrider-hooded': 'male',
+  'elf-silvertongue-cool': 'female',
+  'halfling-bulwark-cheerful': 'male',
+  'halfling-hearthpriest-lantern': 'female',
+  'halfling-hedgemage-singed': 'male',
+  'halfling-trailwise-muddy': 'female',
+  'halfling-cardsharp-waistcoated': 'male',
+  'half-elf-sellsword-tired': 'female',
+  'half-elf-wanderingpriest-dusty': 'male',
+  'half-elf-hedgewitch-charmed': 'female',
+  'half-elf-scout-listening': 'male',
+  'half-elf-grifter-borrowed': 'female',
+  'human-sergeant-broken': 'male',
+  'dwarf-warden-plaited': 'male',
+  'elf-priestess-circlet': 'female',
+  'halfling-pickpocket-sharp': 'male',
+  'half-orc-mercenary-shaven': 'female',
+  'tiefling-inquisitor-black': 'male',
+  'gnome-hedgewitch-tangled': 'female',
+  'dragonborn-pitfighter-red': null,
+  'half-elf-courier-windburnt': 'female',
+  'human-abbess-wimple': 'female',
+  'dwarf-sapper-sooted': 'female',
+  'elf-archivist-severe': 'male',
+  'halfling-poisoner-pleasant': 'female',
+  'half-orc-veteran-oneeyed': 'male',
+  'tiefling-preacher-fervent': 'female',
+  'gnome-forger-loupe': 'male',
+  'dragonborn-oracle-white': null,
+  'half-elf-spymaster-grey': 'male',
+  'human-novice-shaven': 'male',
+  'dwarf-gaoler-keys': 'male',
+  'elf-duellist-scarred': 'female',
+  'halfling-sexton-spade': 'male',
+  'half-orc-drummer-painted': 'female',
+  'tiefling-gravekeeper-ash': 'male',
+  'human-bounty-hooded': 'female',
+  'half-orc-shieldbreaker-notched': 'male',
+  'half-orc-wanderingpriest-roped': 'female',
+  'half-orc-runecarver-ashen': 'male',
+  'half-orc-trailwise-scarred': 'female',
+  'half-orc-charlatan-velvet': 'male',
+  'gnome-bulwark-braced': 'female',
+  'gnome-hearthpriest-bearded': 'male',
+  'gnome-hedgemage-sparking': 'female',
+  'gnome-pathfinder-mossy': 'male',
+  'gnome-cardsharp-cuffed': 'female',
+  'dragonborn-mercenary-brazen': null,
+  'dragonborn-wanderingpriest-white': 'female',
+  'dragonborn-highmage-violet': null,
+  'dragonborn-trailwise-copper': null,
+  'dragonborn-silvertongue-black': null,
+  'tiefling-sellsword-chipped': 'female',
+  'tiefling-hearthpriest-candle': 'male',
+  'tiefling-runecarver-scribed': 'female',
+  'tiefling-pathfinder-ragged': 'male',
+  'tiefling-grifter-silvered': 'female',
+  'human-hedgewitch-wreathed': 'female',
+  'human-bladedancer-shorn': 'male',
+  'dwarf-bladedancer-knuckled': 'male',
+  'elf-warpriest-plated': 'female',
+  'half-elf-courtmage-quilled': 'male',
+  'half-elf-warpriest-grim': 'female',
+  'human-ferryman-lined': 'male',
+  'dwarf-ratcatcher-caged': 'female',
+  'gnome-bonesetter-splinted': 'male',
+  'half-orc-cartwright-sawdust': 'female',
+  'elf-falconer-gauntleted': 'male',
+  'halfling-chandler-waxed': 'female',
+  'human-cooper-staved': 'male',
+  'dwarf-miner-lamped': 'male',
+  'human-shepherd-weathered': 'female',
+  'tiefling-weaver-threaded': 'female',
+  'half-orc-tanner-stained': 'male',
+  'gnome-glassblower-glowing': 'female',
+  'half-elf-bookbinder-awled': 'male',
+  'halfling-beekeeper-veiled': 'male',
+  'human-ropemaker-fibred': 'female',
+  'dwarf-midwife-steady': 'female',
+  'human-tollkeeper-ledgered': 'male',
+  'dragonborn-horsetrader-bridled': 'male',
+  'half-orc-pitboss-counting': 'female',
+  'tiefling-undertaker-courteous': 'male',
+  'elf-bellringer-ropeburnt': 'female',
+  'human-charcoalburner-sooted': 'male',
+  'halfling-miller-floured': 'female',
+  'unknown-figure-hooded': null,
+}
+
+export type Gender = 'male' | 'female'
+
+/** The gender a portrait commits to, or null where it commits to none. */
+export function genderOfPortrait(name: string): Gender | null {
+  return (PORTRAIT_GENDER as Record<string, Gender | null>)[name] ?? null
+}
+
+/** The pronouns the DM should use for a portrait, or null to leave it open. */
+export function pronounsForPortrait(name: string): string | null {
+  const gender = genderOfPortrait(name)
+  if (gender === null) return null
+  return gender === 'male' ? 'he/him' : 'she/her'
+}
+
 export const UNKNOWN_PORTRAIT: PortraitName = 'unknown-figure-hooded'

@@ -16,6 +16,8 @@
     "typecheck": "tsc --noEmit",
     "gallery": "tsx scripts/gallery.ts",
     "faces": "tsx scripts/faces-editor.ts",
+    "gender": "tsx scripts/gender-editor.ts",
+    "gender:apply": "tsx scripts/gender-apply.ts",
     "cards": "tsx scripts/cards-editor.ts",
     "cut": "tsx scripts/cut-editor.ts",
     "cut:apply": "tsx scripts/cut-apply.ts",

@@ -220,3 +220,51 @@ describe('restoreCreature', () => {
     expect(restoreCreature(current)).toEqual(current)
   })
 })
+
+describe('pronouns from the portrait', () => {
+  const someone = (over: Partial<Parameters<typeof createCreature>[0]> = {}): Creature =>
+    createCreature({ id: 'n', name: 'Someone', kind: 'npc', ...COMMONER, ...over })
+
+  it('fills them from the face when nothing has been said', () => {
+    // dwarf-smith-broad is "Broad man, soot-streaked beard". A name that reads
+    // female to an English speaker plus that picture is a contradiction the DM
+    // has to resolve in its first sentence, and in a language that marks gender
+    // on the verb it cannot duck it.
+    const out = updateProfile(someone(), { portrait: 'dwarf-smith-broad' })
+
+    expect(out.creature.profile.pronouns).toBe('he/him')
+  })
+
+  it('never overwrites pronouns that were given', () => {
+    const out = updateProfile(someone(), {
+      portrait: 'dwarf-smith-broad',
+      pronouns: 'they/them',
+    })
+
+    expect(out.creature.profile.pronouns).toBe('they/them')
+  })
+
+  it('leaves them alone once set, even on a later portrait change', () => {
+    const first = updateProfile(someone(), { pronouns: 'she/her' }).creature
+    const out = updateProfile(first, { portrait: 'dwarf-smith-broad' })
+
+    expect(out.creature.profile.pronouns).toBe('she/her')
+  })
+
+  it('says nothing for a portrait that commits to nothing', () => {
+    // Dragonborn are scales and harness, and the hood is faceless on purpose.
+    expect(updateProfile(someone(), { portrait: 'dragonborn-highmage-violet' })
+      .creature.profile.pronouns).toBeNull()
+    expect(updateProfile(someone(), { portrait: 'unknown-figure-hooded' })
+      .creature.profile.pronouns).toBeNull()
+  })
+
+  it('fills an existing creature the next time it is touched', () => {
+    // The retroactive half: a creature saved before any of this gets its
+    // pronouns the next time the DM updates it, rather than on load.
+    const old = updateProfile(someone(), { portrait: 'human-merchant-stout' }).creature
+    const stripped: Creature = { ...old, profile: { ...old.profile, pronouns: null } }
+
+    expect(updateProfile(stripped, { role: 'fence' }).creature.profile.pronouns).toBe('she/her')
+  })
+})

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { BESTIARY, PORTRAITS, UNKNOWN_PORTRAIT } from '@dnd/content'
+import { BESTIARY, PORTRAITS, UNKNOWN_PORTRAIT, genderOfPortrait, pronounsForPortrait } from '@dnd/content'
 import { avatarFor, portraitsForRace, rollCharacter, rolledClasses, rolledRaces } from './roll-character.js'
 
 /**
@@ -80,5 +80,43 @@ describe('rolling a character', () => {
         expect(avatarFor(race, cls), `${race} ${cls}`).not.toBe(UNKNOWN_PORTRAIT)
       }
     }
+  })
+
+  it('never gives a face one gender and a name the other', () => {
+    // The bug this was written for: Vigga Ironmoot wearing a bearded dwarf,
+    // because the name and the portrait were drawn independently. Checked
+    // across every pairing and both ends of the dice, not a sample.
+    const forGender = (gender: 'male' | 'female'): Set<string> => {
+      const out = new Set<string>()
+      for (const race of RACES) {
+        for (const cls of CLASSES) {
+          for (const roll of [0, 0.25, 0.5, 0.75, 0.999]) {
+            const rolled = rollCharacter(race, cls, () => roll)
+            if (genderOfPortrait(rolled.portrait) === gender) out.add(rolled.name)
+          }
+        }
+      }
+      return out
+    }
+    const male = forGender('male')
+    const female = forGender('female')
+
+    expect(male.size).toBeGreaterThan(0)
+    expect(female.size).toBeGreaterThan(0)
+    for (const name of male) expect(female.has(name), `${name} on both`).toBe(false)
+  })
+
+  it('takes the pronouns from the face, and says nothing when the face does not', () => {
+    for (const race of RACES) {
+      for (const cls of CLASSES) {
+        const rolled = rollCharacter(race, cls, () => 0.5)
+        expect(rolled.pronouns, `${race} ${cls}`).toBe(pronounsForPortrait(rolled.portrait))
+      }
+    }
+    // Dragonborn are scales and harness; the picture commits to nothing, so
+    // neither does the roll.
+    const drake = rollCharacter('dragonborn', 'fighter', () => 0.5)
+    expect(genderOfPortrait(drake.portrait)).toBeNull()
+    expect(drake.pronouns).toBeNull()
   })
 })
