@@ -1,13 +1,13 @@
 {
- "_": "Face centre of each portrait as [x, y] percentages, optionally [x, y, zoom]. Placed by hand in /faces.html. Zoom buys legibility out of resolution: these are 256px, so 5x samples ~51px and is soft on a retina panel \u2014 re-slice at 512px from the source sheet if that ever matters.",
+ "_": "Face centre of each portrait as [x, y] percentages, optionally [x, y, zoom]. Placed by hand in /faces.html. Zoom buys legibility out of resolution: these are 256px, so 5x samples ~51px and is soft on a retina panel — re-slice at 512px from the source sheet if that ever matters.",
  "animated-armour": [
-  54,
-  10,
+  52,
+  14,
   3.7
  ],
  "bandit": [
-  58,
-  19,
+  57,
+  17,
   3.6
  ],
  "bandit-captain": [
@@ -16,48 +16,49 @@
   5
  ],
  "banshee": [
-  71,
+  68,
   18,
   3.8
  ],
  "beholder": [
-  55,
-  58,
-  2
+  53,
+  59,
+  1.8
  ],
  "bugbear": [
-  64,
+  62,
   25,
-  3.6
+  3.2
  ],
  "cultist": [
-  60,
+  58,
   18,
   3.5
  ],
  "death-knight": [
-  49,
-  16,
+  48,
+  19,
   4.1
  ],
  "dire-wolf": [
-  66,
-  49
+  67,
+  54,
+  2
  ],
  "displacer-beast": [
-  75,
-  59,
+  72,
+  62,
   3.1
  ],
  "doppelganger": [
-  72,
-  17,
+  71,
+  16,
   3.2
  ],
  "drow-priestess": [
-  53,
-  16,
-  4.6
+  51,
+  17,
+  3.9
  ],
  "drow-raider": [
   60,
@@ -65,33 +66,33 @@
   5
  ],
  "duergar": [
-  62,
-  24,
-  2.9
+  61,
+  26,
+  2.3
  ],
  "gargoyle": [
-  82,
-  34,
+  81,
+  38,
   4.1
  ],
  "ghost": [
-  73,
-  16,
-  3.6
+  69,
+  13,
+  3.3
  ],
  "ghoul": [
   65,
   20,
-  3.3
+  2.8
  ],
  "giant-rat": [
-  84,
-  49,
-  2.4
+  80,
+  54,
+  2.1
  ],
  "giant-spider": [
-  53,
-  57,
+  52,
+  60,
   2.7
  ],
  "gnoll": [
@@ -100,23 +101,23 @@
   3.1
  ],
  "goblin": [
-  62,
-  30,
-  3.2
+  61,
+  31,
+  3
  ],
  "green-dragon": [
   83,
-  41,
+  45,
   3.6
  ],
  "harpy": [
-  75,
-  22,
+  73,
+  32,
   4.3
  ],
  "hell-hound": [
-  81,
-  59,
+  79,
+  60,
   2.5
  ],
  "hill-giant": [
@@ -125,12 +126,12 @@
   5
  ],
  "hobgoblin": [
-  53,
-  14,
-  4
+  51,
+  15,
+  3.7
  ],
  "imp": [
-  69,
+  65,
   39,
   3.5
  ],
@@ -145,13 +146,13 @@
   2.7
  ],
  "lich": [
-  56,
-  21,
-  4
+  53,
+  23,
+  3.9
  ],
  "lizardfolk": [
   64,
-  10,
+  20,
   4
  ],
  "medusa": [
@@ -170,9 +171,9 @@
   4
  ],
  "mummy": [
-  63,
-  20,
-  4.6
+  60,
+  18,
+  3.3
  ],
  "ogre": [
   57,
@@ -180,8 +181,8 @@
   5
  ],
  "orc": [
-  56,
-  18,
+  58,
+  17,
   3.5
  ],
  "owlbear": [
@@ -190,9 +191,9 @@
   3.5
  ],
  "red-wyrmling": [
-  78,
-  39,
-  4
+  79,
+  44,
+  3.3
  ],
  "sahuagin": [
   47,
@@ -201,18 +202,18 @@
  ],
  "skeleton": [
   50,
-  16,
-  4.2
+  12,
+  3
  ],
  "troll": [
   70,
-  28,
+  27,
   4.1
  ],
  "vampire-spawn": [
   64,
   21,
-  3.2
+  2.8
  ],
  "wererat": [
   83,
@@ -226,18 +227,18 @@
  ],
  "wight": [
   57,
-  6,
+  11,
   5
  ],
  "will-o-wisp": [
-  59,
-  24,
+  56,
+  28,
   2.8
  ],
  "wolf": [
-  68,
-  37,
-  2.8
+  69,
+  40,
+  2.5
  ],
  "yuan-ti": [
   50,
@@ -247,6 +248,6 @@
  "zombie": [
   67,
   14,
-  4.3
+  3.9
  ]
 }
