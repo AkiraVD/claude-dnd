@@ -11,6 +11,7 @@ import {
   briefSummary,
   composeBrief,
   isAnswered,
+  portraitAfterDescribing,
   slug,
   type SetupAnswers,
 } from './setup.js'
@@ -85,14 +86,19 @@ export function Setup({
       picked: { ...answers.picked, [tab.key]: answers.picked[tab.key] === value ? '' : value },
     })
 
-  const type = (value: string): void =>
+  const type = (value: string): void => {
+    const described = value.trim() !== ''
     setAnswers({
       ...answers,
       custom: { ...answers.custom, [tab.key]: value },
       // Typing your own replaces the card you clicked, rather than leaving both
       // selected and making the DM guess which one you meant.
-      picked: value.trim() === '' ? answers.picked : { ...answers.picked, [tab.key]: '' },
+      picked: described ? { ...answers.picked, [tab.key]: '' } : answers.picked,
+      ...(tab.picker === 'faces'
+        ? { portrait: portraitAfterDescribing(answers.portrait, value) }
+        : {}),
     })
+  }
 
   return (
     <div className="scrim scrim-art">
@@ -149,31 +155,12 @@ export function Setup({
               >
                 Roll a character
               </button>
-              <span className="roller-who">
-                {answers.picked['race'] === undefined || answers.picked['class'] === undefined
-                  ? 'Rolls a race and class too, if you have not picked them'
-                  : `${article(answers.picked['race'])} ${answers.picked['race']} ${answers.picked['class']}`}
-              </span>
-              {answers.portrait !== '' && portraitFor(answers.portrait) !== null && (
-                <span className="roller-face">
-                  <img
-                    src={portraitFor(answers.portrait)!}
-                    alt=""
-                    // Gentler than the recorded zoom, which was aimed at a 34px
-                    // circle and crops to a nose at this size.
-                    style={{ transform: faceTransform(answers.portrait, ROLL_ZOOM) }}
-                  />
-                </span>
-              )}
-            </div>
-          )}
-
-          {tab.named === true && (
-            <div className="custom named">
-              <label htmlFor="setup-name">Name</label>
+              {/* No portrait here: the grid below highlights what is chosen,
+                  and showing it twice spent the room the faces needed. */}
               <input
                 id="setup-name"
                 type="text"
+                aria-label="Name"
                 value={answers.name}
                 placeholder="Brann, Vesper, whatever they answer to"
                 onChange={(event) => setAnswers({ ...answers, name: event.target.value })}
@@ -398,6 +385,8 @@ function FacePicker({
 
   return (
     <div className="faces">
+      {/* One row. Race narrows, the two toggles narrow further, and both are
+          ways through 190 faces rather than questions in their own right. */}
       <div className="faces-filter">
         <button
           type="button"
@@ -405,7 +394,7 @@ function FacePicker({
           aria-pressed={race === null}
           onClick={() => setRace(null)}
         >
-          everyone <em>{Object.values(counts).reduce((a, b) => a + b, 0)}</em>
+          all <em>{Object.values(counts).reduce((a, b) => a + b, 0)}</em>
         </button>
         {FACE_RACES.map((option) => (
           <button
@@ -418,26 +407,31 @@ function FacePicker({
             {raceLabel(option)} <em>{counts[option] ?? 0}</em>
           </button>
         ))}
-      </div>
-
-      <div className="faces-filter">
-        {(
-          [
-            ['', 'everyone'],
-            ['he/him', '\u2642 men'],
-            ['she/her', '\u2640 women'],
-          ] as const
-        ).map(([value, label]) => (
-          <button
-            key={label}
-            type="button"
-            className="chip chip-pick"
-            aria-pressed={(gender === undefined ? '' : gender === 'male' ? 'he/him' : 'she/her') === value}
-            onClick={() => onGender(value)}
-          >
-            {label}
-          </button>
-        ))}
+        <span className="faces-sex">
+          {(
+            [
+              ['he/him', '\u2642', 'Men'],
+              ['she/her', '\u2640', 'Women'],
+            ] as const
+          ).map(([value, glyph, label]) => {
+            const on = (gender === 'male' ? 'he/him' : gender === 'female' ? 'she/her' : '') === value
+            return (
+              <button
+                key={label}
+                type="button"
+                className="chip chip-pick"
+                title={label}
+                aria-label={label}
+                aria-pressed={on}
+                // A second press clears it, so there is no third button for
+                // "either" — the row is a filter and an unset filter is off.
+                onClick={() => onGender(on ? '' : value)}
+              >
+                {glyph}
+              </button>
+            )
+          })}
+        </span>
       </div>
 
       <div className="faces-grid">

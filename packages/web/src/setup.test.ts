@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
+import { UNKNOWN_PORTRAIT } from '@dnd/content'
 import {
   EMPTY_ANSWERS,
   SETUP_TABS,
   answerFor,
   briefSummary,
+  portraitAfterDescribing,
   composeBrief,
   isAnswered,
   type SetupAnswers,
@@ -258,5 +260,29 @@ describe('pronouns', () => {
 
     expect(brief).not.toContain('Refer to me as')
     expect(briefSummary(EMPTY_ANSWERS)).toEqual([])
+  })
+})
+
+describe('describing a people of your own', () => {
+  it('puts the hood on when there is no face to be', () => {
+    // A goliath has no portrait in a library of nine races. The hood is
+    // race-neutral and faceless, so it cannot contradict what was typed.
+    expect(portraitAfterDescribing('', 'A goliath, far from home')).toBe(UNKNOWN_PORTRAIT)
+  })
+
+  it('never overrides a face that was chosen', () => {
+    expect(portraitAfterDescribing('dwarf-smith-broad', 'A goliath')).toBe('dwarf-smith-broad')
+  })
+
+  it('leaves the hood alone once the text is cleared', () => {
+    // By then it is as much a choice as any other face, and snatching it back
+    // would empty the portrait for someone who had settled on it.
+    const hooded = portraitAfterDescribing('', 'A goliath')
+    expect(portraitAfterDescribing(hooded, '')).toBe(UNKNOWN_PORTRAIT)
+  })
+
+  it('does nothing at all when nothing has been typed', () => {
+    expect(portraitAfterDescribing('', '')).toBe('')
+    expect(portraitAfterDescribing('', '   ')).toBe('')
   })
 })

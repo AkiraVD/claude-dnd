@@ -6,7 +6,7 @@
  * way any other message goes. Kept free of React so the composition can be
  * tested as a function, which is the only part that can quietly go wrong.
  */
-import { CLASSES, RACES, raceLabel, type ClassName, type Race } from '@dnd/content'
+import { CLASSES, RACES, UNKNOWN_PORTRAIT, raceLabel, type ClassName, type Race } from '@dnd/content'
 
 export interface SetupTab {
   key: string
@@ -284,6 +284,23 @@ export function composeBrief(answers: SetupAnswers): string {
 }
 
 /** The one-line preview under the form, so nothing is sent unseen. */
+/**
+ * The portrait to show once someone describes a people of their own.
+ *
+ * Describing a goliath or a tabaxi leaves the picture nothing to be: the
+ * library has nine races and none of them is that. The hood is what that looks
+ * like — race-neutral and faceless by construction, so it cannot contradict
+ * whatever was typed, which is the whole reason it exists.
+ *
+ * A face chosen deliberately wins. Only an empty portrait is filled in, and
+ * clearing the text leaves the hood alone rather than snatching it back: by
+ * then it is as much a choice as any other face.
+ */
+export function portraitAfterDescribing(current: string, described: string): string {
+  if (current !== '') return current
+  return described.trim() === '' ? current : UNKNOWN_PORTRAIT
+}
+
 export function briefSummary(answers: SetupAnswers): string[] {
   const bits: string[] = []
   if (answers.language.trim() !== '') bits.push(answers.language.trim())

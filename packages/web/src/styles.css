@@ -1157,12 +1157,20 @@ button.ghost:hover { border-color: var(--text-faint); color: var(--text); }
   margin-bottom: 11px;
 }
 .faces-filter em { font-style: normal; color: var(--text-faint); }
+/* Pushed to the end of the same row: a filter beside the filters, not a
+   question of its own under them. */
+.faces-sex { display: flex; gap: 6px; margin-left: auto; }
+.faces-sex .chip {
+  font-family: 'Segoe UI Symbol', 'Noto Sans Symbols2', 'DejaVu Sans', system-ui, sans-serif;
+  font-size: 14px;
+  padding-block: 2px;
+}
 .faces-grid {
   display: grid;
-  /* Small, because the job here is to scan 190 of them and stop at one. The
-     chosen face is shown large on the Character tab. */
-  grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
-  gap: 8px;
+  /* Big enough to judge a face on, since that is the only decision this tab
+     exists for. 78px was small enough that choosing meant guessing. */
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  gap: 9px;
 }
 .face {
   display: block;
@@ -1187,8 +1195,8 @@ button.ghost:hover { border-color: var(--text-faint); color: var(--text); }
 .face-shot img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .face em {
   display: block;
-  padding: 3px 4px 0;
-  font-size: 10px;
+  padding: 4px 5px 0;
+  font-size: 10.5px;
   font-style: normal;
   letter-spacing: 0.03em;
   overflow: hidden;
@@ -1497,8 +1505,7 @@ button.ghost:hover { border-color: var(--text-faint); color: var(--text); }
 .roller {
   display: flex;
   align-items: center;
-  gap: 13px;
-  min-height: 122px;
+  gap: 11px;
   margin-bottom: 14px;
   padding: 9px 11px;
   border: 1px solid var(--line);
@@ -1506,6 +1513,18 @@ button.ghost:hover { border-color: var(--text-faint); color: var(--text); }
   background: var(--bg-sunken);
 }
 .roller span { font-size: 11.5px; color: var(--text-faint); }
+.roller input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+.roller input:focus { outline: none; border-color: var(--accent); }
+.roller button { flex: none; }
 .roller-who { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 /* Big, because this is the only place the rolled character is shown at all —
    the name and the hook are words, and the face is the part that tells you
