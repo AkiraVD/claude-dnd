@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { BESTIARY, PORTRAITS, UNKNOWN_PORTRAIT, genderOfPortrait, pronounsForPortrait } from '@dnd/content'
 import { avatarFor, portraitsForRace, rollCharacter, rolledClasses, rolledRaces } from './roll-character.js'
 
+/** The halfling women, for checking a fallback keeps name and face together. */
+const NAMES_FEMALE_HALFLING = ['Dayla Tunbridge', 'Rosie Appledore', 'Tilly Goodbarrow', 'Bex Hollyhock']
+
 /**
  * The roll runs in the browser with no DM and no network: the form is open
  * before anything is started, so it has to answer out of what is shipped.
@@ -129,5 +132,60 @@ describe('rolling a character', () => {
     // only looked uncommitted until someone judged them by eye.
     expect(pronounsForPortrait(UNKNOWN_PORTRAIT)).toBeNull()
     expect(genderOfPortrait(UNKNOWN_PORTRAIT)).toBeNull()
+  })
+
+  it('gives either gender for a pairing the library covers both ways', () => {
+    // The point of sheets four and five. Before them not one role in any race
+    // existed as both, so asking for a woman got a man and no complaint.
+    const both: string[] = []
+    const neither: string[] = []
+    for (const race of RACES) {
+      for (const cls of CLASSES) {
+        const m = genderOfPortrait(avatarFor(race, cls, 'male'))
+        const f = genderOfPortrait(avatarFor(race, cls, 'female'))
+        if (m === 'male' && f === 'female') both.push(`${race} ${cls}`)
+        else neither.push(`${race} ${cls}`)
+      }
+    }
+    // Pinned as a list, not a count, so adding a portrait shows up as this
+    // shrinking rather than as a number nobody can check.
+    //
+    // Druid and monk dominate it because their role lists are their own —
+    // grovepriest, hedgewitch, bladedancer, novice — and the sheets were planned
+    // against five broad clusters that do not cover those. That was a measuring
+    // mistake, not a drawing one: the art is fine, it just answers a slightly
+    // different question than the one the roller asks.
+    expect(neither.sort()).toEqual([
+      'dragonborn druid', 'dragonborn monk',
+      'dwarf druid', 'dwarf monk',
+      'elf druid', 'elf monk',
+      'gnome monk',
+      'half-elf druid', 'half-elf monk', 'half-elf sorcerer', 'half-elf warlock', 'half-elf wizard',
+      'half-orc druid', 'half-orc monk',
+      'halfling cleric', 'halfling monk',
+      'tiefling druid', 'tiefling monk',
+    ])
+    expect(both.length).toBe(108 - neither.length)
+  })
+
+  it('falls back to the face it has rather than refusing', () => {
+    // halfling cleric has no male priest, so asking for one yields the woman —
+    // and the name follows the picture, not the request, or the contradiction
+    // this whole thing was written to remove comes straight back.
+    const rolled = rollCharacter('halfling', 'cleric', () => 0.3, 'male')
+
+    expect(genderOfPortrait(rolled.portrait)).toBe('female')
+    expect(rolled.pronouns).toBe('she/her')
+    expect(NAMES_FEMALE_HALFLING).toContain(rolled.name)
+  })
+
+  it('keeps the class even when the gender has to give way', () => {
+    // Role first, gender second: a dwarf barbarian asked for as a woman must
+    // still be a martial portrait, not a priest who happens to be one.
+    const MARTIAL = ['shieldbreaker', 'bulwark', 'mercenary', 'sellsword', 'bladedancer']
+    for (const gender of ['male', 'female'] as const) {
+      const role = avatarFor('dwarf', 'barbarian', gender).split('-').at(-2)!
+      expect(MARTIAL, `dwarf barbarian ${gender} got ${role}`).toContain(role)
+    }
   })
 })

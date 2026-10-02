@@ -18,6 +18,7 @@ import {
   UNKNOWN_PORTRAIT,
   genderOfPortrait,
   pronounsForPortrait,
+  type Gender,
   type PortraitName,
 } from '@dnd/content'
 
@@ -211,14 +212,28 @@ export function portraitsForRace(race: string): PortraitName[] {
  * library has nothing of that race, showing a face of another one is worse than
  * showing no face at all.
  */
-export function avatarFor(race: string, className: string): PortraitName {
+export function avatarFor(race: string, className: string, gender?: Gender): PortraitName {
   const ofRace = portraitsForRace(race)
   if (ofRace.length === 0) return UNKNOWN_PORTRAIT
+
+  // Role first, gender second, and in that order on purpose. A dwarf barbarian
+  // shown as a dwarf priest of the right sex is further from the mark than a
+  // dwarf shieldbreaker of the wrong one — the class is what the player chose,
+  // the gender is what they may not have. Within a role the gender decides, and
+  // asking for one the library cannot supply falls back rather than refusing.
+  let fallback: PortraitName | null = null
   for (const role of ROLES[slug(className)] ?? []) {
-    const match = ofRace.find((name) => name.includes(`-${role}-`) || name.endsWith(`-${role}`))
-    if (match) return match
+    const matches = ofRace.filter(
+      (name) => name.includes(`-${role}-`) || name.endsWith(`-${role}`),
+    )
+    if (matches.length === 0) continue
+    if (gender !== undefined) {
+      const wanted = matches.find((name) => genderOfPortrait(name) === gender)
+      if (wanted !== undefined) return wanted
+    }
+    fallback ??= matches[0]!
   }
-  return ofRace[0]!
+  return fallback ?? ofRace[0]!
 }
 
 /**
@@ -228,19 +243,27 @@ export function avatarFor(race: string, className: string): PortraitName {
  * first — the form rolls them too when they are still empty, rather than
  * inventing a character with no shape.
  */
-export function rollCharacter(race: string, className: string, rng: Rng = Math.random): RolledCharacter {
+export function rollCharacter(
+  race: string,
+  className: string,
+  rng: Rng = Math.random,
+  gender?: Gender,
+): RolledCharacter {
   const concepts = CONCEPTS[slug(className)] ?? CONCEPTS['fighter']!
-  const portrait = avatarFor(race, className)
+  const portrait = avatarFor(race, className, gender)
 
   // The face is chosen first and the name follows it. The other way round is
   // what produced a Vigga with a beard: two independent picks, no reason for
   // them to agree, and a contradiction the DM has to resolve in its first
   // sentence — in English by picking a pronoun, in Vietnamese by marking every
   // verb. Where the portrait commits to nothing, either list will do.
+  // The face that was actually found, which is not always the one asked for:
+  // a race with no portrait of that sex in that role falls back, and the name
+  // has to follow the picture rather than the request.
   const names = NAMES[slug(race)] ?? NAMES['human']!
-  const gender = genderOfPortrait(portrait)
+  const shown = genderOfPortrait(portrait)
   const pool =
-    gender === 'male' ? names.male : gender === 'female' ? names.female : [...names.male, ...names.female]
+    shown === 'male' ? names.male : shown === 'female' ? names.female : [...names.male, ...names.female]
 
   return {
     name: pick(pool, rng),

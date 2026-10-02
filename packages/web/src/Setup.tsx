@@ -23,6 +23,19 @@ import type { JSX } from 'react'
  * there is no DM yet to ask, so it composes one ordinary first message.
  */
 /** A random option from a tab, for when the player has not chosen one. */
+/**
+ * The gender a chosen pronoun asks the roll for.
+ *
+ * they/them asks for neither, which is not the same as asking for nothing: the
+ * library has no third set of faces, so the roll is left free rather than
+ * forced into one of the two.
+ */
+function genderFor(pronouns: string): 'male' | 'female' | undefined {
+  if (pronouns === 'he/him') return 'male'
+  if (pronouns === 'she/her') return 'female'
+  return undefined
+}
+
 /** How far to crop the rolled portrait, which is shown large. */
 const ROLL_ZOOM = 1.35
 
@@ -117,14 +130,18 @@ export function Setup({
                   // first rather than inventing a character with no shape.
                   const race = answers.picked['race'] ?? pickFrom(SETUP_TABS, 'race')
                   const className = answers.picked['class'] ?? pickFrom(SETUP_TABS, 'class')
-                  const rolled = rollCharacter(race, className)
+                  // A pronoun already chosen steers the roll rather than being
+                  // overwritten by it: picking she/her and then rolling should
+                  // give a woman, not replace the choice with whatever face came
+                  // up. Left unset, the face decides and fills it in.
+                  const rolled = rollCharacter(race, className, Math.random, genderFor(answers.pronouns))
                   setAnswers({
                     ...answers,
                     name: rolled.name,
                     picked: { ...answers.picked, race, class: className },
                     custom: { ...answers.custom, character: rolled.concept },
                     portrait: rolled.portrait,
-                    pronouns: rolled.pronouns ?? '',
+                    pronouns: answers.pronouns !== '' ? answers.pronouns : (rolled.pronouns ?? ''),
                   })
                 }}
               >
