@@ -12,6 +12,7 @@ import {
 import { abilityModifier, proficiencyBonus, skillAbility, type Advantage } from './checks.js'
 import { RulesError } from './errors.js'
 import {
+  classFeatureResources,
   hitDiceResource,
   pactSlotResource,
   spellSlotResources,
@@ -354,6 +355,7 @@ export function createCreature(input: CreatureInput): Creature {
     } else if (definition.casterType !== 'none') {
       classResources.push(...spellSlotResources(spellSlotsFor(className!, level)))
     }
+    classResources.push(...classFeatureResources(className!, level, scores))
   }
 
   // Caller-supplied resources override same-named class ones.

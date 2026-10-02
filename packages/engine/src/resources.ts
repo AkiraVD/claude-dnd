@@ -1,3 +1,5 @@
+import { featuresFor, type AbilityScores, type ClassName, type FeatureMax } from '@dnd/content'
+import { abilityModifier } from './checks.js'
 import { RulesError } from './errors.js'
 import type { Creature } from './character.js'
 import type { GameEvent } from './events.js'
@@ -136,6 +138,42 @@ export function hitDiceResource(level: number, hitDie: number): Resource {
     recharge: 'long-rest',
     rechargeAmount: 'half',
   }
+}
+
+/**
+ * The class features of a character at this level, as resources.
+ *
+ * The table in `@dnd/content` leaves a maximum symbolic when it depends on the
+ * character rather than the level — Bardic Inspiration is a Charisma modifier,
+ * Lay on Hands is five hit points a level. Resolving that means knowing how an
+ * ability modifier works, and that rule is here rather than in the data.
+ *
+ * Starts full, like every other granted resource; `levelUp` is what has to be
+ * careful about not refilling what has been spent.
+ */
+export function classFeatureResources(
+  className: ClassName,
+  level: number,
+  scores: AbilityScores,
+): Resource[] {
+  return featuresFor(className, level).map((feature) => {
+    const max = resolveMax(feature.max, level, scores)
+    return {
+      name: feature.name,
+      label: feature.label,
+      max,
+      current: max,
+      recharge: feature.recharge,
+    }
+  })
+}
+
+function resolveMax(max: FeatureMax, level: number, scores: AbilityScores): number {
+  if (typeof max === 'number') return max
+  if (max === 'level') return level
+  if ('perLevel' in max) return max.perLevel * level
+  const fromAbility = abilityModifier(scores[max.ability]) + (max.plus ?? 0)
+  return Math.max(max.min ?? 0, fromAbility)
 }
 
 export function ordinal(n: number): string {

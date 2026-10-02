@@ -3,7 +3,13 @@ import { abilityModifier } from './checks.js'
 import { isDead, type Creature } from './character.js'
 import { RulesError } from './errors.js'
 import type { GameEvent } from './events.js'
-import { hitDiceResource, pactSlotResource, spellSlotResources, type Resource } from './resources.js'
+import {
+  classFeatureResources,
+  hitDiceResource,
+  pactSlotResource,
+  spellSlotResources,
+  type Resource,
+} from './resources.js'
 
 export interface XpResult {
   creature: Creature
@@ -83,13 +89,20 @@ export function levelUp(creature: Creature, options: LevelUpOptions = {}): Level
     } else if (definition.casterType !== 'none') {
       rebuilt.push(...spellSlotResources(spellSlotsFor(creature.className!, level)))
     }
+    rebuilt.push(...classFeatureResources(creature.className!, level, creature.scores))
 
     // Keep what has been spent: a level-up should not silently refill slots.
     const carried = rebuilt.map((resource) => {
       const existing = before.get(resource.name)
       if (!existing) return resource
       const gainedMax = resource.max - existing.max
-      return { ...resource, current: Math.min(resource.max, existing.current + Math.max(0, gainedMax)) }
+      return {
+        ...resource,
+        // A DM who wrote a better label than the table's — "Second Wind (1d10+3
+        // HP, bonus action)" — keeps it. The table owns the count, not the prose.
+        label: existing.label,
+        current: Math.min(resource.max, existing.current + Math.max(0, gainedMax)),
+      }
     })
 
     resources = [

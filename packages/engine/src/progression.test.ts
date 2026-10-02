@@ -26,9 +26,6 @@ const fighter = (over: Partial<Parameters<typeof createCreature>[0]> = {}): Crea
       { name: 'longsword', ability: 'str', damage: '1d8', damageType: 'slashing' },
       { name: 'longbow', ability: 'dex', damage: '1d8', damageType: 'piercing', range: 'ranged' },
     ],
-    resources: [
-      { name: 'second-wind', label: 'Second Wind', max: 1, current: 1, recharge: 'short-rest' },
-    ],
     ...over,
   })
 
@@ -254,8 +251,120 @@ describe('resources', () => {
   })
 
   it('names what exists when asked for something that does not', () => {
-    expect(() => spendResource(fighter(), 'action-surge')).toThrow(/has no resource "action-surge"/)
-    expect(() => spendResource(fighter(), 'action-surge')).toThrow(/second-wind/)
+    // Not action-surge: a fighter has that from level 2. Something off another
+    // class list, so this keeps testing the error and not the table.
+    expect(() => spendResource(fighter(), 'wild-shape')).toThrow(/has no resource "wild-shape"/)
+    expect(() => spendResource(fighter(), 'wild-shape')).toThrow(/second-wind/)
+  })
+})
+
+describe('class features', () => {
+  it('arrive with the character rather than with the DM remembering', () => {
+    // The bug this was written for: Second Wind existed only if someone thought
+    // to call add_resource, and nothing stopped a fighter using it every round.
+    const brann = fighter()
+
+    expect(findResource(brann, 'second-wind').current).toBe(1)
+    expect(findResource(brann, 'action-surge').max).toBe(1)
+  })
+
+  it('resolves a maximum that depends on the character, not the level', () => {
+    const singer = createCreature({
+      id: 'lio',
+      name: 'Lio',
+      kind: 'pc',
+      className: 'bard',
+      level: 3,
+      scores: { ...SCORES, cha: 18 },
+      maxHp: 20,
+      ac: 12,
+    })
+
+    expect(findResource(singer, 'bardic-inspiration').max).toBe(4)
+  })
+
+  it('floors a modifier-derived pool at one rather than at zero', () => {
+    // A paladin with a Charisma of 8 still senses celestials; a resource with a
+    // maximum of nothing would read as a feature they do not have.
+    const grim = createCreature({
+      id: 'grim',
+      name: 'Grim',
+      kind: 'pc',
+      className: 'paladin',
+      level: 1,
+      scores: { ...SCORES, cha: 8 },
+      maxHp: 12,
+      ac: 18,
+    })
+
+    expect(findResource(grim, 'divine-sense').max).toBe(1)
+    expect(findResource(grim, 'lay-on-hands').max).toBe(5)
+  })
+
+  it('lets the DM override what the class grants', () => {
+    const odd = fighter({
+      resources: [
+        { name: 'second-wind', label: 'Second Wind (homebrew)', max: 3, current: 3, recharge: 'long-rest' },
+      ],
+    })
+
+    expect(findResource(odd, 'second-wind').max).toBe(3)
+    expect(odd.resources.filter((r) => r.name === 'second-wind')).toHaveLength(1)
+  })
+
+  it('does not refill a spent use on level-up', () => {
+    const spent = spendResource(fighter(), 'second-wind').creature
+    expect(findResource(spent, 'second-wind').current).toBe(0)
+
+    const levelled = levelUp(spent).creature
+
+    expect(findResource(levelled, 'second-wind').current).toBe(0)
+  })
+
+  it('hands over only the use the new level adds', () => {
+    // Rage goes 2 to 3 at level 3. A barbarian who has raged twice should come
+    // out of the level-up with exactly the one new rage, not a full three.
+    const grog = createCreature({
+      id: 'grog',
+      name: 'Grog',
+      kind: 'pc',
+      className: 'barbarian',
+      level: 2,
+      scores: SCORES,
+      maxHp: 24,
+      ac: 14,
+    })
+    const tired = spendResource(spendResource(grog, 'rage').creature, 'rage').creature
+    expect(findResource(tired, 'rage').current).toBe(0)
+
+    const levelled = levelUp(tired).creature
+
+    expect(findResource(levelled, 'rage').max).toBe(3)
+    expect(findResource(levelled, 'rage').current).toBe(1)
+  })
+
+  it('keeps a label the DM wrote better than the table did', () => {
+    const brann = fighter({
+      resources: [
+        {
+          name: 'second-wind',
+          label: 'Second Wind (1d10+3 HP, bonus action)',
+          max: 1,
+          current: 1,
+          recharge: 'short-rest',
+        },
+      ],
+    })
+
+    const levelled = levelUp(brann).creature
+
+    expect(findResource(levelled, 'second-wind').label).toBe('Second Wind (1d10+3 HP, bonus action)')
+  })
+
+  it('gives back a short-rest feature on a short rest', () => {
+    const spent = spendResource(fighter(), 'second-wind').creature
+
+    expect(findResource(shortRest(spent).creature, 'second-wind').current).toBe(1)
   })
 })
 

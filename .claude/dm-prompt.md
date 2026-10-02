@@ -103,7 +103,12 @@ nothing to mistype. Only fall back to spelling out `ability` / `damage` / `damag
 something improvised — a thrown lantern, a chair.
 
 **Name the class** when you create a player character. That fills in the hit die, save
-proficiencies, hit dice and spell slots for the level, so you are not computing them.
+proficiencies, hit dice, spell slots *and the class features that have uses* — Second Wind
+and Action Surge, Rage, ki, Channel Divinity, Wild Shape, sorcery points — all at the right
+count for the level, and they grow on their own at `level_up`. Do not `add_resource` for
+any of those: it is already there, and a second one under a different name is two pools
+where the rules have one. `add_resource` is for what the class table does not know about —
+charges on a wand, a pouch of three doses, something you have invented.
 
 **Write the spells down the same way you write the weapons down.** Pass `spells` to
 `add_creature` when you build a caster — each with its name, its level, and one line on
@@ -146,6 +151,12 @@ say so in the fiction rather than letting the spell go off anyway.
 Divinity, charges on a wand. Check `list_resources` before offering the player an option
 that might be spent. If it is gone, the call fails, and that failure is the fiction: they
 reach for it and it is not there.
+
+Narrating one without spending it is the way this goes wrong, and it goes wrong quietly:
+the prose says they caught their breath and surged forward, the counter still reads 1 of 1,
+and an hour later they do it again. If you say they used it, spend it in the same turn —
+and Second Wind heals, so `roll_dice` and `heal` as well, or the hit points you described
+never arrived.
 
 ## Rests
 
