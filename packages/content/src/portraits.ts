@@ -112,10 +112,65 @@ export const PORTRAITS = {
   'tiefling-gravekeeper-ash': 'Old man, ash-grey skin, curling horns, a skull-topped staff',
   'human-bounty-hooded': 'Woman in her forties, leather hood, dark braid, watchful',
 
+
+  // Sheet two: the four races the first sheet did not reach, plus the holes it
+  // left in the five it did. Between them every class now has a face of every
+  // race that is not a baker standing in for a warlock.
+  'half-orc-shieldbreaker-notched': 'Man, lower tusks, a notched pauldron, flat stare',
+  'half-orc-wanderingpriest-roped': 'Woman, rope belt, a holy symbol cut from bone',
+  'half-orc-runecarver-ashen': 'Man, ash-grey skin, runes inked up his throat',
+  'half-orc-trailwise-scarred': 'Woman, cropped hair, a hunting scar across her brow',
+  'half-orc-charlatan-velvet': 'Man, velvet too fine for him, enjoying it enormously',
+  'gnome-bulwark-braced': 'Woman, a tower shield twice her height, braced and calm',
+  'gnome-hearthpriest-bearded': 'Old man, white beard, a small lamp, kind eyes',
+  'gnome-hedgemage-sparking': 'Woman, goggles pushed up, sparks caught in her hair',
+  'gnome-pathfinder-mossy': 'Man, moss-green cloak, a walking stave, weathered',
+  'gnome-cardsharp-cuffed': 'Woman, embroidered cuffs, a fan of cards, dangerous',
+  'dragonborn-mercenary-brazen': 'Brass scales, one broken horn, mail',
+  'dragonborn-wanderingpriest-white': 'White scales, a travelling shrine on her back',
+  'dragonborn-highmage-violet': 'Violet scales, a staff, serene and remote',
+  'dragonborn-trailwise-copper': 'Copper scales, a bow, reading the ground',
+  'dragonborn-silvertongue-black': 'Black scales, gold at the throat, amused',
+  'tiefling-sellsword-chipped': 'Woman, red skin, one chipped horn, brigandine',
+  'tiefling-hearthpriest-candle': 'Man, blue skin, a lit candle cupped in his hand, gentle',
+  'tiefling-runecarver-scribed': 'Woman, purple skin, a scribed slate, absorbed',
+  'tiefling-pathfinder-ragged': 'Man, ragged cloak, long horns swept back, watchful',
+  'tiefling-grifter-silvered': 'Woman, silver that is not hers, delighted with herself',
+  'human-hedgewitch-wreathed': 'Woman, dried herbs wreathed at her shoulder, knowing',
+  'human-bladedancer-shorn': 'Man, shorn head, wrapped hands, completely still',
+  'dwarf-bladedancer-knuckled': 'Man, wrapped knuckles, beard bound short, balanced',
+  'elf-warpriest-plated': 'Woman, gilt-edged plate, a sunburst, unsmiling',
+  'half-elf-courtmage-quilled': 'Man, a quill behind his ear, court robes, tired and sharp',
+
+  // Sheet three: the working town the first two sheets had no room for.
+  // Trades, not adventurers — the people a walk-on part is cast from.
+  'half-elf-warpriest-grim': 'Woman, gilt-edged breastplate, a sunburst, grim and tired',
+  'human-ferryman-lined': 'Man in his fifties, river-weathered, a coiled line',
+  'dwarf-ratcatcher-caged': 'Woman, a wire cage and a terrier, cheerfully filthy',
+  'gnome-bonesetter-splinted': 'Man, spectacles, splints and linen at his belt',
+  'half-orc-cartwright-sawdust': 'Woman, sawdust in her hair, a spoke-shave in hand',
+  'elf-falconer-gauntleted': 'Man, a hooded hawk on his gauntlet, patient',
+  'halfling-chandler-waxed': 'Woman, wax-spattered apron, a bundle of tapers',
+  'human-cooper-staved': 'Man, barrel staves under one arm, forearms like cables',
+  'dwarf-miner-lamped': 'Man, lamp on his helm, coal dust in every crease',
+  'human-shepherd-weathered': 'Woman in her sixties, crook, a face made of weather',
+  'tiefling-weaver-threaded': 'Woman, blue skin, thread wound round her fingers',
+  'half-orc-tanner-stained': 'Man, leather apron, stained to the elbow, resigned',
+  'gnome-glassblower-glowing': 'Woman, goggles, a glowing gather on the pipe',
+  'half-elf-bookbinder-awled': 'Man, thread and awl, ink under his nails',
+  'halfling-beekeeper-veiled': 'Man, veil pushed back, smoker in hand, calm',
+  'human-ropemaker-fibred': 'Woman, hemp fibres caught on her sleeves',
+  'dwarf-midwife-steady': 'Woman in her fifties, sleeves rolled, steady hands',
+  'human-tollkeeper-ledgered': 'Man, a ledger and a cudgel, bored and unbribable',
+  'dragonborn-horsetrader-bridled': 'Green scales, a bridle over his shoulder',
+  'half-orc-pitboss-counting': 'Woman, arms crossed, counting the house',
+  'tiefling-undertaker-courteous': 'Man, red skin, black coat, courteous',
+  'elf-bellringer-ropeburnt': 'Woman, rope-burned palms, hair tied back',
+  'human-charcoalburner-sooted': 'Man, soot-black face, white eyes, exhausted',
+  'halfling-miller-floured': 'Woman, flour to the elbows, a sack on her hip',
   // The one that fits when nothing fits. Race-neutral, gender-neutral and
   // faceless by construction, so it can never contradict what the DM has
-  // already said out loud. PLACEHOLDER ART — drawn with maths, not painted;
-  // see PLAN.md, "Art still owed".
+  // already said out loud.
   'unknown-figure-hooded': 'A hooded figure, face lost in the shadow of the cowl',
 } as const
 

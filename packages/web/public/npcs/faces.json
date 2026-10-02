@@ -8,6 +8,21 @@
   63,
   33
  ],
+ "dragonborn-highmage-violet": [
+  50,
+  38,
+  1.9
+ ],
+ "dragonborn-horsetrader-bridled": [
+  50,
+  38,
+  1.9
+ ],
+ "dragonborn-mercenary-brazen": [
+  50,
+  38,
+  1.9
+ ],
  "dragonborn-oracle-white": [
   62,
   32
@@ -16,9 +31,29 @@
   60,
   33
  ],
+ "dragonborn-silvertongue-black": [
+  50,
+  38,
+  1.9
+ ],
  "dragonborn-soldier-scaled": [
   66,
   28
+ ],
+ "dragonborn-trailwise-copper": [
+  50,
+  38,
+  1.9
+ ],
+ "dragonborn-wanderingpriest-white": [
+  50,
+  38,
+  1.9
+ ],
+ "dwarf-bladedancer-knuckled": [
+  50,
+  38,
+  1.9
  ],
  "dwarf-brewer-young": [
   59,
@@ -40,6 +75,16 @@
   54,
   31
  ],
+ "dwarf-midwife-steady": [
+  50,
+  38,
+  1.9
+ ],
+ "dwarf-miner-lamped": [
+  50,
+  38,
+  1.9
+ ],
  "dwarf-moneychanger-shrewd": [
   63,
   36
@@ -47,6 +92,11 @@
  "dwarf-pathfinder-furred": [
   57,
   33
+ ],
+ "dwarf-ratcatcher-caged": [
+  50,
+  38,
+  1.9
  ],
  "dwarf-runecarver-chalked": [
   57,
@@ -80,6 +130,11 @@
   60,
   31
  ],
+ "elf-bellringer-ropeburnt": [
+  50,
+  38,
+  1.9
+ ],
  "elf-bladedancer-lacquered": [
   57,
   33
@@ -91,6 +146,11 @@
  "elf-duellist-scarred": [
   58,
   27
+ ],
+ "elf-falconer-gauntleted": [
+  50,
+  38,
+  1.9
  ],
  "elf-grovepriest-antlered": [
   57,
@@ -124,6 +184,26 @@
   57,
   33
  ],
+ "elf-warpriest-plated": [
+  50,
+  38,
+  1.9
+ ],
+ "gnome-bonesetter-splinted": [
+  50,
+  38,
+  1.9
+ ],
+ "gnome-bulwark-braced": [
+  50,
+  38,
+  1.9
+ ],
+ "gnome-cardsharp-cuffed": [
+  50,
+  38,
+  1.9
+ ],
  "gnome-clockmaker-white": [
   60,
   39
@@ -131,6 +211,21 @@
  "gnome-forger-loupe": [
   54,
   36
+ ],
+ "gnome-glassblower-glowing": [
+  50,
+  38,
+  1.9
+ ],
+ "gnome-hearthpriest-bearded": [
+  50,
+  38,
+  1.9
+ ],
+ "gnome-hedgemage-sparking": [
+  50,
+  38,
+  1.9
  ],
  "gnome-hedgewitch-tangled": [
   63,
@@ -140,13 +235,28 @@
   57,
   35
  ],
+ "gnome-pathfinder-mossy": [
+  50,
+  38,
+  1.9
+ ],
  "gnome-tinker-spectacled": [
   58,
   40
  ],
+ "half-elf-bookbinder-awled": [
+  50,
+  38,
+  1.9
+ ],
  "half-elf-courier-windburnt": [
   60,
   32
+ ],
+ "half-elf-courtmage-quilled": [
+  50,
+  38,
+  1.9
  ],
  "half-elf-grifter-borrowed": [
   57,
@@ -184,6 +294,11 @@
   57,
   33
  ],
+ "half-elf-warpriest-grim": [
+  50,
+  38,
+  1.9
+ ],
  "half-orc-blacksmith-grey": [
   63,
   34
@@ -191,6 +306,16 @@
  "half-orc-butcher-aproned": [
   63,
   34
+ ],
+ "half-orc-cartwright-sawdust": [
+  50,
+  38,
+  1.9
+ ],
+ "half-orc-charlatan-velvet": [
+  50,
+  38,
+  1.9
  ],
  "half-orc-drummer-painted": [
   57,
@@ -208,13 +333,48 @@
   61,
   33
  ],
+ "half-orc-pitboss-counting": [
+  50,
+  38,
+  1.9
+ ],
  "half-orc-quarryman-dusted": [
   62,
   24
  ],
+ "half-orc-runecarver-ashen": [
+  50,
+  38,
+  1.9
+ ],
+ "half-orc-shieldbreaker-notched": [
+  50,
+  38,
+  1.9
+ ],
+ "half-orc-tanner-stained": [
+  50,
+  38,
+  1.9
+ ],
+ "half-orc-trailwise-scarred": [
+  50,
+  38,
+  1.9
+ ],
  "half-orc-veteran-oneeyed": [
   61,
   31
+ ],
+ "half-orc-wanderingpriest-roped": [
+  50,
+  38,
+  1.9
+ ],
+ "halfling-beekeeper-veiled": [
+  50,
+  38,
+  1.9
  ],
  "halfling-bulwark-cheerful": [
   57,
@@ -223,6 +383,11 @@
  "halfling-cardsharp-waistcoated": [
   57,
   33
+ ],
+ "halfling-chandler-waxed": [
+  50,
+  38,
+  1.9
  ],
  "halfling-cheesemonger-round": [
   50,
@@ -243,6 +408,11 @@
  "halfling-laundress-strong": [
   52,
   25
+ ],
+ "halfling-miller-floured": [
+  50,
+  38,
+  1.9
  ],
  "halfling-pickpocket-sharp": [
   56,
@@ -276,13 +446,28 @@
   58,
   36
  ],
+ "human-bladedancer-shorn": [
+  50,
+  38,
+  1.9
+ ],
  "human-bounty-hooded": [
   58,
   31
  ],
+ "human-charcoalburner-sooted": [
+  50,
+  38,
+  1.9
+ ],
  "human-charlatan-easy": [
   57,
   33
+ ],
+ "human-cooper-staved": [
+  50,
+  38,
+  1.9
  ],
  "human-courtmage-inked": [
   57,
@@ -292,6 +477,11 @@
   52,
   36
  ],
+ "human-ferryman-lined": [
+  50,
+  38,
+  1.9
+ ],
  "human-fishwife-salted": [
   55,
   27
@@ -299,6 +489,11 @@
  "human-guard-scarred": [
   57,
   33
+ ],
+ "human-hedgewitch-wreathed": [
+  50,
+  38,
+  1.9
  ],
  "human-herbalist-kerchief": [
   56,
@@ -324,13 +519,28 @@
   59,
   32
  ],
+ "human-ropemaker-fibred": [
+  50,
+  38,
+  1.9
+ ],
  "human-sergeant-broken": [
   60,
   31
  ],
+ "human-shepherd-weathered": [
+  50,
+  38,
+  1.9
+ ],
  "human-stablehand-straw": [
   57,
   38
+ ],
+ "human-tollkeeper-ledgered": [
+  50,
+  38,
+  1.9
  ],
  "human-warpriest-bloodied": [
   57,
@@ -348,6 +558,16 @@
   59,
   32
  ],
+ "tiefling-grifter-silvered": [
+  50,
+  38,
+  1.9
+ ],
+ "tiefling-hearthpriest-candle": [
+  50,
+  38,
+  1.9
+ ],
  "tiefling-inquisitor-black": [
   59,
   32
@@ -355,6 +575,11 @@
  "tiefling-moneylender-swept": [
   56,
   34
+ ],
+ "tiefling-pathfinder-ragged": [
+  50,
+  38,
+  1.9
  ],
  "tiefling-pawnbroker-blue": [
   68,
@@ -364,9 +589,29 @@
   64,
   30
  ],
+ "tiefling-runecarver-scribed": [
+  50,
+  38,
+  1.9
+ ],
+ "tiefling-sellsword-chipped": [
+  50,
+  38,
+  1.9
+ ],
+ "tiefling-undertaker-courteous": [
+  50,
+  38,
+  1.9
+ ],
+ "tiefling-weaver-threaded": [
+  50,
+  38,
+  1.9
+ ],
  "unknown-figure-hooded": [
   50,
-  45,
-  1.15
+  36,
+  1.8
  ]
 }

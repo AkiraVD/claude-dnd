@@ -254,33 +254,21 @@ directly to hydrate a page. One fewer transport, one fewer thing to get wrong.
 
 Everything in `packages/web/public/` is pre-rendered and shipped — there is no API key here
 and nothing generates an image at run time — so a gap in the library is a gap until someone
-sits down and makes the picture. These are the gaps, and they are planned rather than
-declined.
+sits down and makes the picture.
 
-**A hooded figure, for when nothing fits.** The library is people with faces, and every face
-commits to a race, an age and a sex. So the fallback cannot be a face: showing an elf for a
-race the library does not cover is worse than showing nothing, because it contradicts prose
-the DM has already spoken. A hood with the face lost in shadow commits to none of it and is
-true as a picture — it is a person you have not seen. It serves two callers: the character
-roller, when the rolled race has no portraits, and the DM, for a figure the player has only
-seen at a distance.
+**Done since this section was written.** Sheet two covered half-orc, gnome, dragonborn and
+tiefling with five adventurers apiece, and filled the holes the first sheet left in the five
+races it did cover. Sheet three is the working town — ferryman, ratcatcher, bonesetter,
+glassblower, charcoal burner — twenty-four trades the library had no face for, plus a
+painted hooded figure that retires the one drawn with maths. The library stands at 141 folk
+and 50 creatures, and 107 of the 108 race-class pairings a rolled character can land on now
+get a purpose-made adventurer face; the last, a tiefling paladin, gets an inquisitor, which
+is close enough to be deliberate.
 
-*Status: placeholder in the tree.* `unknown-figure-hooded.webp` is currently drawn with
-maths, not painted — flat shapes, a cowl and a void where the face goes. Good enough to
-build and test the fallback path against, and deliberately flat so it cannot be mistaken for
-finished art sitting next to the painted set. Replace it with a real one on the next art
-pass, same shared block as the rest: one warm light low in frame, deep muted palette, the
-cowl's interior fully dark. Drop it into the same 5x5 sheet as the portraits below rather
-than generating it alone.
-
-**The second adventurer sheet.** Half-orc, gnome, dragonborn and tiefling have townsfolk
-only, so those four races fall back to a baker or a tinker when a player rolls one. Twenty
-faces, five archetypes apiece, the roster is written. The first sheet covered human, dwarf,
-elf, halfling and half-elf.
-
-**Focal points for the first adventurer sheet.** The twenty-five new portraits are seeded at
-`[57, 33]` rather than measured. They want a pass in `/faces.html`; the measured ones are
-visibly better framed than the guessed ones.
+**Focal points for sheets two and three.** Forty-nine portraits are seeded at `[50, 38]`
+with a 1.9 zoom rather than measured. They want a pass in `/faces.html`; the measured ones
+are visibly better framed than the guessed ones, which is the whole reason the editor
+exists.
 
 **Open question: unset portraits in the cast list.** An NPC the DM never gave art to renders
 with no avatar at all. Whether that should become the hood is a judgement about how the cast
