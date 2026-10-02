@@ -1507,20 +1507,6 @@ button.ghost:hover { border-color: var(--text-faint); color: var(--text); }
 }
 .roller span { font-size: 11.5px; color: var(--text-faint); }
 .roller-who { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
-.roller-sex { display: flex; gap: 5px; }
-.roller-sex button {
-  width: 30px;
-  padding: 3px 0;
-  font-size: 14px;
-  line-height: 1.2;
-  border: 1px solid var(--line);
-  border-radius: 5px;
-  background: var(--bg);
-  color: var(--text-faint);
-  cursor: pointer;
-}
-.roller-sex button:hover { border-color: var(--accent); color: var(--text-dim); }
-.roller-sex button[aria-pressed='true'] { border-color: var(--accent); color: var(--accent); }
 /* Big, because this is the only place the rolled character is shown at all —
    the name and the hook are words, and the face is the part that tells you
    whether to roll again. Square, like the sheet and the cast panel. */
