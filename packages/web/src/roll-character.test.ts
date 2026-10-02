@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { BESTIARY, PORTRAITS, UNKNOWN_PORTRAIT, genderOfPortrait, pronounsForPortrait } from '@dnd/content'
-import { avatarFor, portraitsForRace, rollCharacter, rolledClasses, rolledRaces } from './roll-character.js'
+import {
+  avatarFor,
+  defaultBackstory,
+  portraitsForRace,
+  rollCharacter,
+  rolledClasses,
+  rolledRaces,
+  startersFor,
+} from './roll-character.js'
 
 /** The halfling women, for checking a fallback keeps name and face together. */
 const NAMES_FEMALE_HALFLING = ['Dayla Tunbridge', 'Rosie Appledore', 'Tilly Goodbarrow', 'Bex Hollyhock']
@@ -186,6 +194,80 @@ describe('rolling a character', () => {
     for (const gender of ['male', 'female'] as const) {
       const role = avatarFor('dwarf', 'barbarian', gender).split('-').at(-2)!
       expect(MARTIAL, `dwarf barbarian ${gender} got ${role}`).toContain(role)
+    }
+  })
+})
+
+describe('defaultBackstory', () => {
+  it('gives every face a starter, whatever it is a picture of', () => {
+    // The baker used to get nothing, because a baker implies no class and the
+    // hooks were written per class. The starters do not know what a class is.
+    for (const name of ['dwarf-shieldbreaker-ringed', 'human-baker-floured', UNKNOWN_PORTRAIT]) {
+      expect(defaultBackstory(name).length, name).toBeGreaterThan(20)
+    }
+  })
+
+  it('is the same every time for the same face', () => {
+    // Hashed off the name rather than random: the box fills once and does not
+    // change under you when the component re-renders.
+    expect(defaultBackstory('dwarf-shieldbreaker-ringed')).toBe(
+      defaultBackstory('dwarf-shieldbreaker-ringed'),
+    )
+  })
+
+  it('leans the starter toward the class the face suggests', () => {
+    // The selection is keyed by class even though the prose never is: a smith's
+    // portrait suggests a fighter, and a fighter is offered the ones about
+    // coming back alone rather than the ones about an apprenticeship.
+    const story = defaultBackstory('dwarf-shieldbreaker-ringed')
+
+    expect(startersFor('fighter')).toContain(story)
+  })
+
+  it('says nothing about race, class or sex', () => {
+    // The whole point of the change: a starter has to sit under any portrait,
+    // so naming a trade or a people in one would contradict the picture as soon
+    // as you clicked a different face.
+    const forbidden =
+      /\b(dwarf|elf|halfling|gnome|tiefling|dragonborn|orc|barbarian|bard|cleric|druid|fighter|monk|paladin|ranger|rogue|sorcerer|warlock|wizard|he|she|his|her)\b/i
+
+    for (const name of Object.keys(PORTRAITS)) {
+      expect(defaultBackstory(name), name).not.toMatch(forbidden)
+    }
+  })
+})
+
+describe('startersFor', () => {
+  it('gives every class something to choose between', () => {
+    // Four is the floor: fewer and two characters of the same class start to
+    // arrive with the same past.
+    for (const className of rolledClasses()) {
+      expect(startersFor(className).length, className).toBeGreaterThanOrEqual(4)
+    }
+  })
+
+  it('offers different classes different pasts', () => {
+    const fighter = new Set(startersFor('fighter'))
+    const wizard = startersFor('wizard')
+
+    expect(wizard.some((text) => !fighter.has(text))).toBe(true)
+  })
+
+  it('falls back to the whole table rather than to nothing', () => {
+    // A baker's portrait suggests no class at all. Better a past that does not
+    // lean toward a build than an empty box.
+    expect(startersFor(null).length).toBeGreaterThan(10)
+    expect(startersFor('alchemist').length).toBeGreaterThan(10)
+  })
+
+  it('still names no race, class or sex, whichever class asked', () => {
+    const forbidden =
+      /\b(dwarf|elf|halfling|gnome|tiefling|dragonborn|orc|barbarian|bard|cleric|druid|fighter|monk|paladin|ranger|rogue|sorcerer|warlock|wizard|he|she|his|her)\b/i
+
+    for (const className of [...rolledClasses(), null]) {
+      for (const text of startersFor(className)) {
+        expect(text, `${className}: ${text}`).not.toMatch(forbidden)
+      }
     }
   })
 })

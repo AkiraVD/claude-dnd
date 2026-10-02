@@ -102,72 +102,142 @@ const NAMES: Record<string, { male: readonly string[]; female: readonly string[]
 }
 
 /**
- * Concepts, by class. Each is a background and a hook in one breath, in the
- * shape of the placeholder in the form: something that happened, and something
- * still unresolved for the DM to pull on.
+ * Story starters.
+ *
+ * Two rules pull against each other here, and the shape is what satisfies both.
+ *
+ * The prose names no race, class or sex. It used to be written per class, which
+ * read well and contradicted the picture the moment you chose a different face —
+ * a hook about a priest's vows under a portrait of a smith. So every line here
+ * says what happened and leaves who it happened to entirely open.
+ *
+ * What is keyed by class is which lines you are offered. `fits` is the
+ * selection, not the subject: a fighter is shown the ones about coming back
+ * alone and a wizard the ones about an apprenticeship, without either line ever
+ * saying so. A starter can fit several classes, so this stays one table rather
+ * than twelve that drift.
+ *
+ * Each is a past and an unresolved thing in one breath — something the DM can
+ * pull on in the first scene without being told what the answer is.
  */
-const CONCEPTS: Record<string, readonly string[]> = {
-  barbarian: [
-    'Last of a war band that walked into something it could not fight. Does not talk about who gave the order.',
-    'Fought in a pit for three years to buy someone out. Bought them out. They did not come.',
-    'Exiled for refusing a killing. The village that exiled them has started writing letters.',
-  ],
-  bard: [
-    'Knows a song that two separate people have paid to have forgotten. Has not worked out why yet.',
-    'Was the toast of a city for one season. Will not say which city, or what ended it.',
-    'Collects the stories nobody wants told, and is starting to notice what they have in common.',
-  ],
-  cleric: [
-    'Prayed over a battlefield and something answered that was not what they prayed to.',
-    'Keeps a temple that burned down. Still keeps it. The order has sent someone to ask about that.',
-    'Healed the wrong person once, on purpose, and has been paying for it in small instalments.',
-  ],
-  druid: [
-    'Watched a wood die in a single season and found the cause written on a tax ledger.',
-    'Speaks for a river that is being argued over by two towns, neither of which asked it.',
-    'Left the circle over a disagreement about mercy. Was not wrong. Is still not welcome.',
-  ],
-  fighter: [
-    'Disgraced temple guard. Took the blame for something to protect someone who has not written back.',
-    'Twenty years under a banner that turned out to be a front. Found out last winter.',
-    'Good at exactly one thing, and has recently met the only person better at it.',
-  ],
-  monk: [
-    'Left the monastery with a question the abbot would not answer. Still carrying it.',
-    'Trained to be a weapon. Was used as one once, and has been walking away from it since.',
-    'Keeps a discipline nobody else at the table recognises, for a master nobody can find.',
-  ],
-  paladin: [
-    'Swore an oath to a dead order and keeps it anyway, which is either faith or stubbornness.',
-    'Broke the oath once in a way nobody else noticed. Has not forgiven it.',
-    'Hunting the person who taught them everything, and is not sure what happens when they catch up.',
-  ],
-  ranger: [
-    'Guided a company into a pass and came back alone. Has walked that pass every year since.',
-    'Knows the border better than the people who drew it, and is wanted on both sides of it.',
-    'Tracking something that has started leaving messages.',
-  ],
-  rogue: [
-    'Stole something small from someone patient. It has been four years and they are still looking.',
-    'Was the one who got out. Spends the money looking for the ones who did not.',
-    'Has a key and no longer remembers what it opens, only that it was worth killing for.',
-  ],
-  sorcerer: [
-    'Something in the blood woke up uninvited, and the family has been very polite about it since.',
-    'Set a house on fire at eleven without touching it. Nobody has mentioned it since. Everyone remembers.',
-    'Carries a power that is clearly inherited, from a parent who will not be named.',
-  ],
-  warlock: [
-    'Made a bargain in a bad week and has been reading the small print ever since.',
-    'Owes a favour to something that has not called it in yet, and is enjoying the wait more than they are.',
-    'Was offered a way out and took it. The way out is still holding the door open.',
-  ],
-  wizard: [
-    'Expelled for an experiment that worked. Kept the notes.',
-    'Spent nine years on one translation and found a line that should not be in it.',
-    'Was somebody’s apprentice until that somebody disappeared mid-sentence.',
-  ],
+interface Starter {
+  /** Classes this is offered for. Every class has at least four. */
+  fits: readonly string[]
+  text: string
 }
+
+const STARTERS: readonly Starter[] = [
+  {
+    fits: ['fighter', 'barbarian', 'paladin', 'ranger'],
+    text: 'Was the only one who came back, and nobody has asked why.',
+  },
+  {
+    fits: ['barbarian', 'fighter', 'druid', 'ranger'],
+    text: 'The village burned while they were away. Nobody there will say who by.',
+  },
+  {
+    fits: ['warlock', 'rogue', 'bard', 'sorcerer'],
+    text: 'Signed a contract without reading the back of it. Someone is coming to collect.',
+  },
+  {
+    fits: ['rogue', 'bard', 'wizard', 'cleric'],
+    text: 'A letter arrived with the right name on it and a dead man’s seal.',
+  },
+  {
+    fits: ['paladin', 'fighter', 'cleric', 'monk'],
+    text: 'Took the blame for something to protect someone who has not written back.',
+  },
+  {
+    fits: ['rogue', 'ranger', 'monk', 'sorcerer'],
+    text: 'Left home at night without telling anyone, and has not stopped moving since.',
+  },
+  {
+    fits: ['wizard', 'sorcerer', 'bard', 'rogue'],
+    text: 'Apprenticed to someone who vanished, leaving behind the tools and the debts.',
+  },
+  {
+    fits: ['cleric', 'warlock', 'paladin'],
+    text: 'Prayed over something that answered, and has not slept properly since.',
+  },
+  {
+    fits: ['rogue', 'bard', 'fighter'],
+    text: 'Owes money to someone patient enough to wait and rich enough not to have to.',
+  },
+  {
+    fits: ['rogue', 'bard', 'sorcerer'],
+    text: 'Won something in a card game that people keep trying to take back.',
+  },
+  {
+    fits: ['rogue', 'warlock', 'cleric'],
+    text: 'There is a grave somewhere with their name cut into it, and they did not put it there.',
+  },
+  {
+    fits: ['ranger', 'wizard', 'druid'],
+    text: 'Carries a half-burned map with one place circled, and has never been there.',
+  },
+  {
+    fits: ['monk', 'wizard', 'fighter'],
+    text: 'Spent nine years learning one thing perfectly and has never once been asked to use it.',
+  },
+  {
+    fits: ['barbarian', 'rogue', 'sorcerer'],
+    text: 'Woke in a ditch three days from anywhere, holding a purse that was not earned and remembering none of it.',
+  },
+  {
+    fits: ['bard', 'wizard', 'cleric'],
+    text: 'Sold the last thing they owned to buy passage here. It had better be worth it.',
+  },
+  {
+    fits: ['warlock', 'paladin', 'fighter'],
+    text: 'Someone saved their life and named a price they have not collected yet.',
+  },
+  {
+    fits: ['rogue', 'bard', 'warlock'],
+    text: 'Travelling under a name that is not theirs, and has nearly got used to it.',
+  },
+  {
+    fits: ['ranger', 'druid', 'fighter', 'barbarian'],
+    text: 'The thing that took the rest of the party is still out there, and it knows their face.',
+  },
+  {
+    fits: ['wizard', 'bard', 'ranger'],
+    text: 'Has been following a rumour for two years. It keeps turning out to be true.',
+  },
+  {
+    fits: ['sorcerer', 'warlock', 'monk'],
+    text: 'Woke one morning able to do something nobody had taught, and told no one.',
+  },
+  {
+    fits: ['monk', 'cleric', 'paladin'],
+    text: 'Walked out of the order the day before the vows, and still keeps the hours.',
+  },
+  {
+    fits: ['rogue', 'wizard', 'bard'],
+    text: 'Burned the ledger rather than hand it over, and has been remembering the numbers ever since.',
+  },
+  {
+    fits: ['monk', 'warlock', 'barbarian'],
+    text: 'Was traded away young to settle someone else’s debt, and the debt is still open.',
+  },
+  {
+    fits: ['druid', 'cleric', 'ranger'],
+    text: 'Knows which well the sickness came from, and said so, and was not believed.',
+  },
+]
+
+/**
+ * The starters offered for a class.
+ *
+ * An unknown class — or none at all, which is what a baker's portrait gives —
+ * gets the whole table rather than nothing. Better a past that merely does not
+ * lean toward the build than an empty box.
+ */
+export function startersFor(className: string | null): readonly string[] {
+  const fitting =
+    className === null ? [] : STARTERS.filter((starter) => starter.fits.includes(slug(className)))
+  return (fitting.length === 0 ? STARTERS : fitting).map((starter) => starter.text)
+}
+
 
 /**
  * Which stock roles suit which class, best first.
@@ -218,6 +288,32 @@ for (const [className, roles] of Object.entries(ROLES)) {
     }
     if (rank < Number(held.split(':')[0])) SUGGESTED.set(role, `${rank}:${className}`)
   })
+}
+
+/**
+ * The backstory a face arrives with.
+ *
+ * Keyed on the portrait's own name rather than drawn at random, so the same
+ * face always offers the same past. A hook that changed every time you clicked
+ * back onto a face would read as the form losing your place.
+ *
+ * Every face gets one. It used to return nothing for a face whose trade implied
+ * no class — a baker is a person, not a build — but the starters do not know
+ * what a class is any more, so there is nothing left for that to mean.
+ */
+export function defaultBackstory(portrait: string): string {
+  const pool = startersFor(suggestedClass(portrait))
+  return pool[hashOf(portrait) % pool.length]!
+}
+
+/** FNV-1a, so the choice is stable across reloads and machines. */
+function hashOf(text: string): number {
+  let h = 0x811c9dc5
+  for (let i = 0; i < text.length; i += 1) {
+    h ^= text.charCodeAt(i)
+    h = Math.imul(h, 0x01000193) >>> 0
+  }
+  return h
 }
 
 export function suggestedClass(portrait: string): string | null {
@@ -280,7 +376,6 @@ export function rollCharacter(
   rng: Rng = Math.random,
   gender?: Gender,
 ): RolledCharacter {
-  const concepts = CONCEPTS[slug(className)] ?? CONCEPTS['fighter']!
   const portrait = avatarFor(race, className, gender)
 
   // The face is chosen first and the name follows it. The other way round is
@@ -298,7 +393,7 @@ export function rollCharacter(
 
   return {
     name: pick(pool, rng),
-    concept: pick(concepts, rng),
+    concept: pick(startersFor(className), rng),
     portrait,
     pronouns: pronounsForPortrait(portrait),
   }
@@ -310,7 +405,7 @@ export function rolledRaces(): string[] {
 }
 
 export function rolledClasses(): string[] {
-  return Object.keys(CONCEPTS)
+  return Object.keys(ROLES)
 }
 
 /** Nothing in the bestiary should ever be reachable as a player's avatar. */
