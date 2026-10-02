@@ -16,13 +16,13 @@
   1.7
  ],
  "dragonborn-grifter-copper": [
-  54,
-  33,
+  56,
+  30,
   1.8
  ],
  "dragonborn-hedgemage-charmed": [
-  54,
-  33,
+  58,
+  31,
   1.8
  ],
  "dragonborn-highmage-violet": [
@@ -46,8 +46,8 @@
   1.9
  ],
  "dragonborn-outrider-rust": [
-  54,
-  33,
+  62,
+  29,
   1.8
  ],
  "dragonborn-pitfighter-red": [
@@ -56,9 +56,9 @@
   1.7
  ],
  "dragonborn-salttrader-grey": [
-  54,
-  33,
-  1.8
+  52,
+  14,
+  1.9
  ],
  "dragonborn-silvertongue-black": [
   59,
@@ -81,13 +81,13 @@
   1.9
  ],
  "dragonborn-warpriest-gold": [
-  54,
-  33,
+  57,
+  29,
   1.8
  ],
  "dwarf-bellowsboy-sooted": [
-  54,
-  33,
+  48,
+  29,
   1.8
  ],
  "dwarf-bladedancer-knuckled": [
@@ -101,8 +101,8 @@
   1.7
  ],
  "dwarf-bulwark-braced": [
-  54,
-  33,
+  48,
+  31,
   1.8
  ],
  "dwarf-dicesharp-gilded": [
@@ -121,8 +121,8 @@
   1.8
  ],
  "dwarf-highmage-silvered": [
-  54,
-  33,
+  47,
+  29,
   1.8
  ],
  "dwarf-innkeeper-grey": [
@@ -146,13 +146,13 @@
   1.8
  ],
  "dwarf-netmender-twined": [
-  54,
-  33,
+  52,
+  39,
   1.8
  ],
  "dwarf-outrider-snowy": [
-  54,
-  33,
+  52,
+  28,
   1.8
  ],
  "dwarf-pathfinder-furred": [
@@ -186,8 +186,8 @@
   1.7
  ],
  "dwarf-silvertongue-ringed": [
-  54,
-  33,
+  46,
+  31,
   1.8
  ],
  "dwarf-smith-broad": [
@@ -201,8 +201,8 @@
   1.7
  ],
  "dwarf-warpriest-anvil": [
-  54,
-  33,
+  51,
+  25,
   1.8
  ],
  "elf-apothecary-spectacled": [
@@ -217,7 +217,7 @@
  ],
  "elf-beekeeper-veiled": [
   54,
-  33,
+  29,
   1.8
  ],
  "elf-bellringer-ropeburnt": [
@@ -231,13 +231,13 @@
   1.7
  ],
  "elf-charlatan-easy": [
-  54,
-  33,
+  53,
+  31,
   1.8
  ],
  "elf-courtmage-precise": [
-  54,
-  33,
+  53,
+  30,
   1.8
  ],
  "elf-draper-cold": [
@@ -291,9 +291,9 @@
   1.7
  ],
  "elf-shieldbreaker-scarred": [
-  54,
-  33,
-  1.8
+  47,
+  17,
+  1.7
  ],
  "elf-silvertongue-cool": [
   53,
@@ -351,8 +351,8 @@
   1.8
  ],
  "gnome-highmage-goggled": [
-  54,
-  33,
+  57,
+  39,
   1.8
  ],
  "gnome-lensgrinder-goggled": [
@@ -361,8 +361,8 @@
   1.7
  ],
  "gnome-outrider-mossy": [
-  54,
-  33,
+  51,
+  35,
   1.8
  ],
  "gnome-pathfinder-mossy": [
@@ -371,18 +371,18 @@
   1.9
  ],
  "gnome-seedseller-pinned": [
-  54,
-  33,
+  57,
+  31,
   1.8
  ],
  "gnome-shieldbreaker-serious": [
-  54,
-  33,
+  46,
+  32,
   1.8
  ],
  "gnome-silvertongue-waistcoat": [
-  54,
-  33,
+  47,
+  32,
   1.8
  ],
  "gnome-tinker-spectacled": [
@@ -391,7 +391,7 @@
   1.6
  ],
  "gnome-warpriest-candle": [
-  54,
+  53,
   33,
   1.8
  ],
@@ -426,9 +426,9 @@
   1.8
  ],
  "half-elf-outrider-windburnt": [
-  54,
-  33,
-  1.8
+  47,
+  31,
+  1.6
  ],
  "half-elf-sailor-tanned": [
   55,
@@ -451,14 +451,14 @@
   1.7
  ],
  "half-elf-shieldbreaker-notched": [
-  54,
-  33,
-  1.8
+  46,
+  32,
+  1.7
  ],
  "half-elf-silvertongue-dark": [
-  54,
-  33,
-  1.8
+  56,
+  31,
+  1.7
  ],
  "half-elf-spymaster-grey": [
   56,
@@ -466,8 +466,8 @@
   1.7
  ],
  "half-elf-thatcher-strawed": [
-  54,
-  33,
+  49,
+  26,
   1.8
  ],
  "half-elf-wanderingpriest-dusty": [
@@ -512,7 +512,7 @@
  ],
  "half-orc-highmage-runed": [
   54,
-  33,
+  16,
   1.8
  ],
  "half-orc-labourer-huge": [
@@ -526,8 +526,8 @@
   1.7
  ],
  "half-orc-outrider-cropped": [
-  54,
-  33,
+  51,
+  19,
   1.8
  ],
  "half-orc-pitboss-counting": [
@@ -551,8 +551,8 @@
   1.7
  ],
  "half-orc-silvertongue-velvet": [
-  54,
-  33,
+  46,
+  25,
   1.8
  ],
  "half-orc-tanner-stained": [
@@ -576,13 +576,13 @@
   1.8
  ],
  "half-orc-warpriest-tusked": [
-  54,
-  33,
+  52,
+  16,
   1.8
  ],
  "half-orc-welldigger-roped": [
-  54,
-  33,
+  55,
+  31,
   1.8
  ],
  "halfling-beekeeper-veiled": [
@@ -626,8 +626,8 @@
   1.5
  ],
  "halfling-highmage-starred": [
-  54,
-  33,
+  52,
+  31,
   1.8
  ],
  "halfling-laundress-strong": [
@@ -641,8 +641,8 @@
   2.1
  ],
  "halfling-outrider-muddy": [
-  54,
-  33,
+  56,
+  35,
   1.8
  ],
  "halfling-pickpocket-sharp": [
@@ -656,8 +656,8 @@
   1.7
  ],
  "halfling-potter-clayed": [
-  54,
-  33,
+  49,
+  28,
   1.8
  ],
  "halfling-server-braided": [
@@ -671,12 +671,12 @@
   1.8
  ],
  "halfling-shieldbreaker-dented": [
-  54,
-  33,
+  52,
+  35,
   1.8
  ],
  "halfling-silvertongue-pearled": [
-  54,
+  56,
   33,
   1.8
  ],
@@ -691,8 +691,8 @@
   1.6
  ],
  "halfling-warpriest-sunburst": [
-  54,
-  33,
+  46,
+  32,
   1.8
  ],
  "human-abbess-wimple": [
@@ -751,8 +751,8 @@
   1.7
  ],
  "human-forgepriest-ember": [
-  54,
-  33,
+  52,
+  29,
   1.8
  ],
  "human-guard-scarred": [
@@ -772,11 +772,11 @@
  ],
  "human-highmage-grey": [
   54,
-  33,
+  30,
   1.8
  ],
  "human-longstrider-sunburnt": [
-  54,
+  53,
   33,
   1.8
  ],
@@ -821,7 +821,7 @@
   1.9
  ],
  "human-silvertongue-gilded": [
-  54,
+  48,
   33,
   1.8
  ],
@@ -841,13 +841,13 @@
   1.7
  ],
  "human-washerwoman-headscarfed": [
-  54,
-  33,
+  52,
+  24,
   1.8
  ],
  "human-wheelwright-sawdust": [
-  54,
-  33,
+  46,
+  29,
   1.8
  ],
  "tiefling-fence-horned": [
@@ -886,8 +886,8 @@
   1.6
  ],
  "tiefling-lampoiler-funnelled": [
-  54,
-  33,
+  59,
+  26,
   1.8
  ],
  "tiefling-moneylender-swept": [
@@ -896,7 +896,7 @@
   1.7
  ],
  "tiefling-outrider-ragged": [
-  54,
+  55,
   33,
   1.8
  ],
@@ -926,13 +926,13 @@
   1.8
  ],
  "tiefling-shieldbreaker-ashen": [
-  54,
+  53,
   33,
   1.8
  ],
  "tiefling-silvertongue-sable": [
-  54,
-  33,
+  53,
+  31,
   1.8
  ],
  "tiefling-undertaker-courteous": [
@@ -941,8 +941,8 @@
   2
  ],
  "tiefling-warpriest-ember": [
-  54,
-  33,
+  56,
+  32,
   1.8
  ],
  "tiefling-weaver-threaded": [
