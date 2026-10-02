@@ -77,6 +77,12 @@ regenerating that one card at the bottom is faster than fighting it.
 
 `ffmpeg` only — there is no `sharp` and no native dependency in this project.
 
+**Pass `-nostdin` when slicing in a loop.** `ffmpeg` reads stdin even when it has no use
+for it, so inside `while read -r name; do ... done < names.txt` it swallows one byte per
+iteration and every filename after the first loses its leading character — `gnome-…`
+becomes `nome-…`. The crops themselves are still correct and in order, which is what makes
+it easy to miss. `-nostdin`, or `< /dev/null` on the ffmpeg call.
+
 ```bash
 ffmpeg -i in.png -vf "scale=300:200" -c:v libwebp -quality 82 out.webp   # cards
 ffmpeg -i in.png -vf "crop=250:250:X:Y,scale=256:256" -c:v libwebp -quality 72 out.webp  # portraits
