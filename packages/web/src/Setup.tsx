@@ -23,6 +23,14 @@ import type { JSX } from 'react'
  * there is no DM yet to ask, so it composes one ordinary first message.
  */
 /** A random option from a tab, for when the player has not chosen one. */
+/** How far to crop the rolled portrait, which is shown large. */
+const ROLL_ZOOM = 1.35
+
+/** "An Elf", not "A Elf". Only the races, so the five vowels are enough. */
+function article(word: string): string {
+  return /^[aeiou]/i.test(word) ? 'An' : 'A'
+}
+
 function pickFrom(tabs: typeof SETUP_TABS, key: string): string {
   const options = tabs.find((tab) => tab.key === key)?.options ?? []
   return options.length === 0 ? '' : options[Math.floor(Math.random() * options.length)]![0]
@@ -124,14 +132,16 @@ export function Setup({
               <span>
                 {answers.picked['race'] === undefined || answers.picked['class'] === undefined
                   ? 'Rolls a race and class too, if you have not picked them'
-                  : `A ${answers.picked['race']} ${answers.picked['class']}`}
+                  : `${article(answers.picked['race'])} ${answers.picked['race']} ${answers.picked['class']}`}
               </span>
               {answers.portrait !== '' && portraitFor(answers.portrait) !== null && (
                 <span className="roller-face">
                   <img
                     src={portraitFor(answers.portrait)!}
                     alt=""
-                    style={{ transform: faceTransform(answers.portrait) }}
+                    // Gentler than the recorded zoom, which was aimed at a 34px
+                    // circle and crops to a nose at this size.
+                    style={{ transform: faceTransform(answers.portrait, ROLL_ZOOM) }}
                   />
                 </span>
               )}
