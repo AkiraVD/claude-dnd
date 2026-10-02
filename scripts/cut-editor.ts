@@ -1,11 +1,15 @@
 /**
- * Cut pictures out of a master sheet, by hand, on the sheet itself.
+ * Cut a master sheet with scissors: move the lines, not the boxes.
  *
- * The earlier cropper aimed a transform at the shipped files. This one works a
- * step upstream: the master is on screen, you drag a square over each subject,
- * and the cut is made from the master at full resolution — so moving a boundary
- * costs nothing in quality, and the result is a new file rather than an old one
- * squeezed.
+ * The first version gave every cell its own rectangle, which is more freedom
+ * than a sheet actually has. A sheet is a grid — the cells share their edges —
+ * so twenty-five boxes meant adjusting the same boundary twenty-five times and
+ * getting it slightly different each time. There are only cols+1 vertical cuts
+ * and rows+1 horizontal ones, and moving one moves everything that touches it.
+ *
+ * Every line also has a number box. Dragging is for finding the cut; typing is
+ * for landing on it, and a seam is usually a specific pixel rather than roughly
+ * there.
  *
  * The sheet is inlined as a data URI. The masters live outside the repo, and a
  * generated page that depends on a path in someone's home directory is a page
@@ -14,7 +18,7 @@
  *   SHEET=~/art/classes.png npm run cut
  *   SHEET=~/art/npc3.png GRID=5x5 NAMES=names3.txt PAGE=cut-npc3 npm run cut
  *
- * Then open /cut.html (or /cut-npc3.html), aim, copy, and `npm run cut:apply`.
+ * Then open the page, cut, copy, and `npm run cut:apply`.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -40,23 +44,18 @@ const title = process.env['TITLE'] ?? page
  * the rejected version back. Those cells are drawn but never leave the page.
  */
 const namesFile = process.env['NAMES']
-const names: Array<{ name: string; label: string; description: string }> = namesFile
+const names: Array<{ name: string; label: string }> = namesFile
   ? readFileSync(namesFile, 'utf8')
       .split('\n')
       .map((line) => line.trim())
       .filter((line) => line !== '')
-      .map((name) =>
-        name === '-'
-          ? { name: '', label: 'skip', description: 'superseded — not cut' }
-          : { name, label: name, description: '' },
-      )
+      .map((name) => (name === '-' ? { name: '', label: 'skip' } : { name, label: name }))
   : (() => {
       const tab = SETUP_TABS.find((t) => t.key === 'class')
       if (tab === undefined) throw new Error('no class tab')
-      return tab.options.map(([label, description]) => ({
+      return tab.options.map(([label]) => ({
         name: label.toLowerCase().replace(/\s+/g, '-'),
         label,
-        description,
       }))
     })()
 
@@ -85,60 +84,59 @@ const html = `<!doctype html>
     background:var(--panel); color:var(--text); cursor:pointer; }
   button:hover { border-color:var(--accent); color:var(--accent); }
   #count { margin-left:auto; color:var(--dim); }
-  .bar { display:flex; gap:14px; align-items:center; flex-wrap:wrap; padding:9px 16px;
-    border-bottom:1px solid var(--line); background:var(--panel); }
-  .bar strong { color:var(--accent); font-weight:normal; letter-spacing:.06em; text-transform:uppercase; }
-  .pv span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .row { display:flex; gap:8px; align-items:center; min-width:210px; flex:1; }
-  .row label { width:40px; color:var(--faint); }
-  .row input { flex:1; }
-  .row output { width:52px; color:var(--dim); text-align:right; }
+  .bar { padding:9px 16px; border-bottom:1px solid var(--line); background:var(--panel);
+    display:flex; gap:18px; flex-wrap:wrap; align-items:flex-start; }
+  .bar h2 { margin:0 8px 0 0; font-size:11px; letter-spacing:.07em; text-transform:uppercase;
+    color:var(--dim); align-self:center; }
+  .nums { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .nums input { width:62px; font:inherit; padding:4px 6px; border:1px solid var(--line);
+    border-radius:5px; background:var(--bg); color:var(--text); text-align:right; }
+  .nums input:focus { outline:none; border-color:var(--accent); }
+  .nums input.edge { color:var(--faint); }
   textarea#out { display:none; width:calc(100% - 24px); height:190px; margin:10px 12px; padding:10px;
     font:12px/1.5 ui-monospace,monospace; border:1px solid var(--accent); border-radius:6px;
     background:#0d0f12; color:#c9d1d9; resize:vertical; }
   .wrap { display:flex; gap:14px; padding:12px; align-items:flex-start; }
   .sheetbox { position:relative; flex:1; min-width:0; user-select:none; }
   .sheetbox img { display:block; width:100%; }
-  /* Border only. A spotlight shadow is the obvious thing to reach for and it is
-     wrong here: twelve boxes means twelve full-page overlays stacked, and the
-     sheet underneath goes black. */
-  .cut { position:absolute; border:2px solid var(--accent); box-shadow:0 0 0 1px #000a;
-    cursor:move; touch-action:none; background:rgba(217,164,65,.06); }
-  .cut.on { border-color:#6cc08a; z-index:2; }
-  .cut.skip { border-style:dashed; border-color:#5b646f; background:rgba(0,0,0,.45); }
-  .pv.skip { opacity:.35; }
-  .cut b { position:absolute; left:3px; top:2px; font:11px/1.3 ui-monospace,monospace;
-    color:#fff; text-shadow:0 1px 2px #000; font-weight:normal; pointer-events:none; }
-  .grip { position:absolute; right:-7px; bottom:-7px; width:14px; height:14px; background:var(--accent);
-    border:1px solid #000; cursor:nwse-resize; touch-action:none; }
+  /* The cuts. Wide invisible grab area, thin visible line. */
+  .ln { position:absolute; z-index:3; }
+  .ln i { position:absolute; background:var(--accent); box-shadow:0 0 0 1px #000a; }
+  .ln.v { top:0; bottom:0; width:13px; margin-left:-6px; cursor:ew-resize; touch-action:none; }
+  .ln.v i { top:0; bottom:0; left:6px; width:1px; }
+  .ln.h { left:0; right:0; height:13px; margin-top:-6px; cursor:ns-resize; touch-action:none; }
+  .ln.h i { left:0; right:0; top:6px; height:1px; }
+  .ln:hover i, .ln.live i { background:#6cc08a; box-shadow:0 0 0 1px #000, 0 0 7px #6cc08a; }
+  .cell { position:absolute; z-index:1; border:0; pointer-events:none;
+    font:11px/1.3 ui-monospace,monospace; color:#fff; text-shadow:0 1px 2px #000; padding:2px 3px; }
+  .cell.skip { background:rgba(0,0,0,.55); }
   aside { width:300px; flex:none; position:sticky; top:96px; max-height:84vh; overflow:auto; }
   aside h2 { margin:0 0 7px; font-size:12px; letter-spacing:.07em; text-transform:uppercase; color:var(--dim); }
   .previews { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
   .pv { border:1px solid var(--line); border-radius:5px; overflow:hidden; background:var(--panel); }
-  .pv .win { position:relative; width:100%; aspect-ratio:1/1; overflow:hidden; }
+  .pv .win { position:relative; width:100%; overflow:hidden; }
   .pv .win img { position:absolute; transform-origin:0 0; }
-  .pv span { display:block; padding:3px 5px; color:var(--dim); font-size:11px; }
-  .pv.on { border-color:#6cc08a; }
+  .pv span { display:block; padding:3px 5px; color:var(--dim); font-size:11px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pv.skip { opacity:.3; }
 </style></head>
 <body>
 <header>
   <h1>Cut ${title}</h1>
-  <span class="hint">drag a box to move it &middot; corner resizes width and height freely &middot; the panel is what each file becomes</span>
-  <span id="count">0 moved</span>
-  <button id="reset">reset all</button>
+  <span class="hint">drag a line, or type the pixel &middot; every cell sharing it follows</span>
+  <span id="count">unmoved</span>
+  <button id="even">space evenly</button>
+  <button id="reset">reset</button>
   <button id="copy">copy json</button>
 </header>
 <div class="bar">
-  <strong>all ${names.length}</strong>
-  <span class="row"><label for="gx">across</label><input id="gx" type="range" min="-120" max="120" step="1" value="0"><output id="gxv">0</output></span>
-  <span class="row"><label for="gy">down</label><input id="gy" type="range" min="-120" max="120" step="1" value="0"><output id="gyv">0</output></span>
-  <span class="row"><label for="gw">wide</label><input id="gw" type="range" min="60" max="600" step="2" value="0"><output id="gwv">0</output></span>
-  <span class="row"><label for="gh">tall</label><input id="gh" type="range" min="60" max="600" step="2" value="0"><output id="ghv">0</output></span>
+  <h2>vertical cuts &mdash; x</h2><div class="nums" id="xnums"></div>
+  <h2>horizontal cuts &mdash; y</h2><div class="nums" id="ynums"></div>
 </div>
 <textarea id="out" spellcheck="false" readonly></textarea>
 <div class="wrap">
   <div class="sheetbox" id="sheetbox"><img id="sheet" src="${dataUri}" alt=""></div>
-  <aside><h2>each card</h2><div class="previews" id="previews"></div></aside>
+  <aside><h2>each file</h2><div class="previews" id="previews"></div></aside>
 </div>
 <script>
 var STORE = ${JSON.stringify(STORE)};
@@ -147,171 +145,135 @@ var COLS = ${COLS}, ROWS = ${ROWS};
 
 var sheet = document.getElementById('sheet');
 var box = document.getElementById('sheetbox');
-var SW = 0, SH = 0, CW = 0, CH = 0;
+var SW = 0, SH = 0;
+var xs = [], ys = [];
+var pvs = [];
 
-function saved() {
-  try { return JSON.parse(localStorage.getItem(STORE) || '{}') } catch (e) { return {} }
+function scale() { return sheet.clientWidth / SW }
+function evenly(n, total) {
+  var out = [];
+  for (var i = 0; i <= n; i++) out.push(Math.round((i * total) / n));
+  return out;
 }
-function store(all) { localStorage.setItem(STORE, JSON.stringify(all)) }
-function scale() { return sheet.clientWidth / SW; }
-
-var cells = {};
+function save() { localStorage.setItem(STORE, JSON.stringify({ xs: xs, ys: ys })) }
+function load() {
+  try {
+    var v = JSON.parse(localStorage.getItem(STORE) || 'null');
+    if (v && v.xs && v.xs.length === COLS + 1 && v.ys && v.ys.length === ROWS + 1) return v;
+  } catch (e) {}
+  return null;
+}
 
 function build() {
   SW = sheet.naturalWidth; SH = sheet.naturalHeight;
-  CW = SW / COLS; CH = SH / ROWS;
-  var all = saved();
+  var saved = load();
+  xs = saved ? saved.xs.slice() : evenly(COLS, SW);
+  ys = saved ? saved.ys.slice() : evenly(ROWS, SH);
 
+  // Cells first, so the lines sit over them and stay grabbable.
   NAMES.forEach(function (row, i) {
-    var c = i % COLS, r = Math.floor(i / COLS);
-    var base = [Math.round(c * CW), Math.round(r * CH), Math.round(CW), Math.round(CH)];
-    var v = all[row.name] || base;
-    if (v.length === 3) v = [v[0], v[1], v[2], v[2]];
-
     var el = document.createElement('div');
-    el.className = 'cut' + (row.name === '' ? ' skip' : '');
-    el.innerHTML = '<b>' + row.label + '</b><i class="grip"></i>';
+    el.className = 'cell' + (row.name === '' ? ' skip' : '');
+    el.textContent = row.label;
     box.appendChild(el);
 
     var pv = document.createElement('div');
     pv.className = 'pv' + (row.name === '' ? ' skip' : '');
     pv.innerHTML = '<div class="win"><img src="' + sheet.src + '" alt=""></div><span>' + row.label + '</span>';
     document.getElementById('previews').appendChild(pv);
-
-    cells[row.name] = {
-      base: base, x: v[0], y: v[1], w: v[2], h: v[3], el: el, pv: pv,
-      img: pv.querySelector('img'),
-      reset: function () {
-        this.x = base[0]; this.y = base[1]; this.w = base[2]; this.h = base[3]; draw(this);
-      },
-    };
-
-    wire(cells[row.name]);
-    draw(cells[row.name]);
+    pvs.push({ el: el, pv: pv, img: pv.querySelector('img'), win: pv.querySelector('.win') });
   });
-  tally();
+
+  makeLines('v', xs, 'xnums');
+  makeLines('h', ys, 'ynums');
+  draw();
 }
 
-function clampCell(cell) {
-  cell.w = Math.max(40, Math.min(SW, cell.w));
-  cell.h = Math.max(40, Math.min(SH, cell.h));
-  cell.x = Math.max(0, Math.min(SW - cell.w, cell.x));
-  cell.y = Math.max(0, Math.min(SH - cell.h, cell.y));
-}
+function makeLines(kind, arr, numsId) {
+  var nums = document.getElementById(numsId);
+  arr.forEach(function (_, i) {
+    var ln = document.createElement('div');
+    ln.className = 'ln ' + kind;
+    ln.innerHTML = '<i></i>';
+    box.appendChild(ln);
 
-function place(cell, x, y, w, h) {
-  cell.x = Math.round(x); cell.y = Math.round(y);
-  cell.w = Math.round(w); cell.h = Math.round(h);
-  clampCell(cell);
-  remember(cell);
-}
+    var input = document.createElement('input');
+    input.type = 'number';
+    input.step = '1';
+    // The outer edges are the sheet's own edges. Movable, because a sheet can
+    // have a margin, but marked so they read as the frame rather than a cut.
+    if (i === 0 || i === arr.length - 1) input.className = 'edge';
+    nums.appendChild(input);
 
-function draw(cell) {
-  var k = scale();
-  cell.el.style.left = cell.x * k + 'px';
-  cell.el.style.top = cell.y * k + 'px';
-  cell.el.style.width = cell.w * k + 'px';
-  cell.el.style.height = cell.h * k + 'px';
-  // The preview is the crop itself. The window keeps the cut's own shape, so a
-  // tall cut previews tall rather than being squashed into a square and
-  // flattering a framing that will not survive the file.
-  var win = cell.pv.querySelector('.win');
-  var ww = win.clientWidth || 84;
-  win.style.aspectRatio = cell.w + ' / ' + cell.h;
-  var z = ww / cell.w;
-  cell.img.style.width = SW * z + 'px';
-  cell.img.style.left = -cell.x * z + 'px';
-  cell.img.style.top = -cell.y * z + 'px';
-  var moved = cell.x !== cell.base[0] || cell.y !== cell.base[1] ||
-    cell.w !== cell.base[2] || cell.h !== cell.base[3];
-  cell.el.classList.toggle('on', moved);
-  cell.pv.classList.toggle('on', moved);
-}
-
-function remember(cell) {
-  var all = saved();
-  var moved = cell.x !== cell.base[0] || cell.y !== cell.base[1] ||
-    cell.w !== cell.base[2] || cell.h !== cell.base[3];
-  var name = Object.keys(cells).find(function (n) { return cells[n] === cell });
-  if (moved) { all[name] = [cell.x, cell.y, cell.w, cell.h] } else { delete all[name] }
-  store(all); draw(cell); tally();
-}
-
-function wire(cell) {
-  var grip = cell.el.querySelector('.grip');
-  var drag = null;
-
-  cell.el.addEventListener('pointerdown', function (e) {
-    if (e.target === grip) return;
-    cell.el.setPointerCapture(e.pointerId);
-    drag = { mode: 'move', px: e.clientX, py: e.clientY, x: cell.x, y: cell.y };
-  });
-  grip.addEventListener('pointerdown', function (e) {
-    e.stopPropagation();
-    grip.setPointerCapture(e.pointerId);
-    drag = { mode: 'size', px: e.clientX, py: e.clientY, w: cell.w, h: cell.h };
-  });
-  function move(e) {
-    if (drag === null) return;
-    var k = scale();
-    var dx = (e.clientX - drag.px) / k, dy = (e.clientY - drag.py) / k;
-    if (drag.mode === 'move') {
-      place(cell, drag.x + dx, drag.y + dy, cell.w, cell.h);
-    } else {
-      // Free in both axes: these cells are not square, and forcing one was the
-      // thing that made the cut fight the picture.
-      place(cell, cell.x, cell.y, drag.w + dx, drag.h + dy);
+    function set(v) {
+      var lo = i === 0 ? 0 : arr[i - 1] + 20;
+      var hi = i === arr.length - 1 ? (kind === 'v' ? SW : SH) : arr[i + 1] - 20;
+      arr[i] = Math.round(Math.max(lo, Math.min(hi, v)));
+      save(); draw();
     }
-  }
-  cell.el.addEventListener('pointermove', move);
-  grip.addEventListener('pointermove', move);
-  function up() { drag = null }
-  cell.el.addEventListener('pointerup', up);
-  grip.addEventListener('pointerup', up);
-}
 
-function tally() {
-  document.getElementById('count').textContent = Object.keys(saved()).length + ' moved';
-}
+    input.addEventListener('input', function () {
+      if (input.value !== '') set(Number(input.value));
+    });
 
-// The batch row works off each cell's own starting point, so one sheet framed
-// the same way wrong for every cell is one slider, once.
-function batch() {
-  var dx = Number(document.getElementById('gx').value);
-  var dy = Number(document.getElementById('gy').value);
-  var w = Number(document.getElementById('gw').value);
-  var h = Number(document.getElementById('gh').value);
-  Object.keys(cells).forEach(function (n) {
-    var cell = cells[n];
-    // Zero means "leave this one alone", so the width slider can be used
-    // without the height one deciding anything.
-    place(cell, cell.base[0] + dx, cell.base[1] + dy,
-      w > 0 ? w : cell.w, h > 0 ? h : cell.h);
+    var dragging = false;
+    ln.addEventListener('pointerdown', function (e) {
+      ln.setPointerCapture(e.pointerId); dragging = true; ln.classList.add('live');
+    });
+    ln.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      var r = box.getBoundingClientRect();
+      set(((kind === 'v' ? e.clientX - r.left : e.clientY - r.top)) / scale());
+    });
+    ln.addEventListener('pointerup', function () { dragging = false; ln.classList.remove('live') });
+
+    (kind === 'v' ? vLines : hLines).push({ ln: ln, input: input });
   });
 }
-['gx', 'gy', 'gw', 'gh'].forEach(function (id) {
-  document.getElementById(id).addEventListener('input', function () {
-    document.getElementById(id + 'v').textContent = document.getElementById(id).value;
-    batch();
-  });
-});
+var vLines = [], hLines = [];
 
+function draw() {
+  var k = scale();
+  vLines.forEach(function (o, i) { o.ln.style.left = xs[i] * k + 'px'; o.input.value = xs[i] });
+  hLines.forEach(function (o, i) { o.ln.style.top = ys[i] * k + 'px'; o.input.value = ys[i] });
+
+  NAMES.forEach(function (row, i) {
+    var c = i % COLS, r = Math.floor(i / COLS);
+    var x = xs[c], y = ys[r], w = xs[c + 1] - xs[c], h = ys[r + 1] - ys[r];
+    var p = pvs[i];
+    p.el.style.left = x * k + 'px';
+    p.el.style.top = y * k + 'px';
+    p.el.style.width = w * k + 'px';
+    p.el.style.height = h * k + 'px';
+    // The preview keeps the cut's own shape, so a tall crop previews tall
+    // rather than being flattered by a square window.
+    p.win.style.aspectRatio = w + ' / ' + h;
+    var ww = p.win.clientWidth || 70;
+    var z = ww / w;
+    p.img.style.width = SW * z + 'px';
+    p.img.style.left = -x * z + 'px';
+    p.img.style.top = -y * z + 'px';
+  });
+
+  var ev = evenly(COLS, SW).join() === xs.join() && evenly(ROWS, SH).join() === ys.join();
+  document.getElementById('count').textContent = ev ? 'unmoved' : 'cut';
+}
+
+document.getElementById('even').onclick = function () {
+  xs = evenly(COLS, SW); ys = evenly(ROWS, SH); save(); draw();
+};
 document.getElementById('reset').onclick = function () {
-  if (!confirm('Throw away every cut on this page?')) return;
+  if (!confirm('Throw away these cuts?')) return;
   localStorage.removeItem(STORE);
-  ['gx', 'gy', 'gw', 'gh'].forEach(function (id) {
-    document.getElementById(id).value = 0;
-    document.getElementById(id + 'v').textContent = '0';
-  });
-  Object.keys(cells).forEach(function (n) { cells[n].reset() });
-  tally();
+  xs = evenly(COLS, SW); ys = evenly(ROWS, SH); draw();
 };
 
 document.getElementById('copy').onclick = function () {
   var out = {};
-  Object.keys(cells).forEach(function (n) {
-    if (n === '') return;
-    out[n] = [cells[n].x, cells[n].y, cells[n].w, cells[n].h];
+  NAMES.forEach(function (row, i) {
+    if (row.name === '') return;
+    var c = i % COLS, r = Math.floor(i / COLS);
+    out[row.name] = [xs[c], ys[r], xs[c + 1] - xs[c], ys[r + 1] - ys[r]];
   });
   var text = JSON.stringify(out, null, 1);
   var btn = this, area = document.getElementById('out');
@@ -331,10 +293,7 @@ document.getElementById('copy').onclick = function () {
   setTimeout(function () { btn.textContent = 'copy json' }, 1800);
 };
 
-addEventListener('resize', function () {
-  Object.keys(cells).forEach(function (n) { draw(cells[n]) });
-});
-
+addEventListener('resize', draw);
 if (sheet.complete) build(); else sheet.addEventListener('load', build);
 </script>
 </body></html>
@@ -347,4 +306,4 @@ for (const root of ['packages/web/public', 'packages/web/dist']) {
     // dist may not exist yet; public is the one that matters.
   }
 }
-console.error(`cut editor: ${names.length} cells from ${sheetPath} -> /${page}.html`)
+console.error(`cut editor: ${COLS}x${ROWS} from ${sheetPath} -> /${page}.html`)
