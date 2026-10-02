@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { cardTransform, faceTransform, portraitFor } from './art.js'
-import { rollCharacter } from './roll-character.js'
+import { FACE_RACES, faceCounts, facesMatching, raceLabel, type Face, type FaceRace } from './faces.js'
+import { pronounsForPortrait, type Gender } from '@dnd/content'
+import { rollCharacter, suggestedClass } from './roll-character.js'
 import {
   EMPTY_ANSWERS,
   LANGUAGE_OPTIONS,
@@ -151,18 +153,6 @@ export function Setup({
                 {answers.picked['race'] === undefined || answers.picked['class'] === undefined
                   ? 'Rolls a race and class too, if you have not picked them'
                   : `${article(answers.picked['race'])} ${answers.picked['race']} ${answers.picked['class']}`}
-                {/* Shown and changeable, because the portrait settles it for
-                    most faces and settles nothing for a dragonborn. */}
-                <select
-                  aria-label="Pronouns"
-                  value={answers.pronouns}
-                  onChange={(event) => setAnswers({ ...answers, pronouns: event.target.value })}
-                >
-                  <option value="">the DM decides</option>
-                  <option value="he/him">he/him</option>
-                  <option value="she/her">she/her</option>
-                  <option value="they/them">they/them</option>
-                </select>
               </span>
               {answers.portrait !== '' && portraitFor(answers.portrait) !== null && (
                 <span className="roller-face">
@@ -191,7 +181,38 @@ export function Setup({
             </div>
           )}
 
-          {tab.options.length > 0 && (
+          {tab.picker === 'faces' && (
+            <FacePicker
+              chosen={answers.portrait}
+              gender={genderFor(answers.pronouns)}
+              onGender={(pronouns) => setAnswers({ ...answers, pronouns })}
+              onPick={(face) => {
+                // The trade in the picture suggests a class, and only suggests:
+                // a priest's robes on a barbarian is not a contradiction, since
+                // the brief never claims the portrait is a statement about the
+                // class. An answer already given is left alone.
+                const suggestion = suggestedClass(face.name)
+                const alreadyChosen = (answers.picked['class'] ?? '') !== ''
+                setAnswers({
+                  ...answers,
+                  portrait: face.name,
+                  // Race and pronouns are read off the picture rather than
+                  // asked for, which is the whole point: they cannot disagree
+                  // with it if they came from it.
+                  picked: {
+                    ...answers.picked,
+                    race: raceLabel(face.race),
+                    ...(suggestion === null || alreadyChosen
+                      ? {}
+                      : { class: suggestion.charAt(0).toUpperCase() + suggestion.slice(1) }),
+                  },
+                  pronouns: pronounsForPortrait(face.name) ?? answers.pronouns,
+                })
+              }}
+            />
+          )}
+
+          {tab.picker === undefined && tab.options.length > 0 && (
             <div className={`options${tab.wide === true ? ' wide' : ''}`}>
               {tab.options.map(([label, description]) => (
                 <button
@@ -348,3 +369,98 @@ function LanguageGate({
 }
 
 export { answerFor }
+
+/**
+ * Choosing a character by their face.
+ *
+ * Race and sex come off the picture instead of being asked for beside it, so
+ * they cannot contradict it. The filters are a way through 190 portraits, not
+ * questions in their own right — picking "dwarf" here narrows the grid, it does
+ * not answer anything the brief will carry on its own.
+ */
+function FacePicker({
+  chosen,
+  gender,
+  onGender,
+  onPick,
+}: {
+  chosen: string
+  gender: Gender | undefined
+  onGender: (pronouns: string) => void
+  onPick: (face: Face) => void
+}): JSX.Element {
+  const [race, setRace] = useState<FaceRace | null>(null)
+  const counts = faceCounts(gender ?? null)
+  const shown = facesMatching({
+    race,
+    ...(gender === undefined ? {} : { gender }),
+  })
+
+  return (
+    <div className="faces">
+      <div className="faces-filter">
+        <button
+          type="button"
+          className="chip chip-pick"
+          aria-pressed={race === null}
+          onClick={() => setRace(null)}
+        >
+          everyone <em>{Object.values(counts).reduce((a, b) => a + b, 0)}</em>
+        </button>
+        {FACE_RACES.map((option) => (
+          <button
+            key={option}
+            type="button"
+            className="chip chip-pick"
+            aria-pressed={race === option}
+            onClick={() => setRace(option)}
+          >
+            {raceLabel(option)} <em>{counts[option] ?? 0}</em>
+          </button>
+        ))}
+      </div>
+
+      <div className="faces-filter">
+        {(
+          [
+            ['', 'everyone'],
+            ['he/him', '\u2642 men'],
+            ['she/her', '\u2640 women'],
+          ] as const
+        ).map(([value, label]) => (
+          <button
+            key={label}
+            type="button"
+            className="chip chip-pick"
+            aria-pressed={(gender === undefined ? '' : gender === 'male' ? 'he/him' : 'she/her') === value}
+            onClick={() => onGender(value)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div className="faces-grid">
+        {shown.map((face) => (
+          <button
+            key={face.name}
+            type="button"
+            className="face"
+            aria-pressed={chosen === face.name}
+            title={face.looks}
+            onClick={() => onPick(face)}
+          >
+            <span className="face-shot">
+              <img
+                src={portraitFor(face.name)!}
+                alt=""
+                style={{ transform: faceTransform(face.name, ROLL_ZOOM) }}
+              />
+            </span>
+            <em>{face.role}</em>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}

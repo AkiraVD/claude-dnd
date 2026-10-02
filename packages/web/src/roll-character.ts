@@ -195,6 +195,37 @@ const ROLES: Record<string, readonly string[]> = {
   wizard: ['courtmage', 'highmage', 'runecarver', 'hedgemage', 'archivist', 'scholar', 'apothecary', 'clockmaker', 'tinker', 'scribe'],
 }
 
+/**
+ * The class a portrait's trade suggests, or null when it suggests none.
+ *
+ * Inverted from ROLES rather than written out again: a second table would be a
+ * second opinion, and the two would drift until a shieldbreaker suggested
+ * barbarian in one place and fighter in the other. Whichever class ranks the
+ * role highest wins, which is the same preference the roller uses when going
+ * the other way.
+ *
+ * Null for the fifty-six faces that are purely a trade — a baker, a miller, a
+ * ratcatcher. Those are chosen because someone wants to look like a miller, and
+ * inventing a class for them would be noise.
+ */
+const SUGGESTED = new Map<string, string>()
+for (const [className, roles] of Object.entries(ROLES)) {
+  roles.forEach((role, rank) => {
+    const held = SUGGESTED.get(role)
+    if (held === undefined) {
+      SUGGESTED.set(role, `${rank}:${className}`)
+      return
+    }
+    if (rank < Number(held.split(':')[0])) SUGGESTED.set(role, `${rank}:${className}`)
+  })
+}
+
+export function suggestedClass(portrait: string): string | null {
+  const role = portrait.split('-').at(-2) ?? ''
+  const held = SUGGESTED.get(role)
+  return held === undefined ? null : held.slice(held.indexOf(':') + 1)
+}
+
 const slug = (value: string): string => value.trim().toLowerCase().replace(/\s+/g, '-')
 
 /** Every stock portrait of that race, in catalogue order. */

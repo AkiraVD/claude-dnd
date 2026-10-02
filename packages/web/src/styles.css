@@ -1149,6 +1149,54 @@ button.ghost:hover { border-color: var(--text-faint); color: var(--text); }
   * { transition: none !important; animation: none !important; }
 }
 
+/* Choosing a character by their face. */
+.faces-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 11px;
+}
+.faces-filter em { font-style: normal; color: var(--text-faint); }
+.faces-grid {
+  display: grid;
+  /* Small, because the job here is to scan 190 of them and stop at one. The
+     chosen face is shown large on the Character tab. */
+  grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+  gap: 8px;
+}
+.face {
+  display: block;
+  padding: 0 0 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-sunken);
+  color: var(--text-faint);
+  cursor: pointer;
+  overflow: hidden;
+}
+.face:hover { border-color: var(--accent); }
+.face[aria-pressed='true'] { border-color: var(--accent); background: var(--bg-raised); }
+.face-shot {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  position: relative;
+  border-bottom: 1px solid var(--line);
+}
+.face-shot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.face em {
+  display: block;
+  padding: 3px 4px 0;
+  font-size: 10px;
+  font-style: normal;
+  letter-spacing: 0.03em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.face[aria-pressed='true'] em { color: var(--accent); }
+
 /* Option cards that carry art: the class picker. */
 .opt-art { padding: 0 0 9px; overflow: hidden; }
 /* The frame. The picture inside it can be scaled and shifted onto its subject,
@@ -1459,16 +1507,20 @@ button.ghost:hover { border-color: var(--text-faint); color: var(--text); }
 }
 .roller span { font-size: 11.5px; color: var(--text-faint); }
 .roller-who { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
-.roller-who select {
-  font: inherit;
-  font-size: 11.5px;
-  padding: 3px 6px;
+.roller-sex { display: flex; gap: 5px; }
+.roller-sex button {
+  width: 30px;
+  padding: 3px 0;
+  font-size: 14px;
+  line-height: 1.2;
   border: 1px solid var(--line);
   border-radius: 5px;
   background: var(--bg);
-  color: var(--text-dim);
+  color: var(--text-faint);
+  cursor: pointer;
 }
-.roller-who select:focus { outline: none; border-color: var(--accent); }
+.roller-sex button:hover { border-color: var(--accent); color: var(--text-dim); }
+.roller-sex button[aria-pressed='true'] { border-color: var(--accent); color: var(--accent); }
 /* Big, because this is the only place the rolled character is shown at all —
    the name and the hook are words, and the face is the part that tells you
    whether to roll again. Square, like the sheet and the cast panel. */

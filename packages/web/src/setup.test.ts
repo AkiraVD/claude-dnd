@@ -152,8 +152,10 @@ describe('class art', () => {
     const { fileURLToPath } = await import('node:url')
 
     const withArt = SETUP_TABS.filter((tab) => tab.imageFor !== undefined)
+    // 'race' is not here any more: it asks with a grid of portraits rather than
+    // nine painted cards, because the picture already settles the race and the
+    // sex and asking for them separately only let them disagree with it.
     expect(withArt.map((tab) => tab.key)).toEqual([
-      'race',
       'class',
       'adventure',
       'difficulty',
@@ -170,15 +172,26 @@ describe('class art', () => {
     }
   })
 
+  it('asks with cards or with faces, never both', () => {
+    // A tab that renders a picker ignores options art entirely, so carrying
+    // both would mean one of them is dead weight nobody notices is wrong.
+    for (const tab of SETUP_TABS) {
+      if (tab.picker === undefined) continue
+      expect(tab.imageFor, `${tab.key} has a picker and card art`).toBeUndefined()
+      expect(tab.artAspect, `${tab.key} has a picker and an art aspect`).toBeUndefined()
+    }
+    expect(SETUP_TABS.filter((tab) => tab.picker !== undefined).map((t) => t.key)).toEqual(['race'])
+  })
+
   it('gives the tabs with art an explicit aspect', () => {
-    // Three different aspects across the tabs — square busts, landscape pairs,
-    // landscape scenes — so a shared default would letterbox something.
+    // Two aspects across the tabs — square busts and landscape scenes — so a
+    // shared default would letterbox one of them. The race pairs used to be a
+    // third; that tab asks with portraits now.
     for (const tab of SETUP_TABS) {
       if (tab.imageFor === undefined) continue
       expect(tab.artAspect, `${tab.key} has art but no aspect`).toBeDefined()
     }
     expect(SETUP_TABS.find((t) => t.key === 'class')!.artAspect).toBe('1 / 1')
-    expect(SETUP_TABS.find((t) => t.key === 'race')!.artAspect).toBe('3 / 2')
     expect(SETUP_TABS.find((t) => t.key === 'adventure')!.artAspect).toBe('3 / 2')
     // The still-life deck: difficulty, tone and rules share one treatment.
     for (const key of ['difficulty', 'rules', 'tone']) {

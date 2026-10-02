@@ -36,6 +36,8 @@ export interface SetupTab {
    * figures side by side and need the width.
    */
   artAspect?: string
+  /** Rendered as a portrait grid rather than option cards. */
+  picker?: 'faces'
 }
 
 const LANGUAGES: readonly (readonly [string, string])[] = [
@@ -67,17 +69,18 @@ const classOptions = Object.entries(CLASSES).map(
 export const SETUP_TABS: readonly SetupTab[] = [
   {
     key: 'race',
-    label: 'Race',
-    prompt: 'What are you?',
+    label: 'Who',
+    prompt: 'Who are you looking at?',
+    named: true,
     custom: 'Or describe your own people',
     placeholder: 'A tiefling raised by dwarves, ashamed of neither…',
     wide: true,
     options: raceOptions,
     phrase: (value) => `Race: ${value}`,
-    // A man and a woman of each people, so the card shows a people rather than
-    // a person — and nothing about the picker implies a gender.
-    imageFor: (label) => `/races/${label.toLowerCase()}.webp`,
-    artAspect: '3 / 2',
+    // Faces rather than cards. The picture already knows the race and the sex,
+    // which are the two things the DM cannot write a sentence without — asking
+    // for them separately only gave them room to disagree with the portrait.
+    picker: 'faces',
   },
   {
     key: 'class',
@@ -188,12 +191,11 @@ export const SETUP_TABS: readonly SetupTab[] = [
   },
   {
     key: 'character',
-    label: 'Character',
-    prompt: 'Who are you, exactly?',
+    label: 'Backstory',
+    prompt: 'What happened before this?',
     custom: 'Concept, background, the hook',
     placeholder:
       'Disgraced temple guard. Took the blame for something to protect someone who has not written back…',
-    named: true,
     options: [],
     phrase: (value) => value,
   },
