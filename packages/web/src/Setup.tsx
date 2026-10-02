@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { cardTransform, faceTransform, portraitFor } from './art.js'
 import {
+  FACES,
   FACE_RACES,
   faceCounts,
   facesMatching,
@@ -9,8 +10,8 @@ import {
   type Face,
   type FaceRace,
 } from './faces.js'
-import { pronounsForPortrait, type Gender } from '@dnd/content'
-import { rollCharacter, suggestedClass } from './roll-character.js'
+import { UNKNOWN_PORTRAIT, pronounsForPortrait, type Gender } from '@dnd/content'
+import { defaultBackstory, rollCharacter, suggestedClass } from './roll-character.js'
 import {
   EMPTY_ANSWERS,
   LANGUAGE_OPTIONS,
@@ -20,8 +21,11 @@ import {
   composeBrief,
   isAnswered,
   portraitAfterDescribing,
+  rolledAnswers,
+  skipBrief,
   slug,
   type SetupAnswers,
+  type SetupTab,
 } from './setup.js'
 import type { JSX } from 'react'
 
@@ -34,30 +38,25 @@ import type { JSX } from 'react'
  * there is no DM yet to ask, so it composes one ordinary first message.
  */
 /** A random option from a tab, for when the player has not chosen one. */
-/**
- * The gender a chosen pronoun asks the roll for.
- *
- * they/them asks for neither, which is not the same as asking for nothing: the
- * library has no third set of faces, so the roll is left free rather than
- * forced into one of the two.
- */
-function genderFor(pronouns: string): 'male' | 'female' | undefined {
-  if (pronouns === 'he/him') return 'male'
-  if (pronouns === 'she/her') return 'female'
-  return undefined
-}
-
 /** How far to crop the rolled portrait, which is shown large. */
 const ROLL_ZOOM = 1.35
+
+/**
+ * The tabs the Character tab now asks for, rather than leaving to a tab of
+ * their own.
+ *
+ * Still tabs in the data: they keep their cards, their custom box and their
+ * phrase, so the brief reads them exactly as it reads the rest. Only the row of
+ * buttons leaves them out.
+ */
+const RACE_TAB = SETUP_TABS.find((each) => each.key === 'race')!
+const CLASS_TAB = SETUP_TABS.find((each) => each.key === 'class')!
+const BACKSTORY_TAB = SETUP_TABS.find((each) => each.key === 'character')!
+const FACES_SHOWN = FACES.length
 
 /** "An Elf", not "A Elf". Only the races, so the five vowels are enough. */
 function article(word: string): string {
   return /^[aeiou]/i.test(word) ? 'An' : 'A'
-}
-
-function pickFrom(tabs: typeof SETUP_TABS, key: string): string {
-  const options = tabs.find((tab) => tab.key === key)?.options ?? []
-  return options.length === 0 ? '' : options[Math.floor(Math.random() * options.length)]![0]
 }
 
 export function Setup({
@@ -66,7 +65,8 @@ export function Setup({
   saves,
   onResume,
 }: {
-  onBegin: (brief: string) => void
+  /** The brief for the DM, and the short version the console shows instead. */
+  onBegin: (brief: string, summary: readonly string[]) => void
   onSkip: () => void
   /** Campaigns on disk other than this empty one. */
   saves: number
@@ -77,6 +77,13 @@ export function Setup({
   // dwarf whose face sits behind the "all" filter, ninety portraits down, has
   // been chosen without being shown.
   const [faceRace, setFaceRace] = useState<FaceRace | null>(null)
+  // A filter, not an answer — which is the whole reason it is here rather than
+  // on `answers`. The sex chips used to write the pronouns, the same field the
+  // roll's result writes, so the first roll's outcome silently became the next
+  // roll's filter and the sex never changed again.
+  const [faceGender, setFaceGender] = useState<Gender | null>(null)
+  /** Which chooser is open over the form, if any. */
+  const [picking, setPicking] = useState<'faces' | 'class' | null>(null)
   const [active, setActive] = useState(SETUP_TABS[0]!.key)
 
   if (answers.language === '') {
@@ -91,38 +98,52 @@ export function Setup({
 
   const tab = SETUP_TABS.find((t) => t.key === active)!
   const summary = briefSummary(answers)
+  // The hood stands in for a face nobody has chosen: faceless and race-neutral,
+  // so it says "not decided yet" without claiming anything the rest of the form
+  // could contradict. On screen only — the answer stays empty, so an untouched
+  // form still sends nothing about how you look.
+  const shownPortrait = answers.portrait === '' ? UNKNOWN_PORTRAIT : answers.portrait
 
-  const pick = (value: string): void =>
+  // Keyed rather than bound to the active tab, because the Character tab now
+  // answers three of them: its own, the class it opens in a modal, and the
+  // backstory folded in underneath.
+  const pickIn = (key: string, value: string): void =>
     setAnswers({
       ...answers,
-      picked: { ...answers.picked, [tab.key]: answers.picked[tab.key] === value ? '' : value },
+      picked: { ...answers.picked, [key]: answers.picked[key] === value ? '' : value },
     })
 
-  const type = (value: string): void => {
+  const typeIn = (key: string, value: string): void => {
     const described = value.trim() !== ''
+    const into = SETUP_TABS.find((each) => each.key === key)
     setAnswers({
       ...answers,
-      custom: { ...answers.custom, [tab.key]: value },
+      custom: { ...answers.custom, [key]: value },
       // Typing your own replaces the card you clicked, rather than leaving both
       // selected and making the DM guess which one you meant.
-      picked: described ? { ...answers.picked, [tab.key]: '' } : answers.picked,
-      ...(tab.picker === 'faces'
+      picked: described ? { ...answers.picked, [key]: '' } : answers.picked,
+      ...(into?.picker === 'faces'
         ? { portrait: portraitAfterDescribing(answers.portrait, value) }
         : {}),
     })
   }
+
+  const pick = (value: string): void => pickIn(tab.key, value)
+  const type = (value: string): void => typeIn(tab.key, value)
 
   return (
     <div className="scrim scrim-art">
       <div className="modal modal-setup">
         <div className="modal-head">
           <h3>Before we begin</h3>
-          <span className="modal-sub">{SETUP_TABS.length} questions, all optional</span>
+          <span className="modal-sub">
+            {SETUP_TABS.filter((each) => each.inlined !== true).length} questions, all optional
+          </span>
           <ResumeLink saves={saves} onResume={onResume} />
         </div>
 
         <div className="tabs" role="tablist">
-          {SETUP_TABS.map((each) => (
+          {SETUP_TABS.filter((each) => each.inlined !== true).map((each) => (
             <button
               key={each.key}
               type="button"
@@ -141,128 +162,171 @@ export function Setup({
           <p className="field-label">{tab.prompt}</p>
 
           {tab.named === true && (
-            <div className="roller">
-              <button
-                type="button"
-                className="ghost"
-                onClick={() => {
-                  // Race and class are what a roll is made of, so settle them
-                  // first rather than inventing a character with no shape.
-                  const race = answers.picked['race'] ?? pickFrom(SETUP_TABS, 'race')
-                  const className = answers.picked['class'] ?? pickFrom(SETUP_TABS, 'class')
-                  // A pronoun already chosen steers the roll rather than being
-                  // overwritten by it: picking she/her and then rolling should
-                  // give a woman, not replace the choice with whatever face came
-                  // up. Left unset, the face decides and fills it in.
-                  const rolled = rollCharacter(race, className, Math.random, genderFor(answers.pronouns))
-                  // Show what was rolled: narrow the grid to its race, and let
-                  // the sex filter follow the pronouns below.
-                  setFaceRace(raceOfPortrait(rolled.portrait))
-                  setAnswers({
-                    ...answers,
-                    name: rolled.name,
-                    picked: { ...answers.picked, race, class: className },
-                    custom: { ...answers.custom, character: rolled.concept },
-                    portrait: rolled.portrait,
-                    pronouns: answers.pronouns !== '' ? answers.pronouns : (rolled.pronouns ?? ''),
-                  })
-                }}
-              >
-                Roll a character
-              </button>
-              {/* No portrait here: the grid below highlights what is chosen,
-                  and showing it twice spent the room the faces needed. */}
-              <input
-                id="setup-name"
-                type="text"
-                aria-label="Name"
-                value={answers.name}
-                placeholder="Brann, Vesper, whatever they answer to"
-                onChange={(event) => setAnswers({ ...answers, name: event.target.value })}
-              />
+            <div className="who">
+              {/* The face leads, the way it does in the info bar and the
+                  dialogue boxes. It is a picture rather than a field, so it
+                  stands in a column of its own beside the stack rather than
+                  taking a row away from it. */}
+              <div className="roller-avatar">
+                <button
+                  type="button"
+                  className={`roller-face${answers.portrait === '' ? ' roller-face-empty' : ''}`}
+                  aria-label="Choose a face"
+                  onClick={() => setPicking('faces')}
+                >
+                  <img
+                    src={portraitFor(shownPortrait)!}
+                    alt=""
+                    draggable={false}
+                    style={{ transform: faceTransform(shownPortrait, ROLL_ZOOM) }}
+                  />
+                </button>
+                {/* A portrait on its own does not look like something you can
+                    press, so the word underneath says so. */}
+                <button type="button" className="ghost" onClick={() => setPicking('faces')}>
+                  {answers.portrait === '' ? 'Select' : 'Change'}
+                </button>
+              </div>
+
+              <div className="who-fields">
+                <button
+                  type="button"
+                  className="ghost roller-roll"
+                  onClick={() => {
+                    const rolled = rolledAnswers(answers, Math.random, faceGender ?? undefined)
+                    // Narrow the grid to what was rolled, so the face is
+                    // findable when the picker is next opened.
+                    setFaceRace(raceOfPortrait(rolled.portrait))
+                    setAnswers(rolled)
+                  }}
+                >
+                  Roll a character
+                </button>
+
+                <div className="field-row">
+                  <label htmlFor="setup-name">Name</label>
+                  <input
+                    id="setup-name"
+                    className="field-pick"
+                    type="text"
+                    value={answers.name}
+                    placeholder="Brann, Vesper, whatever they answer to"
+                    onChange={(event) => setAnswers({ ...answers, name: event.target.value })}
+                  />
+                </div>
+
+                <div className="field-row">
+                  <label htmlFor="setup-class">Class</label>
+                  <button
+                    id="setup-class"
+                    type="button"
+                    className="ghost field-pick"
+                    onClick={() => setPicking('class')}
+                  >
+                    {answerFor(answers, 'class') === ''
+                      ? 'choose a class…'
+                      : answerFor(answers, 'class')}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
           {tab.picker === 'faces' && (
-            <FacePicker
-              chosen={answers.portrait}
-              race={faceRace}
-              onRace={setFaceRace}
-              gender={genderFor(answers.pronouns)}
-              onGender={(pronouns) => setAnswers({ ...answers, pronouns })}
-              onPick={(face) => {
-                // The trade in the picture suggests a class, and only suggests:
-                // a priest's robes on a barbarian is not a contradiction, since
-                // the brief never claims the portrait is a statement about the
-                // class. An answer already given is left alone.
-                const suggestion = suggestedClass(face.name)
-                const alreadyChosen = (answers.picked['class'] ?? '') !== ''
-                setAnswers({
-                  ...answers,
-                  portrait: face.name,
-                  // Race and pronouns are read off the picture rather than
-                  // asked for, which is the whole point: they cannot disagree
-                  // with it if they came from it.
-                  picked: {
-                    ...answers.picked,
-                    race: raceLabel(face.race),
-                    ...(suggestion === null || alreadyChosen
-                      ? {}
-                      : { class: suggestion.charAt(0).toUpperCase() + suggestion.slice(1) }),
-                  },
-                  pronouns: pronounsForPortrait(face.name) ?? answers.pronouns,
-                })
-              }}
+            <CustomBox
+              tab={BACKSTORY_TAB}
+              rows={3}
+              value={answers.custom['character'] ?? ''}
+              onChange={(value) => typeIn('character', value)}
+              // Worth saying, because the default is filled in for you and it is
+              // easy to read it as flavour text. The DM builds the campaign's
+              // backbone out of this before the first scene.
+              note="The DM builds the campaign around this — whoever you have wronged, lost or left behind will turn up."
             />
+          )}
+
+          {picking === 'faces' && (
+            <PickerModal
+              title="Who are you?"
+              sub={`${FACES_SHOWN} faces`}
+              onClose={() => setPicking(null)}
+            >
+              <FacePicker
+                chosen={answers.portrait}
+                race={faceRace}
+                onRace={setFaceRace}
+                gender={faceGender ?? undefined}
+                describe={answers.custom['race'] ?? ''}
+                onDescribe={(value) => typeIn('race', value)}
+                onGender={setFaceGender}
+                onPick={(face) => {
+                  // The trade in the picture suggests a class, and only
+                  // suggests: a priest's robes on a barbarian is not a
+                  // contradiction, since the brief never claims the portrait is
+                  // a statement about the class. An answer already given is
+                  // left alone.
+                  const suggestion = suggestedClass(face.name)
+                  const alreadyChosen = (answers.picked['class'] ?? '') !== ''
+                  // Same for the backstory: a default is only worth having
+                  // where there is nothing, so it fills an empty box and never
+                  // overwrites a sentence someone wrote.
+                  const written = (answers.custom['character'] ?? '').trim() !== ''
+                  setAnswers({
+                    ...answers,
+                    portrait: face.name,
+                    // Race and pronouns are read off the picture rather than
+                    // asked for, which is the whole point: they cannot disagree
+                    // with it if they came from it.
+                    picked: {
+                      ...answers.picked,
+                      race: raceLabel(face.race),
+                      ...(suggestion === null || alreadyChosen
+                        ? {}
+                        : { class: suggestion.charAt(0).toUpperCase() + suggestion.slice(1) }),
+                    },
+                    custom: written
+                      ? answers.custom
+                      : { ...answers.custom, character: defaultBackstory(face.name) },
+                    pronouns: pronounsForPortrait(face.name) ?? answers.pronouns,
+                  })
+                  setPicking(null)
+                }}
+              />
+            </PickerModal>
+          )}
+
+          {picking === 'class' && (
+            <PickerModal
+              title={CLASS_TAB.prompt}
+              sub="twelve, or your own"
+              onClose={() => setPicking(null)}
+            >
+              <OptionGrid
+                tab={CLASS_TAB}
+                chosen={answers.picked['class'] ?? ''}
+                onPick={(label) => {
+                  pickIn('class', label)
+                  setPicking(null)
+                }}
+              />
+              <CustomBox
+                tab={CLASS_TAB}
+                value={answers.custom['class'] ?? ''}
+                onChange={(value) => typeIn('class', value)}
+              />
+            </PickerModal>
           )}
 
           {tab.picker === undefined && tab.options.length > 0 && (
-            <div className={`options${tab.wide === true ? ' wide' : ''}`}>
-              {tab.options.map(([label, description]) => (
-                <button
-                  key={label}
-                  type="button"
-                  className={`opt${tab.imageFor === undefined ? '' : ' opt-art'}`}
-                  aria-pressed={answers.picked[tab.key] === label}
-                  onClick={() => pick(label)}
-                >
-                  {tab.imageFor !== undefined && (
-                    // Wrapped, because the crop is a transform and a transform
-                    // needs something to be clipped by.
-                    <span
-                      className="opt-shot"
-                      style={{ aspectRatio: tab.artAspect ?? '4 / 5' }}
-                    >
-                      <img
-                        src={tab.imageFor(label)}
-                        alt=""
-                        style={{ transform: cardTransform(slug(label)) }}
-                        // A missing asset should cost the art, not the card.
-                        onError={(event) => {
-                          event.currentTarget.style.display = 'none'
-                        }}
-                      />
-                    </span>
-                  )}
-                  <span className="opt-text">
-                    {label}
-                    <em>{description}</em>
-                  </span>
-                </button>
-              ))}
-            </div>
+            <OptionGrid tab={tab} chosen={answers.picked[tab.key] ?? ''} onPick={pick} />
           )}
 
-          <div className="custom">
-            <label htmlFor={`custom-${tab.key}`}>{tab.custom}</label>
-            <textarea
-              id={`custom-${tab.key}`}
-              rows={tab.named === true ? 4 : 2}
-              placeholder={tab.placeholder}
-              value={answers.custom[tab.key] ?? ''}
-              onChange={(event) => type(event.target.value)}
-            />
-          </div>
+          {/* The Character tab's own free-text box lives in the face modal, and
+              its backstory box is above: what is left down here would be a
+              third empty field with nothing to say. */}
+          {tab.picker === undefined && (
+            <CustomBox tab={tab} value={answers.custom[tab.key] ?? ''} onChange={type} />
+          )}
         </div>
 
         <div className="modal-foot">
@@ -276,14 +340,162 @@ export function Setup({
               </>
             )}
           </div>
-          <button className="ghost" type="button" onClick={onSkip}>
+          {/* Skipping the questions means answering them at the table, not
+              starting on silence — so it sends the line that asks the DM to ask.
+              The language goes with it: it was settled on the gate before the
+              questions began, and skipping them cannot un-answer it.
+
+              onSkip as well, so the modal closes on the press rather than when
+              the echo comes back off the wire. */}
+          <button
+            className="ghost"
+            type="button"
+            onClick={() => {
+              onBegin(skipBrief(answers.language), briefSummary({ ...EMPTY_ANSWERS, language: answers.language }))
+              onSkip()
+            }}
+          >
             Skip
           </button>
-          <button className="primary" type="button" onClick={() => onBegin(composeBrief(answers))}>
+          <button
+            className="primary"
+            type="button"
+            onClick={() => onBegin(composeBrief(answers), summary)}
+          >
             Begin
           </button>
         </div>
       </div>
+    </div>
+  )
+}
+
+/**
+ * A chooser over the form.
+ *
+ * The Character tab asks for a face out of 190 and a class out of twelve, and
+ * neither fits beside a name field. They go over the top instead: the tab keeps
+ * three short rows, and the gallery is a page of its own that closes on a pick.
+ */
+function PickerModal({
+  title,
+  sub,
+  onClose,
+  children,
+}: {
+  title: string
+  sub: string
+  onClose: () => void
+  children: ReactNode
+}): JSX.Element {
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return (
+    <div
+      className="scrim scrim-over"
+      // Only the backdrop closes it. A click that started on a card inside has
+      // already done its job.
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose()
+      }}
+    >
+      <div className="modal modal-picker">
+        <div className="modal-head">
+          <h3>{title}</h3>
+          <span className="modal-sub">{sub}</span>
+          <button type="button" className="ghost resume-link" onClick={onClose}>
+            Done
+          </button>
+        </div>
+        <div className="modal-body">{children}</div>
+      </div>
+    </div>
+  )
+}
+
+/** A tab's option cards. Shared, because the class tab is now asked twice over. */
+function OptionGrid({
+  tab,
+  chosen,
+  onPick,
+}: {
+  tab: SetupTab
+  chosen: string
+  onPick: (label: string) => void
+}): JSX.Element {
+  return (
+    <div className={`options${tab.wide === true ? ' wide' : ''}`}>
+      {tab.options.map(([label, description]) => (
+        <button
+          key={label}
+          type="button"
+          className={`opt${tab.imageFor === undefined ? '' : ' opt-art'}`}
+          aria-pressed={chosen === label}
+          onClick={() => onPick(label)}
+        >
+          {tab.imageFor !== undefined && (
+            // Wrapped, because the crop is a transform and a transform needs
+            // something to be clipped by.
+            <span className="opt-shot" style={{ aspectRatio: tab.artAspect ?? '4 / 5' }}>
+              <img
+                src={tab.imageFor(label)}
+                alt=""
+                draggable={false}
+                style={{ transform: cardTransform(slug(label)) }}
+                // A missing asset should cost the art, not the card.
+                onError={(event) => {
+                  event.currentTarget.style.display = 'none'
+                }}
+              />
+            </span>
+          )}
+          <span className="opt-text">
+            {label}
+            <em>{description}</em>
+          </span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/** A tab's free-text box: what the cards do not cover. */
+function CustomBox({
+  tab,
+  value,
+  onChange,
+  rows,
+  note,
+}: {
+  tab: SetupTab
+  value: string
+  onChange: (value: string) => void
+  rows?: number
+  /** A line under the box, for a field whose consequences are not obvious. */
+  note?: string
+}): JSX.Element {
+  return (
+    <div className="custom">
+      <label htmlFor={`custom-${tab.key}`}>{tab.custom}</label>
+      <textarea
+        id={`custom-${tab.key}`}
+        rows={rows ?? 2}
+        placeholder={tab.placeholder}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        {...(note === undefined ? {} : { 'aria-describedby': `note-${tab.key}` })}
+      />
+      {note !== undefined && (
+        <p className="custom-note" id={`note-${tab.key}`}>
+          {note}
+        </p>
+      )}
     </div>
   )
 }
@@ -389,13 +601,18 @@ function FacePicker({
   gender,
   onGender,
   onPick,
+  describe,
+  onDescribe,
 }: {
   chosen: string
   race: FaceRace | null
   onRace: (race: FaceRace | null) => void
   gender: Gender | undefined
-  onGender: (pronouns: string) => void
+  onGender: (gender: Gender | null) => void
   onPick: (face: Face) => void
+  /** What was typed in place of a face, if anything. */
+  describe: string
+  onDescribe: (value: string) => void
 }): JSX.Element {
   const counts = faceCounts(gender ?? null)
   const grid = useRef<HTMLDivElement>(null)
@@ -438,11 +655,11 @@ function FacePicker({
         <span className="faces-sex">
           {(
             [
-              ['he/him', '\u2642', 'Men'],
-              ['she/her', '\u2640', 'Women'],
+              ['male', '\u2642', 'Men'],
+              ['female', '\u2640', 'Women'],
             ] as const
           ).map(([value, glyph, label]) => {
-            const on = (gender === 'male' ? 'he/him' : gender === 'female' ? 'she/her' : '') === value
+            const on = gender === value
             return (
               <button
                 key={label}
@@ -453,7 +670,7 @@ function FacePicker({
                 aria-pressed={on}
                 // A second press clears it, so there is no third button for
                 // "either" — the row is a filter and an unset filter is off.
-                onClick={() => onGender(on ? '' : value)}
+                onClick={() => onGender(on ? null : value)}
               >
                 {glyph}
               </button>
@@ -476,6 +693,7 @@ function FacePicker({
               <img
                 src={portraitFor(face.name)!}
                 alt=""
+                draggable={false}
                 style={{ transform: faceTransform(face.name, ROLL_ZOOM) }}
               />
             </span>
@@ -483,6 +701,11 @@ function FacePicker({
           </button>
         ))}
       </div>
+
+      {/* Here rather than on the tab, because it is the alternative to this
+          grid: a goliath is not in it, and saying so belongs where you went
+          looking for one. The hood goes on when it is filled. */}
+      <CustomBox tab={RACE_TAB} value={describe} onChange={onDescribe} />
     </div>
   )
 }

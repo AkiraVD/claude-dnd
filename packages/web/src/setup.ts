@@ -6,7 +6,16 @@
  * way any other message goes. Kept free of React so the composition can be
  * tested as a function, which is the only part that can quietly go wrong.
  */
-import { CLASSES, RACES, UNKNOWN_PORTRAIT, raceLabel, type ClassName, type Race } from '@dnd/content'
+import {
+  CLASSES,
+  RACES,
+  UNKNOWN_PORTRAIT,
+  raceLabel,
+  type ClassName,
+  type Gender,
+  type Race,
+} from '@dnd/content'
+import { rollCharacter } from './roll-character.js'
 
 export interface SetupTab {
   key: string
@@ -38,6 +47,14 @@ export interface SetupTab {
   artAspect?: string
   /** Rendered as a portrait grid rather than option cards. */
   picker?: 'faces'
+  /**
+   * Asked inside another tab rather than getting one of its own.
+   *
+   * Still a tab in every other respect — it keeps its options, its art and its
+   * phrase, so the brief and the pickers read it exactly as before. Only the
+   * row of buttons leaves it out.
+   */
+  inlined?: boolean
 }
 
 const LANGUAGES: readonly (readonly [string, string])[] = [
@@ -69,8 +86,8 @@ const classOptions = Object.entries(CLASSES).map(
 export const SETUP_TABS: readonly SetupTab[] = [
   {
     key: 'race',
-    label: 'Who',
-    prompt: 'Who are you looking at?',
+    label: 'Character',
+    prompt: 'Who are you?',
     named: true,
     custom: 'Or describe your own people',
     placeholder: 'A tiefling raised by dwarves, ashamed of neither…',
@@ -85,6 +102,7 @@ export const SETUP_TABS: readonly SetupTab[] = [
   {
     key: 'class',
     label: 'Class',
+    inlined: true,
     prompt: 'How do you solve problems?',
     custom: 'Or something the twelve do not cover',
     placeholder: 'A hedge-witch who learned from a book she should not have…',
@@ -192,8 +210,9 @@ export const SETUP_TABS: readonly SetupTab[] = [
   {
     key: 'character',
     label: 'Backstory',
+    inlined: true,
     prompt: 'What happened before this?',
-    custom: 'Concept, background, the hook',
+    custom: 'Backstory',
     placeholder:
       'Disgraced temple guard. Took the blame for something to protect someone who has not written back…',
     options: [],
@@ -223,6 +242,53 @@ export const EMPTY_ANSWERS: SetupAnswers = {
   custom: {},
 }
 
+/** A random option from a tab. */
+function pickFrom(key: string, rng: () => number): string {
+  const options = SETUP_TABS.find((tab) => tab.key === key)?.options ?? []
+  return options.length === 0 ? '' : options[Math.floor(rng() * options.length)]![0]
+}
+
+/**
+ * What "Roll a character" produces.
+ *
+ * Everything it fills, it rolls — the race and the class included. It used to
+ * take those from the form when they were already answered, which looked like
+ * deference to a choice but was not: the roll is what had written them a moment
+ * earlier. The second press changed the face and nothing else, and no number of
+ * presses got you out of the class the first one landed on.
+ *
+ * The sex is the one steer, and it is a separate argument rather than anything
+ * read off the form: the filter chips in the face picker are a filter, and what
+ * the roll writes is a result. Those were the same field once, which is how the
+ * sex came to be fixed by whatever the first press landed on.
+ *
+ * Lives here rather than in the component so it can be tested — the defect
+ * above was invisible to every test the form had, because the whole of it was
+ * inside an onClick.
+ */
+export function rolledAnswers(
+  answers: SetupAnswers,
+  rng: () => number = Math.random,
+  gender?: Gender,
+): SetupAnswers {
+  const race = pickFrom('race', rng)
+  const className = pickFrom('class', rng)
+  const rolled = rollCharacter(race, className, rng, gender)
+
+  return {
+    ...answers,
+    name: rolled.name,
+    picked: { ...answers.picked, race, class: className },
+    custom: { ...answers.custom, character: rolled.concept },
+    portrait: rolled.portrait,
+    // Read off the face every time, like the race is. Keeping the pronouns
+    // that were already there was the lock: the roll wrote them, so from the
+    // second press onwards it was reading its own last answer and could never
+    // land on the other sex.
+    pronouns: rolled.pronouns ?? '',
+  }
+}
+
 /** What a tab resolves to: the custom text if there is any, else the preset. */
 export function answerFor(answers: SetupAnswers, key: string): string {
   const custom = (answers.custom[key] ?? '').trim()
@@ -233,6 +299,31 @@ export function answerFor(answers: SetupAnswers, key: string): string {
 export function isAnswered(answers: SetupAnswers, key: string): boolean {
   if (key === 'character') return answers.name.trim() !== '' || answerFor(answers, key) !== ''
   return answerFor(answers, key) !== ''
+}
+
+/**
+ * What the form says when it has nothing to say.
+ *
+ * Shared, so the empty form and the Skip button cannot drift into two different
+ * ways of asking for the same thing.
+ */
+const GREETING = "Let's play. Ask me what I want and we'll build it together."
+
+/**
+ * What Skip sends.
+ *
+ * It used to send nothing at all: the modal closed and the DM was left to open
+ * on silence, which is not what skipping the questions means. It means answer
+ * them at the table instead — which is what the footer has always promised, and
+ * now what the button actually does.
+ *
+ * The language still goes, because it was answered on the gate before the
+ * questions started and is the one thing skipping them cannot un-answer. The
+ * rest is left for the DM to ask.
+ */
+export function skipBrief(language: string): string {
+  const spoken = language.trim()
+  return spoken === '' ? GREETING : `Run the table in ${spoken}.\n\n${GREETING}`
 }
 
 /**
@@ -277,7 +368,7 @@ export function composeBrief(answers: SetupAnswers): string {
 
   if (details.length > 0) lines.push(details.join('. ') + '.')
 
-  if (lines.length === 0) return "Let's play. Ask me what I want and we'll build it together."
+  if (lines.length === 0) return GREETING
 
   lines.push('Roll my ability scores and set the scene when you have what you need.')
   return lines.join('\n\n')

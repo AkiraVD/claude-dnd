@@ -158,12 +158,6 @@ body {
 .line p { margin: 0 0 12px; }
 .line p:last-child { margin-bottom: 0; }
 
-.line-player {
-  display: flex;
-  gap: 10px;
-  color: var(--accent);
-}
-.prompt { user-select: none; opacity: 0.7; }
 
 .line-dm {
   font-family: var(--serif);
@@ -228,6 +222,36 @@ body {
   color: var(--accent);
 }
 .speech-said p { margin: 2px 0 0; }
+
+/* Your own lines: the same box, mirrored. The rule moves to the right edge and
+   the face with it, so one glance down the column says who was speaking before
+   a word of it is read.
+
+   The serif is restated because it comes from .line-dm, and your lines are not
+   in one: they are a sibling of the DM's turns, not part of one. */
+.speech-you {
+  flex-direction: row;
+  border-left: none;
+  border-right: 2px solid var(--accent);
+  border-radius: var(--radius) 0 0 var(--radius);
+  font-family: var(--serif);
+  font-size: 16.5px;
+  line-height: 1.7;
+  padding: 11px 13px 11px 14px;
+}
+.speech-you .speech-who { text-align: right; color: var(--accent); }
+
+/* What the setup form chose, standing in for the brief it sent. Right-aligned
+   and wrapping backwards, so the row ends under the name and the face the way
+   a sentence would. */
+.speech-chose {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 6px;
+}
+
 
 /*
  * The DM writes tables in Markdown — shop stock, loot, a rules summary. Laid
@@ -891,6 +915,14 @@ button.ghost:hover { border-color: var(--text-faint); color: var(--text); }
   resize: vertical;
 }
 .custom textarea:focus, .custom input:focus { outline: none; border-color: var(--accent); }
+/* Under a box whose consequences are not obvious from the label. Quiet, because
+   it is a warning about what the field does, not a second question. */
+.custom-note {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-faint);
+}
 
 /* ── shop ────────────────────────────────────────────────────────────────── */
 
@@ -1149,6 +1181,49 @@ button.ghost:hover { border-color: var(--text-faint); color: var(--text); }
   * { transition: none !important; animation: none !important; }
 }
 
+/* The Character tab's middle row: a label and the class it opens a modal for.
+   A row rather than a grid of twelve, because the twelve are in the modal. */
+.field-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+/* A fixed column, so Name and Class start at the same x. Sized to the longer of
+   the two labels rather than to the text, which is what left them ragged. */
+.field-row label {
+  flex: none;
+  width: 46px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.field-pick {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: 0;
+}
+/* An input wearing the same clothes: .ghost is a button rule, so the parts of
+   it that matter here are restated rather than inherited. */
+input.field-pick {
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+input.field-pick:focus { outline: none; border-color: var(--accent); }
+input.field-pick::placeholder { color: var(--text-faint); }
+
+/* A chooser over the setup modal. Above the form's own scrim, and the picture
+   gallery wants the width the form deliberately does not have. */
+.scrim-over { z-index: 30; background: color-mix(in oklab, var(--bg-sunken) 88%, transparent); }
+.modal-picker { max-width: 860px; }
+
 /* Choosing a character by their face. */
 .faces-filter {
   display: flex;
@@ -1286,6 +1361,31 @@ button.ghost:hover { border-color: var(--text-faint); color: var(--text); }
 .npc-head { align-items: center; }
 
 /* The setup screens sit over an image rather than a flat panel. */
+/* The start menu is a page of things you press — cards, faces, chips — and a
+   press that starts a selection or peels the picture off the card reads as the
+   control having failed. `draggable={false}` on each image covers the browsers
+   that honour the attribute; this covers the ones that need the property.
+
+   Anything you are meant to type into opts back in, because turning selection
+   off in a textarea takes away double-click-to-select-a-word along with it. */
+.scrim-art,
+.scrim-over {
+  user-select: none;
+  -webkit-user-select: none;
+}
+.scrim-art img,
+.scrim-over img {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+.scrim-art textarea,
+.scrim-art input,
+.scrim-over textarea,
+.scrim-over input {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
 .scrim-art {
   background:
     linear-gradient(
@@ -1501,44 +1601,61 @@ button.ghost:hover { border-color: var(--text-faint); color: var(--text); }
 .quit span { font-size: 11.5px; color: var(--text-faint); }
 .quit button { flex: none; }
 
-/* Rolling a character: the button, what it will roll, and the face it landed on. */
-.roller {
+/* Who you are: the face in a column of its own, and beside it the one button
+   that answers the whole tab at once with the two short answers under it. The
+   face is roughly as tall as the three of them, which is what lets the two
+   columns end together instead of leaving a hole under one of them. */
+.who {
   display: flex;
-  align-items: center;
-  gap: 11px;
+  align-items: flex-start;
+  gap: 14px;
   margin-bottom: 14px;
-  padding: 9px 11px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--bg-sunken);
 }
-.roller span { font-size: 11.5px; color: var(--text-faint); }
-.roller input {
+.who-fields {
   flex: 1;
   min-width: 0;
-  padding: 8px 11px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--bg);
-  color: var(--text);
-  font: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
-.roller input:focus { outline: none; border-color: var(--accent); }
-.roller button { flex: none; }
-.roller-who { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.roller-roll { align-self: flex-start; }
+.roller-avatar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  flex: none;
+}
+/* The word under the face, because a portrait on its own does not look like
+   something you can press. */
+.roller-avatar .ghost {
+  padding-block: 5px;
+  font-size: 10.5px;
+}
 /* Big, because this is the only place the rolled character is shown at all —
    the name and the hook are words, and the face is the part that tells you
    whether to roll again. Square, like the sheet and the cast panel. */
 .roller-face {
   width: 104px;
   height: 104px;
-  margin-left: auto;
   border-radius: 6px;
   border: 1px solid var(--accent);
   flex: none;
   overflow: hidden;
   display: block;
+  padding: 0;
+  background: var(--bg-sunken);
+  cursor: pointer;
 }
+/* The hood, standing in for a face nobody has chosen. Dimmed and off the accent
+   border, so it reads as a placeholder rather than a pick. */
+.roller-face-empty {
+  border-color: var(--line);
+  border-style: dashed;
+}
+.roller-face-empty img { opacity: 0.45; }
+.roller-face-empty:hover { border-color: var(--accent); }
+.roller-face-empty:hover img { opacity: 0.75; }
 
 .roller-face img {
   width: 100%;

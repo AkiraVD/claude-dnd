@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { UNKNOWN_PORTRAIT } from '@dnd/content'
+import { UNKNOWN_PORTRAIT, genderOfPortrait, pronounsForPortrait } from '@dnd/content'
 import {
   EMPTY_ANSWERS,
   SETUP_TABS,
   answerFor,
   briefSummary,
   portraitAfterDescribing,
+  skipBrief,
+  rolledAnswers,
   composeBrief,
   isAnswered,
   type SetupAnswers,
@@ -39,6 +41,44 @@ describe('the tabs', () => {
   })
 })
 
+describe('the character tab', () => {
+  it('asks the class and the backstory inside it rather than beside it', () => {
+    // One tab called Character, holding a name, a face, a class and a backstory.
+    // The class and backstory tabs still exist in the data — they keep their
+    // cards and their phrase, so the brief reads them unchanged — they just do
+    // not get a button of their own.
+    const inlined = SETUP_TABS.filter((tab) => tab.inlined === true).map((tab) => tab.key)
+
+    expect(inlined).toEqual(['class', 'character'])
+    const shown = SETUP_TABS.filter((tab) => tab.inlined !== true)
+    expect(shown.map((tab) => tab.label)).toEqual([
+      'Character',
+      'Adventure',
+      'Difficulty',
+      'Rules',
+      'Tone',
+    ])
+  })
+
+  it('is the only tab with a name field, and it is the one with the faces', () => {
+    const named = SETUP_TABS.filter((tab) => tab.named === true)
+
+    expect(named).toHaveLength(1)
+    expect(named[0]!.picker).toBe('faces')
+  })
+
+  it('still carries an inlined answer into the brief', () => {
+    // The whole risk of folding a tab in: it stops being asked and nobody
+    // notices it also stopped being sent.
+    const brief = composeBrief(
+      answers({ picked: { class: 'Fighter' }, custom: { character: 'Took the blame.' } }),
+    )
+
+    expect(brief).toContain('Class: Fighter')
+    expect(brief).toContain('Took the blame.')
+  })
+})
+
 describe('answerFor', () => {
   it('takes the preset when nothing is typed', () => {
     expect(answerFor(answers({ picked: { race: 'Dwarf' } }), 'race')).toBe('Dwarf')
@@ -67,6 +107,90 @@ describe('isAnswered', () => {
     for (const tab of SETUP_TABS) {
       expect(isAnswered(answers(), tab.key), tab.key).toBe(false)
     }
+  })
+})
+
+/** A fixed sequence, so a measured rate is a fact about the library. */
+const seeded = (seed: number) => (): number => {
+  seed = (seed * 1664525 + 1013904223) % 4294967296
+  return seed / 4294967296
+}
+
+describe('rolling a character', () => {
+  const classes = SETUP_TABS.find((tab) => tab.key === 'class')!.options.map(([label]) => label)
+
+  it('rolls the class rather than reusing the one already on the form', () => {
+    // The defect this is here for: the roll read the class off the form and
+    // only drew one when it was empty — but the roll had written it. So the
+    // first press chose a class and every press after it kept that class,
+    // changing the face and nothing else.
+    const pinned = answers({ picked: { class: 'Wizard', race: 'Tiefling' } })
+
+    expect(rolledAnswers(pinned, () => 0).picked['class']).toBe(classes[0])
+    expect(rolledAnswers(pinned, () => 0.999).picked['class']).toBe(classes.at(-1))
+  })
+
+  it('rolls the race the same way, for the same reason', () => {
+    const races = SETUP_TABS.find((tab) => tab.key === 'race')!.options.map(([label]) => label)
+    const pinned = answers({ picked: { race: 'Tiefling' } })
+
+    expect(rolledAnswers(pinned, () => 0).picked['race']).toBe(races[0])
+  })
+
+  it('fills the name, the face and the backstory together', () => {
+    const rolled = rolledAnswers(answers(), () => 0)
+
+    expect(rolled.name).not.toBe('')
+    expect(rolled.portrait).not.toBe('')
+    expect(rolled.custom['character']).not.toBe('')
+  })
+
+  it('reads the pronouns off the face it landed on, every press', () => {
+    // The lock this replaced: the roll kept whatever pronouns were already set,
+    // but the roll had set them. From the second press on it was reading its
+    // own last answer, so the sex never changed again.
+    const rolled = rolledAnswers(answers({ pronouns: 'they/them' }), () => 0)
+
+    expect(rolled.pronouns).toBe(pronounsForPortrait(rolled.portrait) ?? '')
+    expect(rolled.pronouns).not.toBe('they/them')
+  })
+
+  it('can roll either sex, rather than whichever came up first', () => {
+    let a = answers()
+    const seen = new Set<string>()
+    for (let i = 0; i < 60; i++) {
+      a = rolledAnswers(a)
+      if (a.pronouns !== '') seen.add(a.pronouns)
+    }
+
+    expect(seen).toEqual(new Set(['he/him', 'she/her']))
+  })
+
+  it('takes a sex to aim at, which the caller supplies and the form never does', () => {
+    // The steer survives the fix: the picker's filter chips are their own state
+    // now, so they can aim the roll without the roll writing them back.
+    //
+    // Aim, not a guarantee. avatarFor falls back rather than refusing, because
+    // eighteen race-and-class pairings still have a face for only one sex, and
+    // a roll that refused would be a button that sometimes does nothing. Seeded
+    // so the margin is a fact about the library rather than today's dice.
+    for (const want of ['female', 'male'] as const) {
+      const rng = seeded(20260101)
+      const rolls = Array.from({ length: 300 }, () => rolledAnswers(answers(), rng, want))
+      const hit = rolls.filter((r) => genderOfPortrait(r.portrait) === want).length
+
+      expect(hit / rolls.length, want).toBeGreaterThan(0.8)
+    }
+  })
+
+  it('keeps the answers it was not asked about', () => {
+    const rolled = rolledAnswers(
+      answers({ language: 'Tiếng Việt', picked: { tone: 'Grim' } }),
+      () => 0,
+    )
+
+    expect(rolled.language).toBe('Tiếng Việt')
+    expect(rolled.picked['tone']).toBe('Grim')
   })
 })
 
@@ -118,6 +242,39 @@ describe('composeBrief', () => {
 
     expect(brief).not.toContain('Tone:')
     expect(brief).not.toContain('Adventure:')
+  })
+})
+
+describe('skipBrief', () => {
+  it('asks the DM to ask, rather than starting on silence', () => {
+    // Skip used to send nothing: the modal closed and the DM opened on an empty
+    // conversation with no instruction at all. Skipping the questions means
+    // answering them at the table, which is what the footer always promised.
+    expect(skipBrief('')).toBe("Let's play. Ask me what I want and we'll build it together.")
+  })
+
+  it('still carries the language, which the gate settled before the questions', () => {
+    const brief = skipBrief('Tiếng Việt')
+
+    expect(brief.split('\n\n')[0]).toBe('Run the table in Tiếng Việt.')
+    expect(brief).toContain('Ask me what I want')
+  })
+
+  it('says the same thing an untouched form says', () => {
+    // Two ways to answer nothing, one sentence. They used to be a shared string
+    // literal and a silence, which is how they came to disagree.
+    expect(skipBrief('')).toBe(composeBrief(EMPTY_ANSWERS))
+    expect(skipBrief('English')).toBe(
+      composeBrief({ ...EMPTY_ANSWERS, language: 'English' }).split('\n\n')[0] +
+        '\n\n' +
+        skipBrief(''),
+    )
+  })
+
+  it('asks for nothing the DM has not been given', () => {
+    // No ability scores, no scene: there is no character to roll for yet, which
+    // is the whole reason the DM is being asked to ask.
+    expect(skipBrief('English')).not.toContain('Roll my ability scores')
   })
 })
 
@@ -206,6 +363,41 @@ describe('class art', () => {
       if (!['class', 'race', 'adventure', 'difficulty', 'rules', 'tone'].includes(tab.key)) {
         expect(tab.imageFor, tab.key).toBeUndefined()
       }
+    }
+  })
+})
+
+describe('the choosers the form opens', () => {
+  const source = async (): Promise<string> => {
+    const { readFileSync } = await import('node:fs')
+    const { fileURLToPath } = await import('node:url')
+    return readFileSync(fileURLToPath(new URL('./Setup.tsx', import.meta.url)), 'utf8')
+  }
+
+  it('renders something for every chooser a button can open', async () => {
+    // A block edit once deleted both picker renders and left the buttons that
+    // open them. Nothing failed: it built, it typechecked, the whole suite
+    // passed, and the face, the Select button and the class row were all dead.
+    // With no DOM in the test environment the source is the only place that is
+    // visible from.
+    const text = await source()
+    const opened = new Set([...text.matchAll(/setPicking\('(\w+)'\)/g)].map((m) => m[1]!))
+
+    expect(opened).toEqual(new Set(['faces', 'class']))
+    for (const which of opened) {
+      expect(text, `nothing renders for setPicking('${which}')`).toContain(`picking === '${which}'`)
+    }
+  })
+
+  it('still asks the inlined tabs somewhere, now that they have no tab button', async () => {
+    // The other half of the same risk: a tab that is folded in and then not
+    // rendered is a question nobody can answer and nobody can see is missing.
+    const text = await source()
+
+    for (const tab of SETUP_TABS.filter((each) => each.inlined === true)) {
+      expect(text, `${tab.key} is inlined but nothing renders it`).toMatch(
+        new RegExp(`(CLASS_TAB|BACKSTORY_TAB|'${tab.key}')`),
+      )
     }
   })
 })
