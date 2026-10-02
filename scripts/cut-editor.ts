@@ -236,6 +236,14 @@ function evenly(n, total) {
   return out;
 }
 function save() { localStorage.setItem(STORE, JSON.stringify({ xs: xs, ys: ys })) }
+// Fill in place, never reassign. Each line holds a reference to the array it
+// edits, so swapping xs for a new one leaves every drag writing to an array
+// nothing reads any more — the line simply stops moving, which is exactly how
+// this presented.
+function fill(target, values) {
+  for (var i = 0; i < values.length; i++) target[i] = values[i];
+  target.length = values.length;
+}
 function load() {
   try {
     var v = JSON.parse(localStorage.getItem(STORE) || 'null');
@@ -247,8 +255,8 @@ function load() {
 function build() {
   SW = sheet.naturalWidth; SH = sheet.naturalHeight;
   var saved = load();
-  xs = saved ? saved.xs.slice() : SEAM_X.slice();
-  ys = saved ? saved.ys.slice() : SEAM_Y.slice();
+  fill(xs, saved ? saved.xs : SEAM_X);
+  fill(ys, saved ? saved.ys : SEAM_Y);
 
   // Cells first, so the lines sit over them and stay grabbable.
   NAMES.forEach(function (row, i) {
@@ -298,7 +306,12 @@ function makeLines(kind, arr, numsId) {
 
     var dragging = false;
     ln.addEventListener('pointerdown', function (e) {
-      ln.setPointerCapture(e.pointerId); dragging = true; ln.classList.add('live');
+      // Flag first. setPointerCapture throws if the pointer is not live, and
+      // doing it the other way round means one exception leaves the line
+      // permanently unmovable with nothing on screen to say why.
+      dragging = true;
+      ln.classList.add('live');
+      try { ln.setPointerCapture(e.pointerId) } catch (err) {}
     });
     ln.addEventListener('pointermove', function (e) {
       if (!dragging) return;
@@ -340,15 +353,15 @@ function draw() {
 }
 
 document.getElementById('even').onclick = function () {
-  xs = evenly(COLS, SW); ys = evenly(ROWS, SH); save(); draw();
+  fill(xs, evenly(COLS, SW)); fill(ys, evenly(ROWS, SH)); save(); draw();
 };
 document.getElementById('seams').onclick = function () {
-  xs = SEAM_X.slice(); ys = SEAM_Y.slice(); save(); draw();
+  fill(xs, SEAM_X); fill(ys, SEAM_Y); save(); draw();
 };
 document.getElementById('reset').onclick = function () {
   if (!confirm('Throw away these cuts?')) return;
   localStorage.removeItem(STORE);
-  xs = SEAM_X.slice(); ys = SEAM_Y.slice(); draw();
+  fill(xs, SEAM_X); fill(ys, SEAM_Y); draw();
 };
 
 document.getElementById('copy').onclick = function () {
