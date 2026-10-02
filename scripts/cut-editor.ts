@@ -175,6 +175,11 @@ const html = `<!doctype html>
     background:#0d0f12; color:#c9d1d9; resize:vertical; }
   .wrap { display:flex; gap:14px; padding:12px; align-items:flex-start; }
   .sheetbox { position:relative; flex:1; min-width:0; user-select:none; }
+  /* An <img> is draggable by default, so a press on it starts an HTML5 image
+     drag and the pointer events stop arriving — which reads as the ring simply
+     refusing to be held. Three guards because browsers differ on which one
+     they honour. */
+  img { -webkit-user-drag:none; user-drag:none; user-select:none; }
   .sheetbox img { display:block; width:100%; }
   /* The cuts. Wide invisible grab area, thin visible line. */
   .ln { position:absolute; z-index:3; }
@@ -213,7 +218,7 @@ const html = `<!doctype html>
 </div>
 <textarea id="out" spellcheck="false" readonly></textarea>
 <div class="wrap">
-  <div class="sheetbox" id="sheetbox"><img id="sheet" src="${dataUri}" alt=""></div>
+  <div class="sheetbox" id="sheetbox"><img id="sheet" src="${dataUri}" alt="" draggable="false"></div>
   <aside><h2>each file</h2><div class="previews" id="previews"></div></aside>
 </div>
 <script>
@@ -267,7 +272,7 @@ function build() {
 
     var pv = document.createElement('div');
     pv.className = 'pv' + (row.name === '' ? ' skip' : '');
-    pv.innerHTML = '<div class="win"><img src="' + sheet.src + '" alt=""></div><span>' + row.label + '</span>';
+    pv.innerHTML = '<div class="win"><img src="' + sheet.src + '" alt="" draggable="false"></div><span>' + row.label + '</span>';
     document.getElementById('previews').appendChild(pv);
     pvs.push({ el: el, pv: pv, img: pv.querySelector('img'), win: pv.querySelector('.win') });
   });
@@ -389,6 +394,7 @@ document.getElementById('copy').onclick = function () {
   setTimeout(function () { btn.textContent = 'copy json' }, 1800);
 };
 
+addEventListener('dragstart', function (e) { e.preventDefault() });
 addEventListener('resize', draw);
 if (sheet.complete) build(); else sheet.addEventListener('load', build);
 </script>

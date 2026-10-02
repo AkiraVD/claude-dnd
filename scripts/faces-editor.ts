@@ -54,6 +54,11 @@ const html = `<!doctype html>
   .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; overflow:hidden; }
   .card.changed { border-color:var(--good); }
   .stage { position:relative; cursor:crosshair; touch-action:none; user-select:none; }
+  /* An <img> is draggable by default, so a press on it starts an HTML5 image
+     drag and the pointer events stop arriving — which reads as the ring simply
+     refusing to be held. Three guards because browsers differ on which one
+     they honour. */
+  img { -webkit-user-drag:none; user-drag:none; user-select:none; }
   .stage img { width:100%; display:block; }
   .ring { position:absolute; width:26px; height:26px; margin:-13px 0 0 -13px; border-radius:50%;
     border:2px solid var(--accent); box-shadow:0 0 0 1px #000a, inset 0 0 0 1px #000a; pointer-events:none; }
@@ -106,6 +111,10 @@ function transform(x, y, zoom) {
   return 'scale(' + zoom + ') translate(' + dx + '%, ' + dy + '%)';
 }
 
+// Belt and braces with the draggable attribute: some builds still raise
+// dragstart from a child, and one of those cancels the pointer stream mid-drag.
+addEventListener('dragstart', function (e) { e.preventDefault() });
+
 var grid = document.getElementById('grid');
 var cards = {};
 
@@ -120,11 +129,11 @@ ROWS.forEach(function (row) {
   card.dataset.kind = row.kind;
   card.dataset.name = row.name;
   card.innerHTML =
-    '<div class="stage"><img src="' + row.src + '" alt="" loading="lazy">' +
+    '<div class="stage"><img src="' + row.src + '" alt="" draggable="false" loading="lazy">' +
       '<i class="ring"></i>' +
       '<div class="peek">' +
-        '<span class="circle small"><img src="' + row.src + '" alt=""></span>' +
-        '<span class="circle big"><img src="' + row.src + '" alt=""></span>' +
+        '<span class="circle small"><img src="' + row.src + '" alt="" draggable="false"></span>' +
+        '<span class="circle big"><img src="' + row.src + '" alt="" draggable="false"></span>' +
       '</div>' +
     '</div>' +
     '<div class="zoomrow"><input type="range" class="zoom" min="1" max="5" step="0.1" value="' + z + '">' +
