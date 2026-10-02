@@ -3,6 +3,7 @@ import {
   CLASS_LIST,
   BESTIARY,
   BESTIARY_LIST,
+  UNKNOWN_PORTRAIT,
   PORTRAITS,
   PORTRAIT_LIST,
   CONDITION_LIST,
@@ -72,6 +73,7 @@ import {
   spend,
   stockFor,
   takeItem,
+  assertPortraitFree,
   updateProfile,
   type Advantage,
   type D20TestResult,
@@ -1927,6 +1929,9 @@ export function registerProgressionTools(server: McpServer, store: GameStore): v
           Object.entries(fields).filter(([, value]) => value !== undefined),
         )
 
+        // Before the write, so a refused face leaves nothing half-applied.
+        assertPortraitFree(store.all(), fields.portrait, id)
+
         let outcome = updateProfile(store.creature(id), patch)
         const events = [...outcome.events]
 
@@ -2008,7 +2013,8 @@ export function registerProgressionTools(server: McpServer, store: GameStore): v
         'For a walk-on part pick the closest match to what you have already described, rather ' +
         'than describing them to fit the art. `unknown-figure-hooded` is the one to use when ' +
         'the player has not seen a face yet — not when the library merely lacks a good match, ' +
-        'which is what leaving the portrait unset is for.',
+        'which is what leaving the portrait unset is for. A face already given to someone is ' +
+        'left out of the list, so anything here is free to take.',
       inputSchema: {
         kind: z
           .enum(['folk', 'monster'])
@@ -2017,11 +2023,30 @@ export function registerProgressionTools(server: McpServer, store: GameStore): v
       },
     },
     ({ kind }) => {
-      const folk = PORTRAIT_LIST.map((name) => ({ name, looks: PORTRAITS[name] }))
+      // Faces already in use are left out rather than listed and then refused.
+      // The hood stays, because an unseen figure is not a person yet and three
+      // at once is three strangers rather than a mistake; the bestiary stays
+      // whole, because ten goblins should look like goblins.
+      const taken = new Set(
+        store
+          .all()
+          .map((who) => who.profile.portrait)
+          .filter((name): name is string => name !== null && name !== UNKNOWN_PORTRAIT),
+      )
+
+      const folk = PORTRAIT_LIST.filter((name) => !taken.has(name)).map((name) => ({
+        name,
+        looks: PORTRAITS[name],
+      }))
       const monsters = BESTIARY_LIST.map((name) => ({ name, looks: BESTIARY[name] }))
       const picked =
         kind === 'folk' ? folk : kind === 'monster' ? monsters : [...folk, ...monsters]
-      return ok(`${picked.length} portraits`, { portraits: picked })
+
+      const spoken =
+        kind === 'monster' || taken.size === 0
+          ? `${picked.length} portraits`
+          : `${picked.length} portraits (${taken.size} already taken, left out)`
+      return ok(spoken, { portraits: picked })
     },
   )
 

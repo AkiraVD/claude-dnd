@@ -502,3 +502,61 @@ describe('class defaults survive the tool layer', () => {
     }
   })
 })
+
+describe('one face, one person', () => {
+  beforeEach(async () => {
+    await call('add_creature', BRANN)
+    await call('add_creature', { ...GOBLIN, id: 'veyl', name: 'Sister Veyl' })
+  })
+
+  it('refuses a face someone else already has, and says whose', async () => {
+    await call('update_npc', { id: 'brann', portrait: 'dwarf-smith-broad' })
+    const clash = await call('update_npc', { id: 'veyl', portrait: 'dwarf-smith-broad' })
+
+    expect(clash.isError).toBe(true)
+    expect(clash.text).toContain('Brann')
+  })
+
+  it('lets someone keep their own face across a later edit', async () => {
+    // Every re-save sends the portrait back unchanged; refusing that would make
+    // a profile un-editable the moment it had a face.
+    await call('update_npc', { id: 'brann', portrait: 'dwarf-smith-broad' })
+    const again = await call('update_npc', {
+      id: 'brann',
+      portrait: 'dwarf-smith-broad',
+      role: 'quartermaster',
+    })
+
+    expect(again.isError).toBe(false)
+  })
+
+  it('leaves taken faces out of the library rather than listing them', async () => {
+    const before = await call('get_portraits', { kind: 'folk' })
+    await call('update_npc', { id: 'brann', portrait: 'dwarf-smith-broad' })
+    const after = await call('get_portraits', { kind: 'folk' })
+
+    const names = (r: typeof after): string[] => r.data!.portraits.map((p: any) => p.name)
+    expect(names(after)).toHaveLength(names(before).length - 1)
+    expect(names(after)).not.toContain('dwarf-smith-broad')
+    expect(after.text).toContain('1 already taken')
+  })
+
+  it('keeps the whole bestiary, however many are wearing it', async () => {
+    // A species, not a portrait: the tenth goblin looking different is the bug.
+    await call('update_npc', { id: 'veyl', portrait: 'goblin' })
+    const second = await call('update_npc', { id: 'brann', portrait: 'goblin' })
+    const library = await call('get_portraits', { kind: 'monster' })
+
+    expect(second.isError).toBe(false)
+    expect(library.data!.portraits.map((p: any) => p.name)).toContain('goblin')
+  })
+
+  it('lets any number of figures wear the hood', async () => {
+    await call('update_npc', { id: 'brann', portrait: 'unknown-figure-hooded' })
+    const second = await call('update_npc', { id: 'veyl', portrait: 'unknown-figure-hooded' })
+    const library = await call('get_portraits', { kind: 'folk' })
+
+    expect(second.isError).toBe(false)
+    expect(library.data!.portraits.map((p: any) => p.name)).toContain('unknown-figure-hooded')
+  })
+})

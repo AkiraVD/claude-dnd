@@ -6,7 +6,7 @@
  * a `/clear` she never existed at all. So the profile is state, and the only
  * question the engine answers about it is what the player is allowed to see.
  */
-import { pronounsForPortrait } from '@dnd/content'
+import { BESTIARY, UNKNOWN_PORTRAIT, pronounsForPortrait } from '@dnd/content'
 import type { Attitude, Creature, CreatureProfile, Presence, ProfileNote } from './character.js'
 import { RulesError } from './errors.js'
 import type { GameEvent } from './events.js'
@@ -132,6 +132,58 @@ export function revealNote(creature: Creature, match: string): ProfileOutcome {
   return {
     creature: { ...creature, profile },
     events: [{ t: 'reveal', target: creature.id, note: target.text }],
+  }
+}
+
+/**
+ * Who already has this face, if anyone.
+ *
+ * A face is how the player tells one person from another, so two people wearing
+ * it is not a cosmetic slip: the quartermaster and the priest become the same
+ * person at a glance, and no amount of prose undoes that. The DM cannot hold the
+ * whole assigned set in its head across three hours, which is exactly the kind
+ * of thing that belongs here rather than in the prompt.
+ *
+ * Two deliberate exceptions, both because sharing is the point:
+ *
+ * - The hood is what an unseen figure looks like. Three of them at once is three
+ *   people the player has not seen yet, not a mistake.
+ * - The bestiary is a species, not a portrait. Ten goblins should look like
+ *   goblins; giving the tenth a different face would be the bug.
+ *
+ * `except` is the creature being written to, so re-saving someone's own face is
+ * not a collision with themselves.
+ */
+export function portraitHolder(
+  cast: readonly Creature[],
+  portrait: string,
+  except: string,
+): Creature | null {
+  if (portrait === UNKNOWN_PORTRAIT) return null
+  if (Object.prototype.hasOwnProperty.call(BESTIARY, portrait)) return null
+
+  return cast.find((who) => who.id !== except && who.profile.portrait === portrait) ?? null
+}
+
+/**
+ * Throws if someone else is already wearing this face.
+ *
+ * Names them, because "taken" alone leaves the DM guessing which of a cast of
+ * twenty it collided with, and the useful next move is to pick a different one.
+ */
+export function assertPortraitFree(
+  cast: readonly Creature[],
+  portrait: string | null | undefined,
+  except: string,
+): void {
+  if (portrait === null || portrait === undefined || portrait === '') return
+
+  const held = portraitHolder(cast, portrait, except)
+  if (held !== null) {
+    throw new RulesError(
+      `${portrait} is already ${held.name}'s face. Pick another from get_portraits, ` +
+        `or leave portrait unset — two people with one face is two people the player cannot tell apart.`,
+    )
   }
 }
 

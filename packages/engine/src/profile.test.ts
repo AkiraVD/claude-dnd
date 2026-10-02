@@ -3,6 +3,8 @@ import { COMMONER, createCreature, restoreCreature, type Creature } from './char
 import { RulesError } from './errors.js'
 import {
   addNote,
+  assertPortraitFree,
+  portraitHolder,
   knownNotes,
   redactCreature,
   revealNote,
@@ -265,5 +267,64 @@ describe('pronouns from the portrait', () => {
     const stripped: Creature = { ...old, profile: { ...old.profile, pronouns: null } }
 
     expect(updateProfile(stripped, { role: 'fence' }).creature.profile.pronouns).toBe('she/her')
+  })
+})
+
+describe('one face, one person', () => {
+  const someone = (id: string, name: string, portrait: string | null): Creature =>
+    createCreature({
+      id,
+      name,
+      kind: 'npc',
+      ...COMMONER,
+      ...(portrait === null ? {} : { profile: { portrait } }),
+    })
+
+  const cast = [
+    someone('brann', 'Brann', 'dwarf-smith-broad'),
+    someone('veyl', 'Sister Veyl', 'human-merchant-stout'),
+    someone('nobody', 'A figure', null),
+  ]
+
+  it('finds who is already wearing a face', () => {
+    expect(portraitHolder(cast, 'dwarf-smith-broad', 'veyl')?.name).toBe('Brann')
+    expect(portraitHolder(cast, 'elf-archivist-silver', 'veyl')).toBeNull()
+  })
+
+  it('does not collide someone with themselves', () => {
+    // Re-saving a profile sends the portrait back unchanged, every time.
+    expect(portraitHolder(cast, 'dwarf-smith-broad', 'brann')).toBeNull()
+    expect(() => assertPortraitFree(cast, 'dwarf-smith-broad', 'brann')).not.toThrow()
+  })
+
+  it('refuses a face someone else has, and says whose it is', () => {
+    // Naming them is the point: "taken" alone leaves the DM guessing which of a
+    // cast of twenty it collided with.
+    expect(() => assertPortraitFree(cast, 'dwarf-smith-broad', 'veyl')).toThrow(/Brann/)
+    expect(() => assertPortraitFree(cast, 'dwarf-smith-broad', 'veyl')).toThrow(RulesError)
+  })
+
+  it('lets any number of figures wear the hood', () => {
+    // It is what an unseen figure looks like. Three at once is three people the
+    // player has not seen yet, not a mistake.
+    const hooded = [...cast, someone('a', 'A shape', 'unknown-figure-hooded')]
+
+    expect(portraitHolder(hooded, 'unknown-figure-hooded', 'b')).toBeNull()
+    expect(() => assertPortraitFree(hooded, 'unknown-figure-hooded', 'b')).not.toThrow()
+  })
+
+  it('lets ten goblins look like goblins', () => {
+    // The bestiary is a species, not a portrait. Giving the tenth goblin a
+    // different face would be the bug.
+    const horde = [...cast, someone('g1', 'Goblin', 'goblin')]
+
+    expect(portraitHolder(horde, 'goblin', 'g2')).toBeNull()
+    expect(() => assertPortraitFree(horde, 'goblin', 'g2')).not.toThrow()
+  })
+
+  it('has nothing to say about no portrait at all', () => {
+    for (const nothing of [null, undefined, '']) {
+      expect(() => assertPortraitFree(cast, nothing, 'veyl')).not.toThrow()
+    }
   })
 })
