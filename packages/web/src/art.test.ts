@@ -188,15 +188,22 @@ describe('portraitFor', () => {
   })
 
   it('clamps the faces that sit nearest the edge', () => {
-    // Some faces are further from the middle than a 2x zoom can reach, and those
-    // ride as high in the circle as they can without leaving a gap. Found rather
-    // than named, since which portrait is the extreme one changes with tuning.
-    const extreme = [...PORTRAIT_LIST, ...BESTIARY_LIST].find(
-      (name) => Math.abs(50 - faceOf(name).y) > 25,
-    )
-    expect(extreme, 'expected at least one face past what 2x can centre').toBeDefined()
+    // Some faces are further from the middle than their own zoom can reach, and
+    // those ride as high in the circle as they can without leaving a gap. Found
+    // rather than named, since which portrait is the extreme one changes with
+    // tuning — and measured against that portrait's own limit rather than the
+    // default's, because the zoom is recorded per portrait too. Asserting 25
+    // here only held while the extreme one happened to sit at 2x.
+    const extreme = [...PORTRAIT_LIST, ...BESTIARY_LIST].find((name) => {
+      const face = faceOf(name)
+      return Math.abs(50 - face.y) > ((face.zoom - 1) / (2 * face.zoom)) * 100
+    })
+    expect(extreme, 'expected at least one face past what its zoom can centre').toBeDefined()
+
+    const face = faceOf(extreme!)
+    const limit = ((face.zoom - 1) / (2 * face.zoom)) * 100
     const [, , dy] = /translate\((-?[\d.]+)%, (-?[\d.]+)%\)/.exec(faceTransform(extreme!))!
-    expect(Math.abs(Number(dy))).toBe(25)
+    expect(Math.abs(Number(dy))).toBeCloseTo(limit, 9)
   })
 })
 
