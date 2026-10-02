@@ -17,8 +17,8 @@
     "gallery": "tsx scripts/gallery.ts",
     "faces": "tsx scripts/faces-editor.ts",
     "cards": "tsx scripts/cards-editor.ts",
-    "cards:cut-editor": "tsx scripts/cards-cut-editor.ts",
-    "cards:cut": "tsx scripts/cards-cut.ts",
+    "cut": "tsx scripts/cut-editor.ts",
+    "cut:apply": "tsx scripts/cut-apply.ts",
     "faces:apply": "tsx scripts/faces-apply.ts",
     "cards:apply": "tsx scripts/cards-apply.ts"
   },

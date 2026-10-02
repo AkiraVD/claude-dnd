@@ -1,18 +1,20 @@
 /**
- * Cut the class cards out of the master sheet, by hand, on the sheet itself.
+ * Cut pictures out of a master sheet, by hand, on the sheet itself.
  *
- * The earlier cropper aimed a transform at the shipped 300px files. This one
- * works a step upstream: the master is on screen, you drag a square over each
- * subject, and the cut is made from the master at full resolution — so moving a
- * boundary costs nothing in quality, and the card is a new file rather than an
- * old one squeezed.
+ * The earlier cropper aimed a transform at the shipped files. This one works a
+ * step upstream: the master is on screen, you drag a square over each subject,
+ * and the cut is made from the master at full resolution — so moving a boundary
+ * costs nothing in quality, and the result is a new file rather than an old one
+ * squeezed.
  *
- * The sheet is inlined as a data URI. It lives outside the repo with the rest of
- * the masters, and a generated page that depends on a path in someone's home
- * directory is a page that works once.
+ * The sheet is inlined as a data URI. The masters live outside the repo, and a
+ * generated page that depends on a path in someone's home directory is a page
+ * that works once.
  *
- * SHEET=/path/to/classes.png npm run cards:cut-editor, then open /cut.html.
- * Paste the JSON back and `npm run cards:cut` writes the files.
+ *   SHEET=~/art/classes.png npm run cut
+ *   SHEET=~/art/npc3.png GRID=5x5 NAMES=names3.txt PAGE=cut-npc3 npm run cut
+ *
+ * Then open /cut.html (or /cut-npc3.html), aim, copy, and `npm run cut:apply`.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -23,24 +25,52 @@ if (sheetPath === undefined || !existsSync(sheetPath)) {
   throw new Error(`set SHEET to the master sheet; got ${sheetPath ?? '(unset)'}`)
 }
 
-const tab = SETUP_TABS.find((t) => t.key === 'class')
-if (tab === undefined) throw new Error('no class tab')
+const [COLS, ROWS] = (process.env['GRID'] ?? '4x3').split('x').map(Number) as [number, number]
+if (!Number.isInteger(COLS) || !Number.isInteger(ROWS)) throw new Error('GRID must look like 5x5')
 
-const COLS = 4
-const ROWS = 3
-const names = tab.options.map(([label, description]) => ({
-  name: label.toLowerCase().replace(/\s+/g, '-'),
-  label,
-  description,
-}))
+const page = process.env['PAGE'] ?? 'cut'
+const title = process.env['TITLE'] ?? page
+
+/**
+ * The roster, in reading order — which is the whole reason a sheet is sliceable.
+ * From a file of one name per line, or from the class deck when none is given.
+ *
+ * A line of `-` marks a cell that must not be cut: a sheet can hold a picture
+ * that was superseded by a later regeneration, and cutting it again would put
+ * the rejected version back. Those cells are drawn but never leave the page.
+ */
+const namesFile = process.env['NAMES']
+const names: Array<{ name: string; label: string; description: string }> = namesFile
+  ? readFileSync(namesFile, 'utf8')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line !== '')
+      .map((name) =>
+        name === '-'
+          ? { name: '', label: 'skip', description: 'superseded — not cut' }
+          : { name, label: name, description: '' },
+      )
+  : (() => {
+      const tab = SETUP_TABS.find((t) => t.key === 'class')
+      if (tab === undefined) throw new Error('no class tab')
+      return tab.options.map(([label, description]) => ({
+        name: label.toLowerCase().replace(/\s+/g, '-'),
+        label,
+        description,
+      }))
+    })()
+
+if (names.length !== COLS * ROWS) {
+  throw new Error(`${names.length} names for a ${COLS}x${ROWS} grid of ${COLS * ROWS}`)
+}
 
 const dataUri = `data:image/png;base64,${readFileSync(sheetPath).toString('base64')}`
-const STORE = 'dice-tower-cuts'
+const STORE = `dice-tower-cuts:${page}`
 
 const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Dice Tower — cut the cards</title>
+<title>Dice Tower — cut ${title}</title>
 <style>
   :root { --bg:#0e1013; --panel:#15181d; --line:#272c33; --text:#d7d3cc; --dim:#8b9099;
     --faint:#5b646f; --accent:#d9a441; }
@@ -58,6 +88,7 @@ const html = `<!doctype html>
   .bar { display:flex; gap:14px; align-items:center; flex-wrap:wrap; padding:9px 16px;
     border-bottom:1px solid var(--line); background:var(--panel); }
   .bar strong { color:var(--accent); font-weight:normal; letter-spacing:.06em; text-transform:uppercase; }
+  .pv span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .row { display:flex; gap:8px; align-items:center; min-width:210px; flex:1; }
   .row label { width:40px; color:var(--faint); }
   .row input { flex:1; }
@@ -74,13 +105,15 @@ const html = `<!doctype html>
   .cut { position:absolute; border:2px solid var(--accent); box-shadow:0 0 0 1px #000a;
     cursor:move; touch-action:none; background:rgba(217,164,65,.06); }
   .cut.on { border-color:#6cc08a; z-index:2; }
+  .cut.skip { border-style:dashed; border-color:#5b646f; background:rgba(0,0,0,.45); }
+  .pv.skip { opacity:.35; }
   .cut b { position:absolute; left:3px; top:2px; font:11px/1.3 ui-monospace,monospace;
     color:#fff; text-shadow:0 1px 2px #000; font-weight:normal; pointer-events:none; }
   .grip { position:absolute; right:-7px; bottom:-7px; width:14px; height:14px; background:var(--accent);
     border:1px solid #000; cursor:nwse-resize; touch-action:none; }
-  aside { width:280px; flex:none; position:sticky; top:96px; }
+  aside { width:300px; flex:none; position:sticky; top:96px; max-height:84vh; overflow:auto; }
   aside h2 { margin:0 0 7px; font-size:12px; letter-spacing:.07em; text-transform:uppercase; color:var(--dim); }
-  .previews { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; }
+  .previews { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
   .pv { border:1px solid var(--line); border-radius:5px; overflow:hidden; background:var(--panel); }
   .pv .win { position:relative; width:100%; aspect-ratio:1/1; overflow:hidden; }
   .pv .win img { position:absolute; transform-origin:0 0; }
@@ -89,14 +122,14 @@ const html = `<!doctype html>
 </style></head>
 <body>
 <header>
-  <h1>Cut the cards</h1>
+  <h1>Cut ${title}</h1>
   <span class="hint">drag a box to move it &middot; corner to resize &middot; the panel is what each card becomes</span>
   <span id="count">0 moved</span>
   <button id="reset">reset all</button>
   <button id="copy">copy json</button>
 </header>
 <div class="bar">
-  <strong>all twelve</strong>
+  <strong>all ${names.length}</strong>
   <span class="row"><label for="gx">across</label><input id="gx" type="range" min="-120" max="120" step="1" value="0"><output id="gxv">0</output></span>
   <span class="row"><label for="gy">down</label><input id="gy" type="range" min="-120" max="120" step="1" value="0"><output id="gyv">0</output></span>
   <span class="row"><label for="gs">size</label><input id="gs" type="range" min="140" max="362" step="2" value="362"><output id="gsv">362</output></span>
@@ -134,12 +167,12 @@ function build() {
     var v = all[row.name] || base;
 
     var el = document.createElement('div');
-    el.className = 'cut';
+    el.className = 'cut' + (row.name === '' ? ' skip' : '');
     el.innerHTML = '<b>' + row.label + '</b><i class="grip"></i>';
     box.appendChild(el);
 
     var pv = document.createElement('div');
-    pv.className = 'pv';
+    pv.className = 'pv' + (row.name === '' ? ' skip' : '');
     pv.innerHTML = '<div class="win"><img src="' + sheet.src + '" alt=""></div><span>' + row.label + '</span>';
     document.getElementById('previews').appendChild(pv);
 
@@ -263,7 +296,10 @@ document.getElementById('reset').onclick = function () {
 
 document.getElementById('copy').onclick = function () {
   var out = {};
-  Object.keys(cells).forEach(function (n) { out[n] = [cells[n].x, cells[n].y, cells[n].s] });
+  Object.keys(cells).forEach(function (n) {
+    if (n === '') return;
+    out[n] = [cells[n].x, cells[n].y, cells[n].s];
+  });
   var text = JSON.stringify(out, null, 1);
   var btn = this, area = document.getElementById('out');
   area.value = text; area.style.display = 'block'; area.focus(); area.select();
@@ -293,9 +329,9 @@ if (sheet.complete) build(); else sheet.addEventListener('load', build);
 
 for (const root of ['packages/web/public', 'packages/web/dist']) {
   try {
-    writeFileSync(join(root, 'cut.html'), html)
+    writeFileSync(join(root, `${page}.html`), html)
   } catch {
     // dist may not exist yet; public is the one that matters.
   }
 }
-console.error(`cut editor: ${names.length} cells from ${sheetPath} -> /cut.html`)
+console.error(`cut editor: ${names.length} cells from ${sheetPath} -> /${page}.html`)

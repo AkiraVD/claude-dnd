@@ -10,6 +10,6 @@ dist/
 packages/web/public/gallery.html
 packages/web/public/faces.html
 packages/web/public/cards.html
-# `npm run cards:cut-editor` inlines the master sheet, so this one is megabytes
-# of base64 as well as derived.
-packages/web/public/cut.html
+# `npm run cut` inlines the master sheet, so these are megabytes of base64 as
+# well as derived. One per sheet.
+packages/web/public/cut*.html
