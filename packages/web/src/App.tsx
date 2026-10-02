@@ -276,10 +276,11 @@ function Entry({ entry, cast }: { entry: LogEntry; cast: readonly Creature[] }):
   switch (entry.kind) {
     case 'player':
       return (
-        <div className="line line-player">
-          <span className="prompt">&gt;</span>
-          <p>{entry.text}</p>
-        </div>
+        <PlayerSaid
+          text={entry.text}
+          cast={cast}
+          {...(entry.summary === undefined ? {} : { summary: entry.summary })}
+        />
       )
 
     case 'narration':
@@ -313,6 +314,67 @@ function Prose({ text, cast }: { text: string; cast: readonly Creature[] }): JSX
         return <ProseTable key={index} block={block} />
       })}
     </>
+  )
+}
+
+/**
+ * What you said, in the same box everyone else gets.
+ *
+ * Mirrored rather than restyled: face on the right, name on the right, the rule
+ * down the right edge. One glance down the column says who was speaking without
+ * reading a word of it, which a row of identical boxes would not.
+ *
+ * Your name comes off the sheet so the column reads as a conversation between
+ * two named people rather than between a name and "you". Before there is a
+ * character there is no name and no face, and the box simply does without them.
+ */
+function PlayerSaid({
+  text,
+  cast,
+  summary,
+}: {
+  text: string
+  cast: readonly Creature[]
+  /** Shown in place of the text, when the text is the opening brief. */
+  summary?: readonly string[]
+}): JSX.Element {
+  const you = cast.find((creature) => creature.kind === 'pc') ?? null
+  const face = portraitFor(you?.profile.portrait)
+
+  return (
+    <div className="line speech speech-you">
+      <div className="speech-said">
+        <span className="speech-who">{you?.name ?? 'You'}</span>
+        {summary === undefined ? (
+          // Plain, not `inline`: this is what you typed, and the DM's markup
+          // conventions are not yours to be held to.
+          <p>{text}</p>
+        ) : (
+          // The brief itself is a page of instructions written for the DM —
+          // which portrait to set, which tool to call. It still goes on the
+          // wire; what the console shows is what you actually chose.
+          <p className="speech-chose">
+            {summary.map((bit) => (
+              <span key={bit} className="chip">
+                {bit}
+              </span>
+            ))}
+          </p>
+        )}
+      </div>
+      {face !== null && (
+        <span className="speech-face">
+          <img
+            src={face}
+            alt=""
+            style={{ transform: faceTransform(you?.profile.portrait) }}
+            onError={(event) => {
+              event.currentTarget.style.display = 'none'
+            }}
+          />
+        </span>
+      )}
+    </div>
   )
 }
 

@@ -14,6 +14,15 @@ export interface PlayerEntry {
   kind: 'player'
   id: string
   text: string
+  /**
+   * What the setup form chose, when this line is the opening brief.
+   *
+   * The brief is a page of instructions written for the DM — the language, the
+   * portrait to set, the tool call to make. Useful to the DM and unreadable as
+   * a first line of play, so the console shows this instead and keeps the prose
+   * for the wire.
+   */
+  summary?: readonly string[]
 }
 
 export interface RollEntry {
@@ -79,7 +88,7 @@ export interface Table {
   clearSession: () => void
   /** Fresh conversation, then load that campaign into it. */
   resume: (campaignId: number) => void
-  say: (text: string) => void
+  say: (text: string, summary?: readonly string[]) => void
   dismissChoice: () => void
   closeShop: () => void
 }
@@ -132,6 +141,9 @@ export function useTable(): Table {
   const [claudeSession, setClaudeSession] = useState<string | null>(null)
   const [state, setState] = useState<TableState | null>(null)
   const [log, setLog] = useState<LogEntry[]>([])
+  // Keyed by the text, because that is the only thing the echo carries back
+  // that identifies the line. Emptied as each one lands.
+  const briefs = useRef(new Map<string, readonly string[]>())
   const [costUsd, setCostUsd] = useState<number | null>(null)
   const [choice, setChoice] = useState<Choice | null>(null)
   const [shop, setShop] = useState<Shop | null>(null)
@@ -182,9 +194,22 @@ export function useTable(): Table {
           setThinking(true)
           return
 
-        case 'player':
-          setLog((entries) => [...entries, { kind: 'player', id: nextId(), text: message.text }])
+        case 'player': {
+          // The echo comes back off the wire, so what the form knew about this
+          // line has to be carried across rather than passed down.
+          const summary = briefs.current.get(message.text)
+          if (summary !== undefined) briefs.current.delete(message.text)
+          setLog((entries) => [
+            ...entries,
+            {
+              kind: 'player',
+              id: nextId(),
+              text: message.text,
+              ...(summary === undefined ? {} : { summary }),
+            },
+          ])
           return
+        }
 
         case 'narration-delta':
           setDoing(null)
@@ -301,9 +326,10 @@ export function useTable(): Table {
     store.write(packTranscript(claudeSession, log))
   }, [claudeSession, log])
 
-  const say = useCallback((text: string) => {
+  const say = useCallback((text: string, summary?: readonly string[]) => {
     const ws = socket.current
     if (ws === null || ws.readyState !== WebSocket.OPEN) return
+    if (summary !== undefined) briefs.current.set(text, summary)
     ws.send(JSON.stringify({ type: 'say', text }))
     setThinking(true)
     // Both panels are answers to a question that has now been answered.

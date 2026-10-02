@@ -40,6 +40,22 @@ describe('the transcript', () => {
     expect(back[0]).toEqual(log[50])
   })
 
+  it('keeps what the opening line is shown as, not just what it said', () => {
+    // The console shows the setup form's choices in place of the brief, which
+    // is a page of instructions for the DM. Lose the summary across a refresh
+    // and that page comes back on screen as your first line of play.
+    const opening: LogEntry = {
+      kind: 'player',
+      id: 'a',
+      text: 'Run the table in English.\n\nI am Brann. Roll my ability scores…',
+      summary: ['English', 'Brann', 'Dwarf'],
+    }
+
+    const back = readTranscript('sess-1', packTranscript('sess-1', [opening]))
+
+    expect(back[0]).toEqual(opening)
+  })
+
   it('has nothing to say about nothing, or about rubbish', () => {
     expect(readTranscript('sess-1', null)).toEqual([])
     expect(readTranscript('sess-1', '')).toEqual([])
