@@ -1,9 +1,10 @@
 /**
  * Cut pictures out of a master sheet.
  *
- * Takes the cut editor's JSON on stdin — `{ "paladin": [x, y, size], ... }` in
+ * Takes the cut editor's JSON on stdin — `{ "paladin": [x, y, w, h], ... }` in
  * source pixels — and writes one webp each straight from the master, so nothing
- * is resampled twice.
+ * is resampled twice. A three-number box is read as a square, which is what the
+ * editor emitted before the cut could be oblong.
  *
  * The masters are not in the repo; the shipped art is. Point at one with SHEET
  * and say where the results go:
@@ -38,11 +39,17 @@ for (const [name, box] of Object.entries(cuts)) {
     skipped.push(name)
     continue
   }
-  const [x, y, side] = box.map((n) => Math.round(n))
+  // [x, y, w, h], or [x, y, side] from before the cut could be oblong.
+  const [x, y, w, h] = [box[0]!, box[1]!, box[2]!, box[3] ?? box[2]!].map((n) => Math.round(n))
+  // SIZE is the long side. A cut that is not square stays that shape rather
+  // than being squeezed into one — squeezing is the one thing a crop should
+  // never do, and the square boxes in the UI crop with object-fit anyway.
+  const outW = w >= h ? size : Math.round((size * w) / h)
+  const outH = h >= w ? size : Math.round((size * h) / w)
   execFileSync(
     'ffmpeg',
     ['-nostdin', '-y', '-loglevel', 'error', '-i', sheet,
-     '-vf', `crop=${side}:${side}:${x}:${y},scale=${size}:${size}:flags=lanczos`,
+     '-vf', `crop=${w}:${h}:${x}:${y},scale=${outW}:${outH}:flags=lanczos`,
      '-c:v', 'libwebp', '-quality', quality,
      `${out}/${name}.webp`],
     { stdio: ['ignore', 'inherit', 'inherit'] },

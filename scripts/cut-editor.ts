@@ -123,7 +123,7 @@ const html = `<!doctype html>
 <body>
 <header>
   <h1>Cut ${title}</h1>
-  <span class="hint">drag a box to move it &middot; corner to resize &middot; the panel is what each card becomes</span>
+  <span class="hint">drag a box to move it &middot; corner resizes width and height freely &middot; the panel is what each file becomes</span>
   <span id="count">0 moved</span>
   <button id="reset">reset all</button>
   <button id="copy">copy json</button>
@@ -132,7 +132,8 @@ const html = `<!doctype html>
   <strong>all ${names.length}</strong>
   <span class="row"><label for="gx">across</label><input id="gx" type="range" min="-120" max="120" step="1" value="0"><output id="gxv">0</output></span>
   <span class="row"><label for="gy">down</label><input id="gy" type="range" min="-120" max="120" step="1" value="0"><output id="gyv">0</output></span>
-  <span class="row"><label for="gs">size</label><input id="gs" type="range" min="140" max="362" step="2" value="362"><output id="gsv">362</output></span>
+  <span class="row"><label for="gw">wide</label><input id="gw" type="range" min="60" max="600" step="2" value="0"><output id="gwv">0</output></span>
+  <span class="row"><label for="gh">tall</label><input id="gh" type="range" min="60" max="600" step="2" value="0"><output id="ghv">0</output></span>
 </div>
 <textarea id="out" spellcheck="false" readonly></textarea>
 <div class="wrap">
@@ -163,8 +164,9 @@ function build() {
 
   NAMES.forEach(function (row, i) {
     var c = i % COLS, r = Math.floor(i / COLS);
-    var base = [Math.round(c * CW), Math.round(r * CH), Math.round(Math.min(CW, CH))];
+    var base = [Math.round(c * CW), Math.round(r * CH), Math.round(CW), Math.round(CH)];
     var v = all[row.name] || base;
+    if (v.length === 3) v = [v[0], v[1], v[2], v[2]];
 
     var el = document.createElement('div');
     el.className = 'cut' + (row.name === '' ? ' skip' : '');
@@ -177,16 +179,12 @@ function build() {
     document.getElementById('previews').appendChild(pv);
 
     cells[row.name] = {
-      base: base, x: v[0], y: v[1], s: v[2], el: el, pv: pv,
+      base: base, x: v[0], y: v[1], w: v[2], h: v[3], el: el, pv: pv,
       img: pv.querySelector('img'),
-      paint: paint, nudge: nudge, resize: resize, reset: function () {
-        this.x = base[0]; this.y = base[1]; this.s = base[2]; paint(this);
+      reset: function () {
+        this.x = base[0]; this.y = base[1]; this.w = base[2]; this.h = base[3]; draw(this);
       },
     };
-
-    function paint(cell) { draw(cell); }
-    function nudge(cell, dx, dy) { place(cell, cell.base[0] + dx, cell.base[1] + dy, cell.s); }
-    function resize(cell, s) { place(cell, cell.x, cell.y, s); }
 
     wire(cells[row.name]);
     draw(cells[row.name]);
@@ -195,13 +193,15 @@ function build() {
 }
 
 function clampCell(cell) {
-  cell.s = Math.max(40, Math.min(Math.min(CW, CH) * 1.4, cell.s));
-  cell.x = Math.max(0, Math.min(SW - cell.s, cell.x));
-  cell.y = Math.max(0, Math.min(SH - cell.s, cell.y));
+  cell.w = Math.max(40, Math.min(SW, cell.w));
+  cell.h = Math.max(40, Math.min(SH, cell.h));
+  cell.x = Math.max(0, Math.min(SW - cell.w, cell.x));
+  cell.y = Math.max(0, Math.min(SH - cell.h, cell.y));
 }
 
-function place(cell, x, y, s) {
-  cell.x = Math.round(x); cell.y = Math.round(y); cell.s = Math.round(s);
+function place(cell, x, y, w, h) {
+  cell.x = Math.round(x); cell.y = Math.round(y);
+  cell.w = Math.round(w); cell.h = Math.round(h);
   clampCell(cell);
   remember(cell);
 }
@@ -210,25 +210,30 @@ function draw(cell) {
   var k = scale();
   cell.el.style.left = cell.x * k + 'px';
   cell.el.style.top = cell.y * k + 'px';
-  cell.el.style.width = cell.s * k + 'px';
-  cell.el.style.height = cell.s * k + 'px';
-  // The preview is the crop itself: the master, scaled so the chosen square
-  // exactly fills a square window.
-  var w = cell.pv.querySelector('.win').clientWidth || 84;
-  var z = w / cell.s;
+  cell.el.style.width = cell.w * k + 'px';
+  cell.el.style.height = cell.h * k + 'px';
+  // The preview is the crop itself. The window keeps the cut's own shape, so a
+  // tall cut previews tall rather than being squashed into a square and
+  // flattering a framing that will not survive the file.
+  var win = cell.pv.querySelector('.win');
+  var ww = win.clientWidth || 84;
+  win.style.aspectRatio = cell.w + ' / ' + cell.h;
+  var z = ww / cell.w;
   cell.img.style.width = SW * z + 'px';
   cell.img.style.left = -cell.x * z + 'px';
   cell.img.style.top = -cell.y * z + 'px';
-  var moved = cell.x !== cell.base[0] || cell.y !== cell.base[1] || cell.s !== cell.base[2];
+  var moved = cell.x !== cell.base[0] || cell.y !== cell.base[1] ||
+    cell.w !== cell.base[2] || cell.h !== cell.base[3];
   cell.el.classList.toggle('on', moved);
   cell.pv.classList.toggle('on', moved);
 }
 
 function remember(cell) {
   var all = saved();
-  var moved = cell.x !== cell.base[0] || cell.y !== cell.base[1] || cell.s !== cell.base[2];
+  var moved = cell.x !== cell.base[0] || cell.y !== cell.base[1] ||
+    cell.w !== cell.base[2] || cell.h !== cell.base[3];
   var name = Object.keys(cells).find(function (n) { return cells[n] === cell });
-  if (moved) { all[name] = [cell.x, cell.y, cell.s] } else { delete all[name] }
+  if (moved) { all[name] = [cell.x, cell.y, cell.w, cell.h] } else { delete all[name] }
   store(all); draw(cell); tally();
 }
 
@@ -244,15 +249,18 @@ function wire(cell) {
   grip.addEventListener('pointerdown', function (e) {
     e.stopPropagation();
     grip.setPointerCapture(e.pointerId);
-    drag = { mode: 'size', px: e.clientX, py: e.clientY, s: cell.s };
+    drag = { mode: 'size', px: e.clientX, py: e.clientY, w: cell.w, h: cell.h };
   });
   function move(e) {
     if (drag === null) return;
     var k = scale();
+    var dx = (e.clientX - drag.px) / k, dy = (e.clientY - drag.py) / k;
     if (drag.mode === 'move') {
-      place(cell, drag.x + (e.clientX - drag.px) / k, drag.y + (e.clientY - drag.py) / k, cell.s);
+      place(cell, drag.x + dx, drag.y + dy, cell.w, cell.h);
     } else {
-      place(cell, cell.x, cell.y, drag.s + (e.clientX - drag.px) / k);
+      // Free in both axes: these cells are not square, and forcing one was the
+      // thing that made the cut fight the picture.
+      place(cell, cell.x, cell.y, drag.w + dx, drag.h + dy);
     }
   }
   cell.el.addEventListener('pointermove', move);
@@ -271,13 +279,17 @@ function tally() {
 function batch() {
   var dx = Number(document.getElementById('gx').value);
   var dy = Number(document.getElementById('gy').value);
-  var s = Number(document.getElementById('gs').value);
+  var w = Number(document.getElementById('gw').value);
+  var h = Number(document.getElementById('gh').value);
   Object.keys(cells).forEach(function (n) {
     var cell = cells[n];
-    place(cell, cell.base[0] + dx, cell.base[1] + dy, s);
+    // Zero means "leave this one alone", so the width slider can be used
+    // without the height one deciding anything.
+    place(cell, cell.base[0] + dx, cell.base[1] + dy,
+      w > 0 ? w : cell.w, h > 0 ? h : cell.h);
   });
 }
-['gx', 'gy', 'gs'].forEach(function (id) {
+['gx', 'gy', 'gw', 'gh'].forEach(function (id) {
   document.getElementById(id).addEventListener('input', function () {
     document.getElementById(id + 'v').textContent = document.getElementById(id).value;
     batch();
@@ -287,9 +299,10 @@ function batch() {
 document.getElementById('reset').onclick = function () {
   if (!confirm('Throw away every cut on this page?')) return;
   localStorage.removeItem(STORE);
-  ['gx', 'gy'].forEach(function (id) { document.getElementById(id).value = 0; document.getElementById(id + 'v').textContent = '0' });
-  document.getElementById('gs').value = Math.round(Math.min(CW, CH));
-  document.getElementById('gsv').textContent = Math.round(Math.min(CW, CH));
+  ['gx', 'gy', 'gw', 'gh'].forEach(function (id) {
+    document.getElementById(id).value = 0;
+    document.getElementById(id + 'v').textContent = '0';
+  });
   Object.keys(cells).forEach(function (n) { cells[n].reset() });
   tally();
 };
@@ -298,7 +311,7 @@ document.getElementById('copy').onclick = function () {
   var out = {};
   Object.keys(cells).forEach(function (n) {
     if (n === '') return;
-    out[n] = [cells[n].x, cells[n].y, cells[n].s];
+    out[n] = [cells[n].x, cells[n].y, cells[n].w, cells[n].h];
   });
   var text = JSON.stringify(out, null, 1);
   var btn = this, area = document.getElementById('out');
