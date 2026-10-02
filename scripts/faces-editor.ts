@@ -43,6 +43,11 @@ const html = `<!doctype html>
     background:var(--panel); color:var(--text); cursor:pointer; }
   button:hover { border-color:var(--accent); color:var(--accent); }
   button.on { border-color:var(--accent); color:var(--accent); }
+  /* The way out when the clipboard is not available: the text, selected, ready
+     for a plain ctrl-C. Hidden until asked for. */
+  textarea#out { display:none; width:calc(100% - 28px); height:180px; margin:0 14px 10px;
+    padding:10px; font:12px/1.5 var(--mono,monospace); border:1px solid var(--accent);
+    border-radius:6px; background:#0d0f12; color:#c9d1d9; resize:vertical; }
   #count { color:var(--good); }
   main { padding:18px; display:grid; gap:12px;
     grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); max-width:1600px; margin:0 auto; }
@@ -80,6 +85,7 @@ const html = `<!doctype html>
   <button id="reset">reset all</button>
   <button id="copy">copy json</button>
 </header>
+<textarea id="out" spellcheck="false" readonly></textarea>
 <main id="grid"></main>
 <script>
 var STORE = ${JSON.stringify(STORE)};
@@ -212,10 +218,31 @@ document.getElementById('reset').onclick = function () {
 };
 document.getElementById('copy').onclick = function () {
   var text = JSON.stringify(saved(), null, 1);
-  navigator.clipboard.writeText(text).then(function () {
-    document.getElementById('copy').textContent = 'copied';
-    setTimeout(function () { document.getElementById('copy').textContent = 'copy json' }, 1200);
-  });
+  var btn = document.getElementById('copy');
+  var box = document.getElementById('out');
+
+  // Show it either way. navigator.clipboard exists only in a secure context, so
+  // over plain http on a LAN address it is undefined and this button used to do
+  // nothing at all, silently — the edits were safe in localStorage, but there
+  // was no way to get them out of the page.
+  box.value = text;
+  box.style.display = 'block';
+  box.focus();
+  box.select();
+
+  var copied = false;
+  try { copied = document.execCommand('copy') } catch (e) { copied = false }
+
+  if (!copied && navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(function () {
+      btn.textContent = 'copied';
+      setTimeout(function () { btn.textContent = 'copy json' }, 1400);
+    }, function () {});
+    return;
+  }
+
+  btn.textContent = copied ? 'copied' : 'select it and copy';
+  setTimeout(function () { btn.textContent = 'copy json' }, 1800);
 };
 </script>
 </body></html>
