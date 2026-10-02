@@ -113,10 +113,10 @@ describe('rolling a character', () => {
         expect(rolled.pronouns, `${race} ${cls}`).toBe(pronounsForPortrait(rolled.portrait))
       }
     }
-    // Dragonborn are scales and harness; the picture commits to nothing, so
-    // neither does the roll.
-    const drake = rollCharacter('dragonborn', 'fighter', () => 0.5)
-    expect(genderOfPortrait(drake.portrait)).toBeNull()
-    expect(drake.pronouns).toBeNull()
+    // And a portrait that commits to nothing yields nothing. The hood is the
+    // case that stays that way: it is faceless on purpose, where the dragonborn
+    // only looked uncommitted until someone judged them by eye.
+    expect(pronounsForPortrait(UNKNOWN_PORTRAIT)).toBeNull()
+    expect(genderOfPortrait(UNKNOWN_PORTRAIT)).toBeNull()
   })
 })

@@ -252,9 +252,8 @@ describe('pronouns from the portrait', () => {
   })
 
   it('says nothing for a portrait that commits to nothing', () => {
-    // Dragonborn are scales and harness, and the hood is faceless on purpose.
-    expect(updateProfile(someone(), { portrait: 'dragonborn-highmage-violet' })
-      .creature.profile.pronouns).toBeNull()
+    // The hood is faceless on purpose, so it stays the example. The dragonborn
+    // were here too until they were judged by eye and turned out to say plenty.
     expect(updateProfile(someone(), { portrait: 'unknown-figure-hooded' })
       .creature.profile.pronouns).toBeNull()
   })
