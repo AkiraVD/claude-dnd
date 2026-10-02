@@ -1,4 +1,5 @@
 import { isBeast } from '@dnd/content'
+import cardCrops from '../public/classes/crops.json'
 import monsterFaces from '../public/monsters/faces.json'
 import folkFaces from '../public/npcs/faces.json'
 /**
@@ -138,6 +139,38 @@ export function faceTransform(portrait: string | null | undefined, override?: nu
   const dx = clamp(50 - face.x)
   const dy = clamp(50 - face.y)
   return `scale(${zoom}) translate(${dx}%, ${dy}%)`
+}
+
+/**
+ * How to aim a class card's picture inside its tile.
+ *
+ * The same problem as a portrait and the same maths, for a different reason:
+ * these were generated as square cells and the subject is often high and to one
+ * side, so the whole picture shown whole leaves dead space and a small face. The
+ * numbers are placed by hand in /cards.html, because reading them off a grid by
+ * eye has already been wrong once.
+ *
+ * `[50, 50, 1]` is the identity — the picture, whole, which is what shipped
+ * before any of this existed.
+ */
+const CARD_CROPS: Record<string, Face> = Object.fromEntries(
+  Object.entries(cardCrops)
+    .filter(([key, value]) => key !== '_' && Array.isArray(value))
+    .map(([key, value]) => {
+      const [x, y, zoom] = value as number[]
+      return [key, { x: x!, y: y!, zoom: zoom ?? 1 }]
+    }),
+)
+
+export function cardTransform(name: string): string | undefined {
+  const crop = CARD_CROPS[name]
+  // Undefined rather than a no-op transform, so a card nobody has aimed yet
+  // renders with no transform at all and cannot be blurred by compositing.
+  if (crop === undefined || (crop.x === 50 && crop.y === 50 && crop.zoom === 1)) return undefined
+
+  const limit = ((crop.zoom - 1) / (2 * crop.zoom)) * 100
+  const clamp = (value: number): number => Math.max(-limit, Math.min(limit, value))
+  return `scale(${crop.zoom}) translate(${clamp(50 - crop.x)}%, ${clamp(50 - crop.y)}%)`
 }
 
 /** Whether a face was actually recorded for this name. */

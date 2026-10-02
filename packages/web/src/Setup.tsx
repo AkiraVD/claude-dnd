@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { faceTransform, portraitFor } from './art.js'
+import { cardTransform, faceTransform, portraitFor } from './art.js'
 import { rollCharacter } from './roll-character.js'
 import {
   EMPTY_ANSWERS,
@@ -9,6 +9,7 @@ import {
   briefSummary,
   composeBrief,
   isAnswered,
+  slug,
   type SetupAnswers,
 } from './setup.js'
 import type { JSX } from 'react'
@@ -161,15 +162,22 @@ export function Setup({
                   onClick={() => pick(label)}
                 >
                   {tab.imageFor !== undefined && (
-                    <img
-                      src={tab.imageFor(label)}
-                      alt=""
+                    // Wrapped, because the crop is a transform and a transform
+                    // needs something to be clipped by.
+                    <span
+                      className="opt-shot"
                       style={{ aspectRatio: tab.artAspect ?? '4 / 5' }}
-                      // A missing asset should cost the art, not the card.
-                      onError={(event) => {
-                        event.currentTarget.style.display = 'none'
-                      }}
-                    />
+                    >
+                      <img
+                        src={tab.imageFor(label)}
+                        alt=""
+                        style={{ transform: cardTransform(slug(label)) }}
+                        // A missing asset should cost the art, not the card.
+                        onError={(event) => {
+                          event.currentTarget.style.display = 'none'
+                        }}
+                      />
+                    </span>
                   )}
                   <span className="opt-text">
                     {label}

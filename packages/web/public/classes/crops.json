@@ -1,0 +1,63 @@
+{
+ "_": "Where to aim the crop of each class card, as [x, y] percentages and a zoom. Placed by hand in /cards.html. [50, 50, 1] is the whole picture.",
+ "barbarian": [
+  50,
+  50,
+  1
+ ],
+ "bard": [
+  50,
+  50,
+  1
+ ],
+ "cleric": [
+  50,
+  50,
+  1
+ ],
+ "druid": [
+  50,
+  50,
+  1
+ ],
+ "fighter": [
+  50,
+  50,
+  1
+ ],
+ "monk": [
+  50,
+  50,
+  1
+ ],
+ "paladin": [
+  50,
+  50,
+  1
+ ],
+ "ranger": [
+  50,
+  50,
+  1
+ ],
+ "rogue": [
+  50,
+  50,
+  1
+ ],
+ "sorcerer": [
+  50,
+  50,
+  1
+ ],
+ "warlock": [
+  50,
+  50,
+  1
+ ],
+ "wizard": [
+  50,
+  50,
+  1
+ ]
+}

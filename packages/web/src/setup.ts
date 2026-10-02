@@ -50,7 +50,7 @@ const LANGUAGES: readonly (readonly [string, string])[] = [
 export const LANGUAGE_OPTIONS = LANGUAGES
 
 /** Option label to asset basename: 'Dungeon crawl' -> 'dungeon-crawl'. */
-const slug = (label: string): string => label.toLowerCase().replace(/\s+/g, '-')
+export const slug = (label: string): string => label.toLowerCase().replace(/\s+/g, '-')
 
 const raceOptions = Object.entries(RACES).map(
   ([key, description]) => [raceLabel(key), description] as const,

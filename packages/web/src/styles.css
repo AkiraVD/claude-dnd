@@ -1144,16 +1144,24 @@ button.ghost:hover { border-color: var(--text-faint); color: var(--text); }
 
 /* Option cards that carry art: the class picker. */
 .opt-art { padding: 0 0 9px; overflow: hidden; }
+/* The frame. The picture inside it can be scaled and shifted onto its subject,
+   which is what needs clipping — the aspect lives here now rather than on the
+   image, so the box keeps its shape whatever the crop does. */
+.opt-shot {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  margin-bottom: 8px;
+  overflow: hidden;
+  position: relative;
+  /* The renders fade to black at the edges, so let them meet the card border. */
+  border-bottom: 1px solid var(--line);
+}
 .opt-art img {
   display: block;
   width: 100%;
-  /* Portrait, because the art is: a 5:4 letterbox would crop the head off a
-     bust. object-fit covers the small trim this leaves. */
-  aspect-ratio: 4 / 5;
-  margin-bottom: 8px;
+  height: 100%;
   object-fit: cover;
-  /* The renders fade to black at the edges, so let them meet the card border. */
-  border-bottom: 1px solid var(--line);
 }
 /* The inset goes on .opt-text, not on the card and not on a child selector.
    `.opt-art > :not(img)` looked like it covered the title, but the title is a
