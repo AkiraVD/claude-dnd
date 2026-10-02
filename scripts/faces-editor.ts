@@ -13,15 +13,36 @@
  *
  * `npm run faces`, then open /faces.html.
  */
-import { existsSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { basename, join } from 'node:path'
 import { BESTIARY, BESTIARY_LIST, PORTRAITS, PORTRAIT_LIST } from '@dnd/content'
 import { faceOf, portraitFor } from '../packages/web/src/art.js'
+
+/**
+ * Batches, so a pass over the newest fifty does not mean scrolling past 191.
+ *
+ * Each is a file of names, one per line — the same roster handed to the cutter,
+ * so the grouping is whatever was actually drawn together rather than a guess
+ * made afterwards. Named by the file, minus its extension.
+ *
+ *   BATCHES=~/art/names4.txt,~/art/names5.txt npm run faces
+ */
+const batches = (process.env['BATCHES'] ?? '')
+  .split(',')
+  .map((path) => path.trim())
+  .filter((path) => path !== '')
+  .map((path) => ({
+    id: basename(path).replace(/\.[^.]+$/, ''),
+    names: readFileSync(path, 'utf8').split('\n').map((n) => n.trim()).filter((n) => n !== '' && n !== '-'),
+  }))
+
+const batchOf = new Map<string, string>()
+for (const batch of batches) for (const name of batch.names) batchOf.set(name, batch.id)
 
 const rows = [
   ...PORTRAIT_LIST.map((name) => ({ name, looks: PORTRAITS[name], src: portraitFor(name)!, kind: 'folk' })),
   ...BESTIARY_LIST.map((name) => ({ name, looks: BESTIARY[name], src: portraitFor(name)!, kind: 'monster' })),
-].map((row) => ({ ...row, face: faceOf(row.name) }))
+].map((row) => ({ ...row, face: faceOf(row.name), batch: batchOf.get(row.name) ?? '' }))
 
 const STORE = 'dice-tower-faces'
 
@@ -86,6 +107,7 @@ const html = `<!doctype html>
   <button id="f-folk">folk</button>
   <button id="f-mon">monsters</button>
   <button id="f-chg">changed</button>
+  ${batches.map((b) => `<button class="f-batch" data-batch="${b.id}">${b.id}</button>`).join('')}
   <span id="count">0 changed</span>
   <button id="reset">reset all</button>
   <button id="copy">copy json</button>
@@ -127,6 +149,7 @@ ROWS.forEach(function (row) {
   var card = document.createElement('div');
   card.className = 'card';
   card.dataset.kind = row.kind;
+  card.dataset.batch = row.batch;
   card.dataset.name = row.name;
   card.innerHTML =
     '<div class="stage"><img src="' + row.src + '" alt="" draggable="false" loading="lazy">' +
@@ -200,24 +223,38 @@ function tally() {
 }
 tally();
 
-function filter(kind) {
+function filter(kind, batch) {
   var all = saved();
+  var shown = 0;
   Object.keys(cards).forEach(function (name) {
     var card = cards[name].card;
-    var show = kind === 'all' || (kind === 'changed' ? all[name] !== undefined : card.dataset.kind === kind);
+    var show =
+      batch ? card.dataset.batch === batch
+      : kind === 'all' ? true
+      : kind === 'changed' ? all[name] !== undefined
+      : card.dataset.kind === kind;
     card.style.display = show ? '' : 'none';
+    if (show) shown += 1;
   });
-  ['f-all', 'f-folk', 'f-mon', 'f-chg'].forEach(function (id) {
-    document.getElementById(id).classList.remove('on');
+  [].slice.call(document.querySelectorAll('header button')).forEach(function (b) {
+    b.classList.remove('on');
   });
-  document.getElementById(
-    kind === 'all' ? 'f-all' : kind === 'folk' ? 'f-folk' : kind === 'monster' ? 'f-mon' : 'f-chg',
-  ).classList.add('on');
+  var active = batch
+    ? document.querySelector('.f-batch[data-batch="' + batch + '"]')
+    : document.getElementById(
+        kind === 'all' ? 'f-all' : kind === 'folk' ? 'f-folk' : kind === 'monster' ? 'f-mon' : 'f-chg',
+      );
+  if (active) active.classList.add('on');
+  document.getElementById('count').textContent =
+    Object.keys(saved()).length + ' changed \u00b7 ' + shown + ' shown';
 }
 document.getElementById('f-all').onclick = function () { filter('all') };
 document.getElementById('f-folk').onclick = function () { filter('folk') };
 document.getElementById('f-mon').onclick = function () { filter('monster') };
 document.getElementById('f-chg').onclick = function () { filter('changed') };
+[].slice.call(document.querySelectorAll('.f-batch')).forEach(function (b) {
+  b.onclick = function () { filter(null, b.dataset.batch) };
+});
 
 document.getElementById('reset').onclick = function () {
   if (!confirm('Throw away every change on this page?')) return;
