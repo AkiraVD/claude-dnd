@@ -1,6 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { cardTransform, faceTransform, portraitFor } from './art.js'
-import { FACE_RACES, faceCounts, facesMatching, raceLabel, type Face, type FaceRace } from './faces.js'
+import {
+  FACE_RACES,
+  faceCounts,
+  facesMatching,
+  raceLabel,
+  raceOfPortrait,
+  type Face,
+  type FaceRace,
+} from './faces.js'
 import { pronounsForPortrait, type Gender } from '@dnd/content'
 import { rollCharacter, suggestedClass } from './roll-character.js'
 import {
@@ -65,6 +73,10 @@ export function Setup({
   onResume: () => void
 }): JSX.Element {
   const [answers, setAnswers] = useState<SetupAnswers>(EMPTY_ANSWERS)
+  // Up here rather than inside the picker, so rolling can move it: a rolled
+  // dwarf whose face sits behind the "all" filter, ninety portraits down, has
+  // been chosen without being shown.
+  const [faceRace, setFaceRace] = useState<FaceRace | null>(null)
   const [active, setActive] = useState(SETUP_TABS[0]!.key)
 
   if (answers.language === '') {
@@ -143,6 +155,9 @@ export function Setup({
                   // give a woman, not replace the choice with whatever face came
                   // up. Left unset, the face decides and fills it in.
                   const rolled = rollCharacter(race, className, Math.random, genderFor(answers.pronouns))
+                  // Show what was rolled: narrow the grid to its race, and let
+                  // the sex filter follow the pronouns below.
+                  setFaceRace(raceOfPortrait(rolled.portrait))
                   setAnswers({
                     ...answers,
                     name: rolled.name,
@@ -171,6 +186,8 @@ export function Setup({
           {tab.picker === 'faces' && (
             <FacePicker
               chosen={answers.portrait}
+              race={faceRace}
+              onRace={setFaceRace}
               gender={genderFor(answers.pronouns)}
               onGender={(pronouns) => setAnswers({ ...answers, pronouns })}
               onPick={(face) => {
@@ -367,17 +384,28 @@ export { answerFor }
  */
 function FacePicker({
   chosen,
+  race,
+  onRace,
   gender,
   onGender,
   onPick,
 }: {
   chosen: string
+  race: FaceRace | null
+  onRace: (race: FaceRace | null) => void
   gender: Gender | undefined
   onGender: (pronouns: string) => void
   onPick: (face: Face) => void
 }): JSX.Element {
-  const [race, setRace] = useState<FaceRace | null>(null)
   const counts = faceCounts(gender ?? null)
+  const grid = useRef<HTMLDivElement>(null)
+
+  // Bring the chosen face into view when something else chose it — a roll can
+  // land ten rows down, and a selection you cannot see is one you distrust.
+  useEffect(() => {
+    const picked = grid.current?.querySelector('[aria-pressed="true"]')
+    picked?.scrollIntoView({ block: 'nearest' })
+  }, [chosen, race, gender])
   const shown = facesMatching({
     race,
     ...(gender === undefined ? {} : { gender }),
@@ -392,7 +420,7 @@ function FacePicker({
           type="button"
           className="chip chip-pick"
           aria-pressed={race === null}
-          onClick={() => setRace(null)}
+          onClick={() => onRace(null)}
         >
           all <em>{Object.values(counts).reduce((a, b) => a + b, 0)}</em>
         </button>
@@ -402,7 +430,7 @@ function FacePicker({
             type="button"
             className="chip chip-pick"
             aria-pressed={race === option}
-            onClick={() => setRace(option)}
+            onClick={() => onRace(option)}
           >
             {raceLabel(option)} <em>{counts[option] ?? 0}</em>
           </button>
@@ -434,7 +462,7 @@ function FacePicker({
         </span>
       </div>
 
-      <div className="faces-grid">
+      <div className="faces-grid" ref={grid}>
         {shown.map((face) => (
           <button
             key={face.name}
