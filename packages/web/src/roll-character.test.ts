@@ -50,11 +50,22 @@ describe('rolling a character', () => {
   })
 
   it('prefers a role that suits the class where one exists', () => {
-    expect(avatarFor('human', 'fighter')).toContain('mercenary')
-    expect(avatarFor('human', 'wizard')).toContain('courtmage')
-    expect(avatarFor('elf', 'ranger')).toContain('longstrider')
-    expect(avatarFor('halfling', 'rogue')).toContain('cardsharp')
-    expect(avatarFor('dwarf', 'cleric')).toContain('forgepriest')
+    // The property, not the file. Naming the portrait pinned an answer that was
+    // only right while the race had one option in that cluster — a second dwarf
+    // priest broke this, by being picked, which is what it is for.
+    const CLUSTER: Record<string, string[]> = {
+      fighter: ['mercenary', 'sellsword', 'shieldbreaker', 'bladedancer', 'bulwark'],
+      wizard: ['courtmage', 'highmage', 'runecarver', 'hedgemage'],
+      ranger: ['outrider', 'longstrider', 'pathfinder', 'trailwise', 'scout'],
+      rogue: ['grifter', 'cardsharp', 'dicesharp', 'silvertongue', 'charlatan'],
+      cleric: ['warpriest', 'forgepriest', 'grovepriest', 'hearthpriest', 'wanderingpriest'],
+    }
+    for (const race of RACES) {
+      for (const [cls, roles] of Object.entries(CLUSTER)) {
+        const role = avatarFor(race, cls).split('-').at(-2)!
+        expect(roles, `${race} ${cls} got ${role}`).toContain(role)
+      }
+    }
   })
 
   it('is deterministic for a given roll', () => {
