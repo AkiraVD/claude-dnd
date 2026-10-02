@@ -1,10 +1,19 @@
 /**
- * The class-card cropper: drag a ring onto the subject, watch the card follow.
+ * The class-card cropper: move the cutting lines, watch the cards follow.
  *
  * Same loop as the faces editor and for the same reason. These were generated
  * as square cells and the subject is often high and off to one side, so shown
  * whole the card is half dead space and the face is small. Reading the offsets
  * off a grid by eye was tried and was wrong often enough not to trust.
+ *
+ * Two axes, two sliders, deliberately. A single draggable point couples them,
+ * and the fault in this deck is mostly one axis at a time — everything sits too
+ * high, or one subject sits too far right. Separating them means a vertical fix
+ * cannot nudge the horizontal by a pixel on the way past.
+ *
+ * And the top row moves every card at once, because that is the usual shape of
+ * the problem: one sheet, one framing, wrong for all twelve the same way. Per
+ * card below for the ones that then need a hand.
  *
  * The preview is the real card: the same box, the same aspect, the same CSS
  * transform the app applies. What you aim is what ships.
@@ -56,30 +65,46 @@ const html = `<!doctype html>
   .card.changed { border-color:var(--accent); }
   .work { display:flex; gap:10px; padding:10px; }
   /* Left: the whole picture, where you aim. Right: the card as it will ship. */
-  .stage { position:relative; flex:1; cursor:crosshair; touch-action:none; border:1px solid var(--line); }
+  .stage { position:relative; flex:1; border:1px solid var(--line); }
   .stage img { display:block; width:100%; }
-  .ring { position:absolute; width:26px; height:26px; margin:-13px 0 0 -13px; border-radius:50%;
-    border:2px solid var(--accent); box-shadow:0 0 0 1px #000a; pointer-events:none; }
+  /* The cutting lines themselves, so the number on the slider has somewhere to
+     be seen on the picture. */
+  .vline, .hline { position:absolute; background:var(--accent); pointer-events:none; opacity:.85; }
+  .vline { top:0; bottom:0; width:1px; margin-left:-1px; }
+  .hline { left:0; right:0; height:1px; margin-top:-1px; }
   .shot { width:118px; flex:none; aspect-ratio:${ASPECT}; overflow:hidden; position:relative;
     border:1px solid var(--line); border-radius:4px; }
   .shot img { display:block; width:100%; height:100%; object-fit:cover; }
-  .zoomrow { display:flex; gap:9px; align-items:center; padding:0 10px 8px; }
-  .zoom { flex:1; }
-  .zval { width:38px; color:var(--dim); text-align:right; }
+  .row { display:flex; gap:9px; align-items:center; padding:0 10px 6px; }
+  .row label { width:16px; color:var(--faint); }
+  .row input { flex:1; }
+  .row output { width:46px; color:var(--dim); text-align:right; }
+  .bar { display:flex; gap:12px; align-items:center; flex-wrap:wrap; padding:10px 18px;
+    border-bottom:1px solid var(--line); background:var(--panel); }
+  .bar strong { color:var(--accent); font-weight:normal; letter-spacing:.06em; text-transform:uppercase; }
+  .bar .row { padding:0; min-width:220px; flex:1; }
   .meta { padding:0 10px 10px; display:flex; flex-direction:column; gap:1px; }
   .meta b { color:var(--text); }
   .meta span { color:var(--dim); }
   .xy { color:var(--faint) !important; }
   .xy em { color:var(--accent); font-style:normal; }
+  .xy b { color:#e0714f; font-weight:normal; }
+  .card.stuck { border-color:#e0714f; }
 </style></head>
 <body>
 <header>
   <h1>Aim the cards</h1>
-  <span class="hint">click or drag on the left to aim &middot; slider to zoom &middot; the right is the card</span>
+  <span class="hint">zoom in first, then x and y move the cutting lines &middot; the top row moves all twelve at once</span>
   <span id="count">0 changed</span>
   <button id="reset">reset all</button>
   <button id="copy">copy json</button>
 </header>
+<div class="bar">
+  <strong>all twelve</strong>
+  <span class="row"><label for="gx">x</label><input id="gx" type="range" min="0" max="100" step="1" value="50"><output id="gxv">50</output></span>
+  <span class="row"><label for="gy">y</label><input id="gy" type="range" min="0" max="100" step="1" value="50"><output id="gyv">50</output></span>
+  <span class="row"><label for="gz">z</label><input id="gz" type="range" min="1" max="3" step="0.05" value="1"><output id="gzv">1.00&times;</output></span>
+</div>
 <textarea id="out" spellcheck="false" readonly></textarea>
 <main id="grid"></main>
 <script>
@@ -114,32 +139,44 @@ ROWS.forEach(function (row) {
   card.className = 'card';
   card.innerHTML =
     '<div class="work">' +
-      '<div class="stage"><img src="' + row.src + '" alt=""><i class="ring"></i></div>' +
+      '<div class="stage"><img src="' + row.src + '" alt="">' +
+        '<i class="vline"></i><i class="hline"></i></div>' +
       '<div class="shot"><img src="' + row.src + '" alt=""></div>' +
     '</div>' +
-    '<div class="zoomrow"><input type="range" class="zoom" min="1" max="3" step="0.05" value="' + z + '">' +
-      '<span class="zval"></span></div>' +
+    '<div class="row"><label>x</label><input type="range" class="ix" min="0" max="100" step="1" value="' + x + '"><output class="ox"></output></div>' +
+    '<div class="row"><label>y</label><input type="range" class="iy" min="0" max="100" step="1" value="' + y + '"><output class="oy"></output></div>' +
+    '<div class="row"><label>z</label><input type="range" class="iz" min="1" max="3" step="0.05" value="' + z + '"><output class="oz"></output></div>' +
     '<div class="meta"><b>' + row.label + '</b><span>' + row.description + '</span>' +
       '<span class="xy"></span></div>';
   grid.appendChild(card);
 
-  var stage = card.querySelector('.stage');
-  var ring = card.querySelector('.ring');
+  var vline = card.querySelector('.vline');
+  var hline = card.querySelector('.hline');
   var shot = card.querySelector('.shot img');
-  var zoom = card.querySelector('.zoom');
-  var zval = card.querySelector('.zval');
+  var ix = card.querySelector('.ix');
+  var iy = card.querySelector('.iy');
+  var iz = card.querySelector('.iz');
+  var ox = card.querySelector('.ox');
+  var oy = card.querySelector('.oy');
+  var oz = card.querySelector('.oz');
   var xy = card.querySelector('.xy');
 
   function paint() {
-    ring.style.left = x + '%';
-    ring.style.top = y + '%';
+    vline.style.left = x + '%';
+    hline.style.top = y + '%';
     shot.style.transform = transform(x, y, z);
-    zoom.value = z;
-    zval.textContent = z.toFixed(2) + '\\u00d7';
+    ix.value = x; iy.value = y; iz.value = z;
+    ox.textContent = x; oy.textContent = y; oz.textContent = z.toFixed(2) + '\\u00d7';
     var moved = x !== row.x || y !== row.y || z !== row.z;
     card.classList.toggle('changed', moved);
+    // At 1x the picture fills the frame exactly and there is no overflow to
+    // shift, so the lines move and nothing happens. Say so, rather than let it
+    // look broken.
+    var stuck = z === 1 && (x !== 50 || y !== 50);
+    card.classList.toggle('stuck', stuck);
     xy.innerHTML = x + ', ' + y + ' @' + z.toFixed(2) + '\\u00d7' +
-      (moved ? ' <em>was ' + row.x + ', ' + row.y + ' @' + Number(row.z).toFixed(2) + '\\u00d7</em>' : '');
+      (stuck ? ' <b>zoom in to move the cut</b>' : '') +
+      (moved && !stuck ? ' <em>was ' + row.x + ', ' + row.y + ' @' + Number(row.z).toFixed(2) + '\\u00d7</em>' : '');
   }
 
   function remember() {
@@ -149,19 +186,40 @@ ROWS.forEach(function (row) {
     store(all); paint(); tally();
   }
 
-  function put(event) {
-    var box = stage.getBoundingClientRect();
-    x = Math.round(Math.max(0, Math.min(100, ((event.clientX - box.left) / box.width) * 100)));
-    y = Math.round(Math.max(0, Math.min(100, ((event.clientY - box.top) / box.height) * 100)));
-    remember();
-  }
+  ix.addEventListener('input', function () { x = Number(ix.value); remember() });
+  iy.addEventListener('input', function () { y = Number(iy.value); remember() });
+  iz.addEventListener('input', function () { z = Number(iz.value); remember() });
 
-  zoom.addEventListener('input', function () { z = Number(zoom.value); remember() });
-  stage.addEventListener('pointerdown', function (e) { stage.setPointerCapture(e.pointerId); put(e) });
-  stage.addEventListener('pointermove', function (e) { if (e.buttons === 1) put(e) });
-
-  cards[row.name] = { reset: function () { x = row.x; y = row.y; z = row.z; paint() } };
+  cards[row.name] = {
+    reset: function () { x = row.x; y = row.y; z = row.z; paint() },
+    // What the batch sliders drive. One axis each, so moving every card down
+    // cannot drag them sideways on the way past.
+    setX: function (v) { x = v; remember() },
+    setY: function (v) { y = v; remember() },
+    setZ: function (v) { z = v; remember() },
+  };
   paint();
+});
+
+// The top row: one move, all twelve. The usual fault is one sheet framed the
+// same way for every cell, so the usual fix is one slider, once.
+function everyCard(method, value) {
+  Object.keys(cards).forEach(function (name) { cards[name][method](value) });
+}
+var gx = document.getElementById('gx');
+var gy = document.getElementById('gy');
+var gz = document.getElementById('gz');
+gx.addEventListener('input', function () {
+  document.getElementById('gxv').textContent = gx.value;
+  everyCard('setX', Number(gx.value));
+});
+gy.addEventListener('input', function () {
+  document.getElementById('gyv').textContent = gy.value;
+  everyCard('setY', Number(gy.value));
+});
+gz.addEventListener('input', function () {
+  document.getElementById('gzv').innerHTML = Number(gz.value).toFixed(2) + '&times;';
+  everyCard('setZ', Number(gz.value));
 });
 
 function tally() {
