@@ -303,7 +303,14 @@ body {
   color: var(--bad);
 }
 
-.thinking { display: flex; gap: 5px; padding: 6px 0 18px; }
+.thinking { display: flex; gap: 5px; align-items: center; padding: 6px 0 18px; }
+.thinking em {
+  margin-left: 6px;
+  font-style: normal;
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+  color: var(--text-faint);
+}
 .thinking span {
   width: 5px; height: 5px; border-radius: 50%;
   background: var(--text-faint);

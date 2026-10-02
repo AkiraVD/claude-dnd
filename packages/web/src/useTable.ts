@@ -56,6 +56,8 @@ export interface Shop {
 export interface Table {
   connected: boolean
   thinking: boolean
+  /** The tool the DM is in the middle of, or null between calls. */
+  doing: string | null
   model: string | null
   /** The `claude` conversation driving the table, from the stream. */
   claudeSession: string | null
@@ -125,6 +127,7 @@ export function useTable(): Table {
   const socket = useRef<WebSocket | null>(null)
   const [connected, setConnected] = useState(false)
   const [thinking, setThinking] = useState(false)
+  const [doing, setDoing] = useState<string | null>(null)
   const [model, setModel] = useState<string | null>(null)
   const [claudeSession, setClaudeSession] = useState<string | null>(null)
   const [state, setState] = useState<TableState | null>(null)
@@ -144,6 +147,7 @@ export function useTable(): Table {
     ws.onclose = () => {
       setConnected(false)
       setThinking(false)
+      setDoing(null)
     }
 
     ws.onmessage = (raw) => {
@@ -169,6 +173,11 @@ export function useTable(): Table {
           setThinking(true)
           return
 
+        case 'doing':
+          setThinking(true)
+          setDoing(message.name)
+          return
+
         case 'thinking':
           setThinking(true)
           return
@@ -178,6 +187,7 @@ export function useTable(): Table {
           return
 
         case 'narration-delta':
+          setDoing(null)
           setThinking(false)
           setLog((entries) => {
             const last = entries.at(-1)
@@ -207,6 +217,7 @@ export function useTable(): Table {
           return
 
         case 'roll':
+          setDoing(null)
           setLog((entries) => [
             ...sealed(entries),
             { kind: 'roll', id: nextId(), call: message.call },
@@ -214,6 +225,7 @@ export function useTable(): Table {
           return
 
         case 'tool': {
+          setDoing(null)
           // Two tools exist only to drive this UI; their payload is the panel.
           const data = message.call.data
           if (!message.call.isError && data !== null) {
@@ -246,6 +258,7 @@ export function useTable(): Table {
 
         case 'turn-end':
           setThinking(false)
+          setDoing(null)
           setCostUsd(message.costUsd)
           setLog(sealed)
           return
@@ -304,6 +317,7 @@ export function useTable(): Table {
   return {
     connected,
     thinking,
+    doing,
     model,
     claudeSession,
     state,

@@ -5,6 +5,7 @@ import { Actions } from './Actions.js'
 import { actionSheet, defaultActor } from './actions.js'
 import { Character } from './Character.js'
 import { DiceCard } from './DiceCard.js'
+import { doingLabel } from './doing.js'
 import { blocks, speakerKey, type Block } from './markdown.js'
 import { Panels } from './Panels.js'
 import { Sessions } from './Sessions.js'
@@ -198,6 +199,9 @@ function Console({
         {table.thinking && (
           <div className="thinking">
             <span /> <span /> <span />
+            {/* Named while it runs, because the long calls are the ones with
+                nothing to show: the dots alone read as a hang. */}
+            {doingLabel(table.doing) !== null && <em>{doingLabel(table.doing)}</em>}
           </div>
         )}
       </div>

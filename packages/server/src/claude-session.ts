@@ -18,6 +18,16 @@ export type SessionEvent =
   | { type: 'narration-delta'; text: string }
   | { type: 'narration'; text: string }
   | { type: 'thinking' }
+  /**
+   * A tool call has begun, named before its arguments exist.
+   *
+   * `tool-call` only arrives once the whole call is assembled, and assembling it
+   * is where the time goes — `set_story` writes the premise, the question and
+   * the beats into one argument, which took 24 seconds in the session that
+   * prompted this against 2 to 4 for an ordinary call. For that whole stretch
+   * nothing reached the browser and the table looked hung.
+   */
+  | { type: 'tool-start'; name: string }
   | { type: 'tool-call'; id: string; name: string; input: Record<string, unknown> }
   | { type: 'tool-result'; id: string; isError: boolean; text: string; data: unknown }
   | { type: 'turn-end'; costUsd: number | null; turns: number | null; subtype: string }
@@ -236,11 +246,18 @@ export function translate(message: Record<string, any>): SessionEvent[] {
     }
 
     case 'stream_event': {
-      const delta = message['event']?.delta
+      const event = message['event']
+      const delta = event?.delta
       if (delta?.type === 'text_delta' && typeof delta.text === 'string') {
         return [{ type: 'narration-delta', text: delta.text }]
       }
       if (delta?.type === 'thinking_delta') return [{ type: 'thinking' }]
+      // The block opens with the tool's name and an empty input; the arguments
+      // arrive afterwards as input_json_delta, which is the slow part.
+      if (event?.type === 'content_block_start' && event.content_block?.type === 'tool_use') {
+        const name = String(event.content_block.name ?? '').replace(/^mcp__dnd__/, '')
+        if (name !== '') return [{ type: 'tool-start', name }]
+      }
       return []
     }
 

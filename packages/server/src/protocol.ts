@@ -37,6 +37,9 @@ export type ServerMessage =
   | { type: 'narration-delta'; text: string }
   | { type: 'narration'; text: string }
   | { type: 'thinking' }
+  /** A tool call has begun. Named before its arguments exist, so the table can
+      say what the DM is doing during the long silence while they are written. */
+  | { type: 'doing'; name: string }
   | { type: 'roll'; call: ToolCallView }
   | { type: 'tool'; call: ToolCallView }
   | { type: 'turn-end'; costUsd: number | null }

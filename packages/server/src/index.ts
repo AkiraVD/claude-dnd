@@ -98,6 +98,10 @@ session.on('event', (event: SessionEvent) => {
       broadcast({ type: 'thinking' })
       return
 
+    case 'tool-start':
+      broadcast({ type: 'doing', name: event.name })
+      return
+
     case 'tool-call':
       pending.set(event.id, { name: event.name, input: event.input })
       return
