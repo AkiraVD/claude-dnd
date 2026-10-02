@@ -20,6 +20,7 @@
  *
  * Then open the page, cut, copy, and `npm run cut:apply`.
  */
+import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { SETUP_TABS } from '../packages/web/src/setup.js'
@@ -62,6 +63,82 @@ const names: Array<{ name: string; label: string }> = namesFile
 if (names.length !== COLS * ROWS) {
   throw new Error(`${names.length} names for a ${COLS}x${ROWS} grid of ${COLS * ROWS}`)
 }
+
+/**
+ * Where the sheet is actually divided.
+ *
+ * The even division is a guess, and on more than one of these masters it is a
+ * wrong one — adventurer sheet 1 has rows of 253, 249, 251, 231 and 270. A seam
+ * between two paintings is a step in brightness across the whole width, which
+ * nothing inside a single painting produces, so it can be found rather than
+ * assumed.
+ *
+ * Each division is searched only near where it ought to be: a quarter of a cell
+ * either side of the even position. Without that the brightest step in the sheet
+ * wins every time, and that is usually a shoulder.
+ *
+ * The cut goes one pixel past the step, which is what excludes the seam itself
+ * rather than baking it into the top of the picture below.
+ */
+function seams(path: string, n: number, axis: 'x' | 'y'): number[] {
+  const probe = execFileSync(
+    'ffmpeg',
+    ['-nostdin', '-v', 'error', '-i', path, '-vf', 'format=gray', '-f', 'rawvideo', '-'],
+    { maxBuffer: 1 << 28 },
+  )
+  const size = execFileSync(
+    'ffprobe',
+    ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height',
+     '-of', 'csv=p=0', path],
+    { encoding: 'utf8' },
+  ).trim()
+  const [W, H] = size.split(',').map(Number) as [number, number]
+  const total = axis === 'x' ? W : H
+  const across = axis === 'x' ? H : W
+
+  const mean = (i: number): number => {
+    let sum = 0
+    let count = 0
+    for (let j = 0; j < across; j += 3) {
+      sum += probe[axis === 'x' ? j * W + i : i * W + j] ?? 0
+      count += 1
+    }
+    return sum / count
+  }
+  const line: number[] = []
+  for (let i = 0; i < total; i += 1) line.push(mean(i))
+
+  const cut = [0]
+  const cell = total / n
+  for (let k = 1; k < n; k += 1) {
+    const centre = Math.round(k * cell)
+    // Narrow on purpose. A real seam sits within a few pixels of the even
+    // division — adventurer sheet 1, the most uneven of these, is out by 21 at
+    // its worst — while a quarter-cell window is wide enough to reach the next
+    // painting's shoulder and prefer it.
+    const span = Math.max(6, Math.round(cell / 10))
+    // Weighted toward where the division ought to be. Picking the strongest step
+    // outright found a shoulder more than once — a painted edge inside a cell can
+    // beat the seam — and most of these sheets are evenly divided anyway, so a
+    // candidate has to be noticeably better to be believed further out.
+    let best = centre
+    let bestScore = -1
+    for (let i = Math.max(1, centre - span); i < Math.min(total, centre + span); i += 1) {
+      const step = Math.abs(line[i]! - line[i - 1]!)
+      const score = step * (1 - (0.75 * Math.abs(i - centre)) / span)
+      if (score > bestScore) {
+        bestScore = score
+        best = i
+      }
+    }
+    cut.push(Math.min(total, best + 1))
+  }
+  cut.push(total)
+  return cut
+}
+
+const seamX = seams(sheetPath, COLS, 'x')
+const seamY = seams(sheetPath, ROWS, 'y')
 
 const dataUri = `data:image/png;base64,${readFileSync(sheetPath).toString('base64')}`
 const STORE = `dice-tower-cuts:${page}`
@@ -123,8 +200,9 @@ const html = `<!doctype html>
 <body>
 <header>
   <h1>Cut ${title}</h1>
-  <span class="hint">drag a line, or type the pixel &middot; every cell sharing it follows</span>
+  <span class="hint">lines start on the detected seams &middot; drag one, or type the pixel &middot; every cell sharing it follows</span>
   <span id="count">unmoved</span>
+  <button id="seams">find the seams</button>
   <button id="even">space evenly</button>
   <button id="reset">reset</button>
   <button id="copy">copy json</button>
@@ -142,6 +220,8 @@ const html = `<!doctype html>
 var STORE = ${JSON.stringify(STORE)};
 var NAMES = ${JSON.stringify(names)};
 var COLS = ${COLS}, ROWS = ${ROWS};
+// Found by looking for the step in brightness across the sheet, not assumed.
+var SEAM_X = ${JSON.stringify(seamX)}, SEAM_Y = ${JSON.stringify(seamY)};
 
 var sheet = document.getElementById('sheet');
 var box = document.getElementById('sheetbox');
@@ -167,8 +247,8 @@ function load() {
 function build() {
   SW = sheet.naturalWidth; SH = sheet.naturalHeight;
   var saved = load();
-  xs = saved ? saved.xs.slice() : evenly(COLS, SW);
-  ys = saved ? saved.ys.slice() : evenly(ROWS, SH);
+  xs = saved ? saved.xs.slice() : SEAM_X.slice();
+  ys = saved ? saved.ys.slice() : SEAM_Y.slice();
 
   // Cells first, so the lines sit over them and stay grabbable.
   NAMES.forEach(function (row, i) {
@@ -255,17 +335,20 @@ function draw() {
     p.img.style.top = -y * z + 'px';
   });
 
-  var ev = evenly(COLS, SW).join() === xs.join() && evenly(ROWS, SH).join() === ys.join();
-  document.getElementById('count').textContent = ev ? 'unmoved' : 'cut';
+  var atSeams = SEAM_X.join() === xs.join() && SEAM_Y.join() === ys.join();
+  document.getElementById('count').textContent = atSeams ? 'at the seams' : 'adjusted';
 }
 
 document.getElementById('even').onclick = function () {
   xs = evenly(COLS, SW); ys = evenly(ROWS, SH); save(); draw();
 };
+document.getElementById('seams').onclick = function () {
+  xs = SEAM_X.slice(); ys = SEAM_Y.slice(); save(); draw();
+};
 document.getElementById('reset').onclick = function () {
   if (!confirm('Throw away these cuts?')) return;
   localStorage.removeItem(STORE);
-  xs = evenly(COLS, SW); ys = evenly(ROWS, SH); draw();
+  xs = SEAM_X.slice(); ys = SEAM_Y.slice(); draw();
 };
 
 document.getElementById('copy').onclick = function () {
