@@ -46,10 +46,18 @@ player explicitly wants this campaign wiped.
 ## 4. A fresh start
 
 **The browser may have asked already.** On a fresh campaign the web console shows a setup
-form — language first, then race, class, adventure, difficulty, tone and character — and
-sends the answers as the player's first message. If that message already tells you what
-they want, do not ask again; acknowledge it and get on with building. Anything they left
-blank is still yours to ask about.
+form — language first, then Character, Adventure, Difficulty, Rules and Tone — and sends
+the answers as the player's first message. The Character tab carries the name, the portrait,
+the race, the class and a story starter together, because the picture decides the race and
+the sex and asking for them separately only let them disagree with it. If that message
+already tells you what they want, do not ask again; acknowledge it and get on with building.
+Anything they left blank is still yours to ask about.
+
+**The portrait is already chosen, and it is the player's.** The brief names it and asks you
+to set it with `mcp__dnd__update_npc` once the character exists. Do that; it is the face the
+player picked and the one they are looking at. Never hand it to an NPC as well — the engine
+rejects a portrait already in use and names who holds it, and `get_portraits` leaves the
+taken ones out, so meeting your own double in the first tavern cannot happen by accident.
 
 If nothing arrived, ask what they want to play, offering something concrete so they are
 not facing a blank page: a fighter, a rogue, a wizard, or their own idea.

@@ -25,7 +25,7 @@ engine, not the prompt.
 | Package | What it is |
 |---|---|
 | `@dnd/engine` | The rules. Pure, seeded, zero I/O. Every function returns new state plus `GameEvent[]` |
-| `@dnd/content` | SRD 5.1 data: abilities, skills, conditions, damage types, 12 classes, slot tables |
+| `@dnd/content` | SRD 5.1 data: abilities, skills, conditions, damage types, 12 classes, races, slot tables. Also the art catalogues: 191 folk, 60 creatures |
 | `@dnd/mcp` | The engine as 65 MCP tools, campaigns in SQLite |
 | `@dnd/server` | Runs `claude` as a child process, bridges stream-json to a WebSocket |
 | `@dnd/web` | React console and panels |
@@ -39,12 +39,17 @@ Data flow: browser ⇄ WebSocket ⇄ `@dnd/server` ⇄ stdin/stdout ⇄ `claude`
 npm run play        # build the UI and serve at localhost:5173
 npm run server      # serve without rebuilding
 npm run dev:web     # Vite dev server for UI work, alongside npm run server
-npm test            # 580 tests
+npm test            # 704 tests across 28 files
 npm run typecheck   # strict TS across every package
-npm run gallery     # build /gallery.html: every picture the game can reach, on one page
-npm run faces       # build /faces.html: drag a ring onto each face, crops follow live
-npm run faces:apply # pipe the editor's JSON in to write it into faces.json
 ```
+
+`HOST=0.0.0.0` serves the table to the rest of the network; `DND_DB`, `DND_SEED` and
+`DND_CAMPAIGN` pick the save, the dice and the campaign.
+
+`npm run gallery` builds a page of every picture the game can reach. Four more scripts —
+`faces`, `cut`, `cards`, `gender` — each write a page into `packages/web/public/` that you
+adjust by dragging; the matching `:apply` reads back the JSON it prints. Nothing touches
+disk until you apply, and none of the generated pages is committed.
 
 ## Conventions
 
@@ -98,12 +103,12 @@ the snapshot before.
   source file; a change here alters the game more than most code does.
 - `.claude/skills/play-dnd/SKILL.md` — session bootstrap: resume or create, character
   creation.
-- `.claude/skills/make-art/SKILL.md` — how every asset in `packages/web/public/` was made:
-  one conversation, one shared prompt block, and how to slice and wire the result.
-- `scripts/gallery.ts` — generates the asset gallery from the catalogues, so the page
-  cannot quietly disagree with what ships. Not committed; run it when you want it.
-- `scripts/faces-editor.ts` / `faces-apply.ts` — the focal-point editor and the way its
-  adjustments get back onto disk. Edits live in the browser until applied.
+- `.claude/skills/make-art/SKILL.md` — how every asset in `packages/web/public/` was made,
+  and what this project then does with it: the decks, the sizes it stores, and the catalogue
+  and test each new picture has to be wired into. The browser-driving itself lives in the
+  global `chatgpt-image-gen` skill, which this one defers to rather than repeating.
+- `scripts/*-editor.ts` / `*-apply.ts` — the four art editors, above. The catalogues and
+  `faces.json` are hand-aimed, not derived, so these are how they get changed.
 - `PLAN.md` — the build plan, what each phase covered, and what was deliberately skipped.
 - `playtests/` — real sessions with findings. The first one drove most of the engine's depth.
   **Run a playtest after changing rules or the prompt**, and write the findings down; they

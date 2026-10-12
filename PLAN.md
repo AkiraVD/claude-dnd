@@ -60,18 +60,24 @@ The MCP server runs **inside the web server over HTTP**, not as a stdio child of
 That way it survives across `claude` restarts and can push state straight to the browser
 panels over SSE as the engine mutates.
 
+> **Not what shipped.** The HTTP transport was dropped once campaigns were in SQLite, and
+> `@dnd/mcp` became its own package running as a stdio child. See *Two plan changes worth
+> recording* below. The diagram above is kept as the plan it was, not as a map of the code.
+
 ### The launch command
+
+What `packages/server/src/claude-session.ts` actually assembles:
 
 ```bash
 claude -p \
   --input-format stream-json --output-format stream-json \
   --verbose --include-partial-messages --replay-user-messages \
-  --session-id "$CAMPAIGN_UUID" \
-  --append-system-prompt-file .claude/dm-prompt.md \
+  --append-system-prompt-file <the dm prompt> \
+  --mcp-config <the mcp config> \
   --tools "" \
   --allowedTools "mcp__dnd__*" \
   --permission-mode dontAsk \
-  --mcp-config .mcp.json
+  [--resume <session id>]
 ```
 
 Each flag is load-bearing:
@@ -81,11 +87,21 @@ Each flag is load-bearing:
 | `--input-format stream-json` | Feed many turns into one process. The whole reason this design works |
 | `--include-partial-messages` | Token deltas, so narration types out live |
 | `--replay-user-messages` | Server gets its own turns echoed back, for ordering the log |
-| `--session-id <uuid>` | Your campaign id *is* the session id. Crash? `--resume` the same uuid |
+| `--resume <id>` | Pick the conversation back up after a restart |
 | `--tools ""` | Removes **every** built-in tool. The DM cannot read, write, or run anything |
 | `--allowedTools "mcp__dnd__*"` | Game tools never prompt — a dice roll must not block on approval |
 | `--permission-mode dontAsk` | Anything not allowlisted is denied instead of hanging |
 | no `--bare` | Bare mode ignores the subscription login and demands an API key. Do not use it |
+
+**`--session-id` is not passed, though the plan said it would be.** The idea was that the
+campaign id *would be* the conversation id, one identifier for both. In practice the id is
+read off the `system/init` event the CLI emits and stored, and a restart passes it back as
+`--resume`. The conversation and the campaign turn out to want separate lifetimes anyway:
+`/clear` ends one and not the other, which is why `reset_campaign` exists.
+
+One more flag to avoid, found the hard way and not in the plan: **`--system-prompt` hangs
+forever on a subscription login**, the same trap as `--bare`. Only the `--append-` form
+works, which is why the DM's contract is appended rather than replacing the system prompt.
 
 `--tools ""` plus `dontAsk` is what makes an unsupervised DM safe: it has exactly the game
 tools and nothing else, so there is no blast radius to worry about.
@@ -183,19 +199,33 @@ DM-run. No turn-ownership model.
 
 ## MCP tool surface
 
+Sixty-five tools as built. The plan sketched about thirty; the growth is almost all in the
+groups it named last — story, cast and shop — because those are what a session actually
+spends its calls on once the combat maths works.
+
 | Group | Tools |
 |---|---|
 | Dice | `roll_dice` |
-| Resolution | `ability_check`, `saving_throw`, `attack_roll`, `contested_check` |
-| HP | `apply_damage`, `heal`, `apply_temp_hp`, `death_save` |
-| Combat | `start_combat`, `next_turn`, `end_combat` |
-| Status | `apply_condition`, `remove_condition`, `concentration_check` |
-| Magic | `cast_spell` (spends the slot, computes save DC), `list_spells` |
+| Resolution | `ability_check`, `skill_check`, `saving_throw`, `attack_roll` |
+| HP | `apply_damage`, `heal`, `apply_temp_hp`, `death_save`, `stabilise`, `kill` |
+| Combat | `start_combat`, `next_turn`, `remove_from_combat`, `end_combat` |
+| Status | `apply_condition`, `remove_condition`, `set_exhaustion`, `start_concentration`, `concentration_save` |
+| Magic | `cast_spell` (spends the slot, computes save DC), `learn_spell` |
+| Resources | `list_resources`, `add_resource`, `spend_resource`, `spend_hit_die` |
 | Rest/growth | `short_rest`, `long_rest`, `award_xp`, `level_up` |
-| Items | `add_item`, `remove_item`, `equip`, `use_item` |
-| Campaign | `new_campaign`, `load_campaign`, `recap` |
-| Read-only | `get_character_sheet`, `get_combat_state` — Claude checks facts instead of recalling |
-| Narrative | `set_scene`, `update_quest_log` |
+| Money and goods | `get_purse`, `earn_money`, `spend_money`, `give_item`, `take_item`, `buy`, `sell`, `open_shop` |
+| Cast | `add_creature`, `remove_creature`, `update_npc`, `get_cast`, `get_portraits`, `add_note`, `reveal_note` |
+| Campaign | `list_campaigns`, `new_campaign`, `load_campaign`, `rename_campaign`, `reset_campaign`, `delete_campaign`, `recap`, `undo`, `set_rules` |
+| Read-only | `get_character_sheet`, `get_state`, `get_combat_state`, `get_story`, `recent_events` — Claude checks facts instead of recalling |
+| Narrative | `set_scene`, `set_story`, `amend_story`, `beat`, `offer_choice`, `offer_actions` |
+
+Four groups the plan had are gone or changed shape. `contested_check` and
+`concentration_check` became `concentration_save` and ordinary opposed checks;
+`list_spells` never arrived because there is no spell catalogue; `equip` and `use_item`
+collapsed into `give_item`/`take_item` plus the armour and attacks passed to
+`add_creature`; and `update_quest_log` became the story backbone — `set_story`, `beat` and
+`amend_story` — which is a stronger thing than a log, because it is what survives a
+`/clear`.
 
 Each returns a structured payload the UI renders as a card, **plus** a `narration_hint`
 (`"18 vs AC 15 — hit, 7 slashing, target at 12/29"`). Claude turns the hint into prose. It
@@ -205,18 +235,24 @@ never picks the number.
 
 ## Layout
 
+As built — five packages rather than four, because the MCP server became its own:
+
 ```
-dnd-claude/
+claude-dnd/
 ├─ packages/
-│  ├─ engine/          # dice, checks, combat, character, progression — pure, seeded
-│  ├─ content/         # SRD 5.1 JSON: classes, spells, monsters, items, conditions
-│  ├─ server/          # MCP over http + claude child process + WS/SSE + static
-│  └─ web/             # React + Vite: console, sheet, initiative, slots
-├─ .mcp.json           # { "dnd": { "type": "http", "url": "http://localhost:7777/mcp" } }
+│  ├─ engine/          # dice, checks, combat, character, progression, story — pure, seeded
+│  ├─ content/         # SRD 5.1 data: classes, races, conditions, items, art catalogues
+│  ├─ mcp/             # the engine as 65 stdio tools + SQLite campaigns
+│  ├─ server/          # claude child process + WS + static files
+│  └─ web/             # React + Vite: console, sheet, initiative, slots, setup, shop
+│     └─ public/       # every picture the game can reach, pre-rendered
+├─ .mcp.json           # { "dnd": { "type": "stdio", "command": "npx", ... } }
+├─ scripts/            # the asset editors: gallery, faces, cut, cards, gender
 ├─ .claude/
 │  ├─ dm-prompt.md     # standing DM rules (--append-system-prompt-file)
-│  └─ skills/play-dnd/ # session bootstrap
-└─ campaign.db         # SQLite event log
+│  └─ skills/          # play-dnd (session bootstrap), make-art (how the art is made)
+├─ playtests/          # real sessions, with findings
+└─ campaign.db         # SQLite: a state snapshot per step, events journalled beside them
 ```
 
 ---
@@ -235,6 +271,27 @@ dnd-claude/
 | 7 | Rich rendering: dice cards, HP bars, sheet, initiative, slots | **done** |
 | 8 | Classes, weapons, resources, rests, spells, levelling | **done** |
 | 9 | Polish | **partial** — dice land with an animation and HP bars tween; no encounter builder, no xterm drawer |
+
+Three more phases happened that the plan never named. They are listed here because the plan
+stopping at nine makes it look as though the project did:
+
+| # | Deliverable | Status |
+|---|---|---|
+| 10 | A story backbone, a persistent cast, money and shops | **done** — `set_story`, `beat`, `amend_story`, hidden notes, `open_shop` |
+| 11 | The setup form and the art library | **done** — menu cards, 191 folk, a 60-creature bestiary, and four editors to aim them |
+| 12 | Character creation by portrait | **done** — the picture decides race and sex, one owner per face, roll or choose |
+
+Phase 10 is the one the plan had no idea was coming, and it extends the core principle
+somewhere the plan never pointed it. The engine was built to stop the DM inventing a
+mechanical result. A campaign with nothing written down has the same failure in the
+narrative: what the DM remembers is whatever is still in context, so two sessions on it is a
+different campaign. `set_story` puts the premise, the truth under it and the beats on disk,
+where a `/clear` cannot reach them — the only thing in the engine that defends against the
+model rather than against the rules.
+
+Playtest 2 then found the obvious gap: the backbone gets written once and never advanced.
+`beat` was not called all session and all seven beats were still `ahead` at the end. Written
+state that nothing updates is just a longer prompt, so that one is worth a look.
 
 Two plan changes worth recording, both decided against the plan as written:
 
@@ -256,23 +313,46 @@ Everything in `packages/web/public/` is pre-rendered and shipped — there is no
 and nothing generates an image at run time — so a gap in the library is a gap until someone
 sits down and makes the picture.
 
-**Done since this section was written.** Sheet two covered half-orc, gnome, dragonborn and
-tiefling with five adventurers apiece, and filled the holes the first sheet left in the five
-races it did cover. Sheet three is the working town — ferryman, ratcatcher, bonesetter,
-glassblower, charcoal burner — twenty-four trades the library had no face for, plus a
-painted hooded figure that retires the one drawn with maths. The library stands at 141 folk
-and 50 creatures, and 107 of the 108 race-class pairings a rolled character can land on now
-get a purpose-made adventurer face; the last, a tiefling paladin, gets an inquisitor, which
-is close enough to be deliberate.
+**The library stands at 191 folk and 60 creatures.** The folk were cut from sheets of
+twenty-five and sixteen and are stored at 256px, chest-up, because a face is what identifies
+a person. All 108 race-class pairings a rolled character can land on get a face, and the
+roller falls back rather than refusing when the exact one is missing.
 
-**Focal points for sheets two and three.** Forty-nine portraits are seeded at `[50, 38]`
-with a 1.9 zoom rather than measured. They want a pass in `/faces.html`; the measured ones
-are visibly better framed than the guessed ones, which is the whole reason the editor
-exists.
+**The bestiary was regenerated once the first version proved too small.** Full-body framing
+in a 250px cell leaves a head of about sixty pixels, so a creature cropped to its face was
+a smear. The fix was fewer cells per sheet and sheets grouped by SRD creature size — a
+mixed sheet makes the model scale everything to its neighbours, so the small subject and
+the large one both come out small. Fifty creatures now store at 416px off 3×3 and 3×2
+sheets, and the ten ancient dragons get a whole 1254px frame each, since at Gargantuan a
+cell is the wrong unit.
+
+**Focal points are measured, not guessed.** All but one of the 251 have been through
+`/faces.html`, which is the whole reason the editor exists — the measured crops are visibly
+better framed than the seeded ones were. The exception is `ancient-white-dragon`, still on
+a placeholder `[50, 40, 1.5]`: it came back as an A/B pair and got missed in the pass.
+
+**Still owed.**
+
+- `red-wyrmling` contradicts itself: named a wyrmling, described as "Young red dragon".
+  Those are two different SRD age categories, and it reads oddly now that ten explicitly
+  aged ancients sit beside it. Whichever way it goes, the description and the key should
+  agree.
+- `public/races/*.webp` — nine painted race cards, each showing a man and a woman of that
+  people. Unreferenced since the race tab became a portrait picker, and the only art in
+  `public/` that nothing can reach. Keep or delete, but not both.
+- Three spare poses are generated and uncut: a second lich, a second goblin, and the `white-b`
+  dragon.
+- **Eighteen pairings exist in one gender only**, so asking for the other gets the face the
+  library has. `roll-character.test.ts` pins the list rather than a count, so it shrinks
+  visibly as portraits are added. Druid and monk dominate it, and that was a measuring
+  mistake rather than a drawing one: their role lists are their own — grovepriest,
+  bladedancer, novice — and the sheets were planned against five broader clusters that do
+  not reach them.
 
 **Open question: unset portraits in the cast list.** An NPC the DM never gave art to renders
-with no avatar at all. Whether that should become the hood is a judgement about how the cast
-column reads when half of it is hooded strangers, and is not decided here.
+with no avatar at all — the hood is the fallback in the setup form but not in the panel.
+Whether the cast column should hood them too is a judgement about how it reads when half of
+it is hooded strangers, and is not decided here.
 
 ## Not built, deliberately
 

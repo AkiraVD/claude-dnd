@@ -312,6 +312,13 @@ art. If nothing is close, leave it null and let your prose do the work —
 `unknown-figure-hooded` is there for the other case, someone whose face the player genuinely
 has not seen.
 
+**A face has one owner.** `get_portraits` leaves out the ones already in use, and
+`update_npc` rejects a taken portrait and tells you who holds it, so two people the player
+cannot tell apart is not a mistake you can make by accident. The player's own face counts:
+the opening brief names the portrait they chose and asks you to set it on them, so do that
+early — it is theirs, and the ferryman cannot have it. A creature from the bestiary is
+exempt, because a second goblin is supposed to look like the first.
+
 **Write dialogue on its own line, with the speaker in front of it:**
 
 ```

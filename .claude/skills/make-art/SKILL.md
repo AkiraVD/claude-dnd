@@ -1,6 +1,6 @@
 ---
 name: make-art
-description: Generate art assets for Dice Tower with GPT Image through the browser, then slice, convert and wire them in. Use when asked to make or redo class, race, adventure, menu, scenery or NPC portrait art, or any new card deck for the setup modal.
+description: How Dice Tower's art is made and wired in — the decks and their shared prompt blocks, the sizes each set is stored at, the catalogues and tests a new picture has to be registered in, and the focal-point editors. Use when asked to make or redo class, race, adventure, menu, scenery, monster or NPC portrait art, or any new card deck for the setup modal. Defers the browser-driving and sheet-slicing to the global chatgpt-image-gen skill.
 ---
 
 # Making art for the table
@@ -8,6 +8,11 @@ description: Generate art assets for Dice Tower with GPT Image through the brows
 Every set in `packages/web/public/` was made this way. The method matters more than the
 prompts: what keeps a deck looking like a deck is that it is generated **in one
 conversation off one shared block**, with only the subject swapped between images.
+
+The generating itself lives in the global **`chatgpt-image-gen`** skill. This file is the
+half that is about *this* project: which decks exist and what each one is, the size each set
+is stored at, the catalogue and the test every new picture has to pass, and how to put the
+result in front of the user.
 
 ## 1. Decide the deck before generating anything
 
@@ -25,55 +30,39 @@ The shared block fixes what must not vary. The one that works:
 Then say what the subject is, and be honest about which kind it is, because mixing them
 in one deck is what makes a set look wrong:
 
-- **people** — class and race cards
-- **places** — adventure cards
-- **scenes with people** — difficulty, tone and rules cards
+- **people** — the twelve class cards, and the folk portraits
+- **places** — the seven adventure cards
+- **scenes with people** — the eleven difficulty, tone and rules cards
+- **creatures** — the bestiary, which is its own thing: framed whole, not chest-up
 
 Still life was tried for the abstract tabs and replaced; it held together but read quieter
 than everything beside it. If a tone or a mood needs illustrating, a scene with figures at
 middle distance beats both a portrait and an arrangement of objects.
 
-## 2. Drive ChatGPT
+**The nine race cards are retired.** They are still in `public/races/` and still credited,
+but nothing reaches them: the race tab became a portrait picker, and the chosen face already
+says what a card showing a man and a woman of that people was there to say. Worth knowing
+before making a tenth — the deck it would join is not on screen any more.
 
-`chatgpt.com` in the browser. Typing with `computer` works until it suddenly does not —
-synthetic keystrokes stop reaching the page part-way through a long session. The reliable
-way:
+## 2. Generate it
 
-```js
-const el = document.querySelector('#prompt-textarea') || document.querySelector('[contenteditable="true"]')
-el.focus()
-const s = getSelection(); s.removeAllRanges()
-const r = document.createRange(); r.selectNodeContents(el); s.addRange(r)
-document.execCommand('insertText', false, text)
-// wait ~600ms, THEN find the button: it only exists once there is text
-const b = [...document.querySelectorAll('button')].find(x => x.getAttribute('aria-label') === 'Send')
-```
+The global **`chatgpt-image-gen`** skill drives this: loading the browser tools in one
+call, the page helpers that collapse a generation to three tool calls, the send loop and
+its failure modes, the sheet-grid arithmetic, and `slice.py` for cutting a sheet up. Use it
+rather than the notes that used to live here — they were the first draft of it, and
+duplicating them only lets the two drift.
 
-Click that button with a real `computer` click at `rect * (1568 / innerWidth)` — the tool's
-coordinate frame is scaled against the viewport, which is why clicks drift after a resize.
+Two things it will not know, because they are about this project:
 
-Generation takes 40–70 s. Send the next prompt only when the composer is empty and
-`[data-testid="stop-button"]` is gone; a prompt typed while it is busy is silently lost.
+**Downloads land in `~/Downloads`** and are read from there directly, because Chrome runs
+on this machine. The sheets are large; keep them in the scratchpad rather than the repo.
 
-**Verify a send by the composer emptying, never by searching the page for the prompt
-text** — the composer's own contents are part of `document.body.innerText`, so an unsent
-message looks exactly like a sent one.
+**One conversation per deck.** A set holds together because one block of text is identical
+across every prompt in it. An old thread drags in its own style, so a new deck means a new
+conversation — and a card added to an existing deck months later will not match no matter
+how carefully the block is copied, which is the argument for generating a spare at the time.
 
-## 3. Get the files
-
-Chrome runs on this machine, so downloads land in `~/Downloads` where they can be read
-directly. This needs Chrome's *ask where to save each file* turned **off** — with it on,
-every download blocks behind a native dialog the extension cannot see. Check with
-`wmctrl -l | grep "wants to save"` and close with `wmctrl -i -c <id>`; the bytes are
-already written to a `.org.chromium.Chromium.*` temp file either way.
-
-The message list is virtualised, so only a few images are mounted at once. Scroll in steps
-and pull what is newly mounted. **De-duplicate by checksum, not by filename** — reloading
-the page resets any in-page `seen` set and the same images come down again under new
-names. The very first turn of a long conversation often refuses to mount at all;
-regenerating that one card at the bottom is faster than fighting it.
-
-## 4. Convert and wire
+## 3. Convert and wire
 
 `ffmpeg` only — there is no `sharp` and no native dependency in this project.
 
@@ -85,42 +74,60 @@ it easy to miss. `-nostdin`, or `< /dev/null` on the ffmpeg call.
 
 ```bash
 ffmpeg -i in.png -vf "scale=300:200" -c:v libwebp -quality 82 out.webp   # cards
-ffmpeg -i in.png -vf "crop=250:250:X:Y,scale=256:256" -c:v libwebp -quality 72 out.webp  # portraits
+ffmpeg -i in.png -vf "crop=250:250:X:Y,scale=256:256" -c:v libwebp -quality 72 out.webp  # folk
+ffmpeg -i in.png -vf "crop=418:418:X:Y,scale=416:416" -c:v libwebp -quality 80 out.webp  # creatures
 ```
 
-A setup tab needs `imageFor` and `artAspect` in `packages/web/src/setup.ts`; the test that
+**What each set is stored at**, and why they differ: folk at 256px, chest-up, because the
+face is the whole picture and 256 is plenty for a head. Creatures at 416px, framed whole,
+because the silhouette is what identifies them and the crop then has to zoom a long way
+into a full-body figure to find a face. Nothing in the code assumes a uniform size —
+`faces.json` works in percentages and `faceTransform` in multiples, so a set can be restored
+at a different size without touching anything else.
+
+A setup tab needs `imageFor` and `artAspect` in `packages/web/src/setup.ts`. The test that
 every tab declaring art has an explicit aspect, and that every option's file exists, is in
-`setup.test.ts` and covers new decks automatically. Portraits additionally need an entry
-in `packages/content/src/portraits.ts` — that catalogue is deliberate, not a directory
-listing, and `portraits.test.ts` fails if a name has no file.
+`setup.test.ts` and covers a new deck automatically.
+
+A portrait or a creature additionally needs an entry in `packages/content/src/portraits.ts`
+— that catalogue is deliberate, not a directory listing, which is what lets the DM pick a
+face from descriptions without looking at the pictures. `packages/web/src/art.test.ts` is
+the file that holds you to it, and it checks more than existence: a file for every name in
+both catalogues, a description for every entry, a recorded face for every one of them, the
+two libraries kept apart by name *and* directory, and every crop inside its frame. Add the
+name and the file together or the suite says which half is missing.
 
 Rebuild with `npm run build --workspace @dnd/web` and restart the server, or the browser
 keeps serving the old bundle.
 
-## 5. Portrait sheets: 25 to a picture
+## 4. What the grid costs, for this library
 
-Measured, and written up in `playtests/2026-10-01-portrait-grids.md`. Output is always
-1254×1254 whatever is asked for, so the cell is that divided by the grid:
+The arithmetic is in the global skill's `references/sheets.md`; what matters here is the
+decision it drove twice.
 
-| Grid | Portraits | Cell | Verdict |
-|---|---|---|---|
-| 4×4 | 16 | 313 px | Excellent |
-| 5×5 | 25 | 250 px | Best — lands on the 256 px stored |
-| 6×6 | 36 | 209 px | Usable, slight upscale |
-| 8×8 | 64 | — | Refused; returns the 6×6 again, byte-identical |
+The folk sheets are 5×5 and 4×4 — a 250px cell, which lands on the 256px stored, and
+chest-up framing means that cell is almost all face. That was right and still is.
 
-The thing that makes a sheet usable rather than merely pretty: **give the roster in reading
-order** — "1 human man late fifties, baker, flour in his beard. 2 dwarf woman, silversmith,
-loupe on her brow…" — and it is followed cell for cell. Then slicing at a fixed stride
-yields known people instead of faces to identify afterwards. Ask also for even spacing, no
-outer border, one identical dark background, and no name plates, or the cut will not be
-clean.
+The bestiary was generated the same way and was wrong. Full-body framing in a 250px cell
+leaves a head of about sixty pixels, so the cast-list circle was sampling a smear; the five
+worst needed 5× zoom to read at all. The fix was fewer cells per sheet (3×3 and 3×2, a
+418px cell) **and sheets grouped by SRD creature size** — on a mixed sheet the model scales
+every subject to its neighbours, so a kobold beside a hill giant comes out small and so does
+the hill giant. Grouping was the larger win of the two. The ten ancient dragons get a whole
+1254px frame each, because at Gargantuan a cell is the wrong unit.
 
-## 6. Aiming the small circles
+So: **pick the framing from what identifies the subject, then pick the grid from the
+framing.** A face can live in a small cell. A silhouette cannot.
 
-Each portrait's face is recorded in `faces.json` beside the pictures, as `[x, y]`
-percentages, and `faceOf` / `faceTransform` in `art.ts` read it. Two things are easy to
-get wrong here and both were:
+## 5. Aiming the small circles
+
+Each portrait's face is recorded in `faces.json` beside the pictures, as
+`[x, y]` or `[x, y, zoom]` percentages, and `faceOf` / `faceTransform` in `art.ts` read it.
+`npm run faces` builds the editor that aims them and `npm run faces:apply` writes the
+result back; there are three more editors beside it (`cut`, `cards`, `gender`), all working
+the same way — a page you drag, and an apply half that takes the JSON it prints.
+
+Two things are easy to get wrong here and both were:
 
 **`object-position` does nothing.** The images are square and so are the boxes, so
 `object-fit: cover` scales them exactly and leaves no overflow to shift — the whole
@@ -136,23 +143,23 @@ opposite of the assumption that a standing figure's head is near the top. Always
 render-and-tile pass; it takes one command and catches what the eye missed.
 
 If a creature comes out taller than its cell, its head is simply not in the picture and no
-metadata will save it. Regenerate those: a 2×2 is plenty, and the instruction that works is
-that the *entire* creature including the top of its head must sit inside its own cell with
-clear space above it, framing smaller if that is what it takes.
+metadata will save it — `slice.py` flags cells whose subject reaches the top edge, but it
+flags contact rather than damage, so the flagged ones have to be looked at. Regenerate a
+genuine clip rather than recropping: a 2×2 is plenty, and the instruction that works is that
+the *entire* creature including the top of its head must sit inside its own cell with clear
+space above it, framing smaller if that is what it takes.
 
 **Zoom is per portrait too**, stored as an optional third number in `faces.json`
 (`[x, y, zoom]`, defaulting to 2). A head-and-shoulders portrait is already most of its
 frame and wants almost none; a whole-body creature is a small shape in a big picture and
 wants a lot. The editor has a slider for it.
 
-**Known limit, not yet worth fixing.** Portraits are stored at 256px, so a 5× zoom samples
-about a 51px region — roughly 1:1 against the 34px the cast list draws, and visibly soft on
-a retina panel. Five creatures sit at that ceiling because they were drawn large in their
-cell: `ogre`, `wight`, `bandit-captain`, `hill-giant`, `drow-raider`. Regenerating bought
-back enough headroom to aim them properly but not enough resolution to zoom that far
-cleanly. The fix, if it ever grates in play, is to re-slice those few at 512px from the
-source sheets — the sheets are 1254px so the pixels exist — and let the rest stay at 256.
-Nothing in the code assumes a uniform size.
+**The zoom ceiling, and how it was raised.** A zoom of `z` on a portrait stored at `s`
+samples `s / z` real pixels, and the cast list draws a 34px circle. At 256px a 5× zoom
+sampled 51px — about 1:1, visibly soft on a retina panel — and `ogre` and `hill-giant` sit
+at exactly 5× because they were drawn large in their cell. Re-slicing the bestiary at 416px
+is what fixed it: the same 5× now samples 83px, with room to spare. The sheets are 1254px,
+so if a future set needs more the pixels are there; store bigger rather than zooming harder.
 
 **Clamp the translate.** Scaling by `z` leaves `(z - 1)` of overflow, half on each side, and
 the translate is scaled too — so the shift cannot exceed `(z - 1) / 2z`. Past that the image
@@ -160,7 +167,7 @@ edge comes inside the box and the circle gets a bite of background taken out of 
 these faces sit high enough to hit that limit, so they ride high in the circle rather than
 centred, which is correct and is what the rendered check shows.
 
-## 7. Show the work
+## 6. Show the work
 
 Browser screenshots render only on Claude's side. To put anything in front of the user,
 save it (`save_to_disk`) and send it with `SendUserFile` — and for menu art, screenshot the

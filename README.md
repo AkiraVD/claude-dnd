@@ -15,7 +15,7 @@ The rules live in a real engine. Claude narrates; it does not decide what the di
 └────────────────┬────────────────────────┘
                  │ stdio MCP
 ┌────────────────▼────────────────────────┐
-│  @dnd/mcp — 44 tools over @dnd/engine   │
+│  @dnd/mcp — 65 tools over @dnd/engine   │
 │  campaigns in SQLite                    │
 └─────────────────────────────────────────┘
 ```
@@ -40,7 +40,7 @@ once, and type `/play-dnd`.
 | `npm run play` | Build the UI and start the table |
 | `npm run server` | Start the table without rebuilding |
 | `npm run dev:web` | Vite dev server for UI work (run `npm run server` alongside) |
-| `npm test` | 339 tests |
+| `npm test` | 704 tests |
 | `npm run typecheck` | Strict TypeScript across every package |
 
 | Variable | Default | Purpose |
@@ -49,14 +49,17 @@ once, and type `/play-dnd`.
 | `DND_SEED` | clock | Pin the dice for a reproducible campaign |
 | `DND_CAMPAIGN` | most recent | Load a specific campaign id |
 | `PORT` | `5173` | Web port |
+| `HOST` | `127.0.0.1` | Set to `0.0.0.0` to play from another machine on the network |
+| `DND_ROOT` | the working directory | Where the server looks for the built UI and the prompt |
+| `DND_SESSION` | one per process | Pin the MCP session id, so a wrapper or a test can name it |
 
 ## Packages
 
 | Package | What it is |
 |---|---|
 | `@dnd/engine` | The rules. Pure, seeded, no I/O. Dice, checks, combat, damage, rests, spells, levelling |
-| `@dnd/content` | SRD 5.1 data: abilities, skills, conditions, damage types, the 12 classes, spell slot tables |
-| `@dnd/mcp` | The engine as 44 MCP tools, with campaigns persisted to SQLite |
+| `@dnd/content` | SRD 5.1 data: abilities, skills, conditions, damage types, the 12 classes, spell slot tables — and the art catalogues the DM casts from |
+| `@dnd/mcp` | The engine as 65 MCP tools, with campaigns persisted to SQLite |
 | `@dnd/server` | Runs the DM as a child process and bridges it to the browser |
 | `@dnd/web` | React console and panels |
 

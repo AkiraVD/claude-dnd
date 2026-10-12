@@ -24,11 +24,21 @@ By artist:
 Scenery and the setup background were generated locally with Stable Diffusion (SDXL) and
 are not third-party work.
 
-The sixty-six NPC portraits and the fifty-creature bestiary came from OpenAI's GPT Image, cut out of three generated
-sheets — four of twenty-five and one of sixteen. Each sheet was asked for as an evenly
-spaced grid on one plain dark background with a roster given in reading order, so the
-cells could be sliced at a fixed stride and named without guessing. The sixteen that were
-originally made locally were regenerated this way so the library reads as one set.
+The 191 folk portraits and the 60-creature bestiary came from OpenAI's GPT Image, cut out of
+generated sheets. Each sheet was asked for as an evenly spaced grid on one plain dark
+background, with a roster given in reading order, so the cells could be sliced at a fixed
+stride and named without guessing. The sixteen portraits originally made locally were
+regenerated this way so the library reads as one set.
+
+The folk are framed chest-up and stored at 256px, because a face is what identifies a
+person. The bestiary is framed whole — an owlbear cropped to its face is a bear — and was
+regenerated at 416px off smaller grids once it became clear that a full-body figure in a
+250px cell leaves a head of about sixty pixels. Those sheets are grouped by SRD creature
+size, since a mixed sheet makes the model scale every subject to its neighbours and the
+small creature and the large one both come out small. The ten ancient dragons were generated
+one to a frame at the full 1254px, and each was given a named composition to break out of —
+asking for a different pose yields the same picture, while forbidding the shot it keeps
+reaching for works.
 
 The twelve class cards, the nine race cards, the seven adventure cards and the eleven
 difficulty, tone and rules cards were generated
@@ -45,7 +55,10 @@ warlock, human wizard. Six are women and six are men, and where a race appears t
 appears as one of each.
 
 The race cards each show a man and a woman of that people in traditional dress, so the
-card shows a people rather than a person and the picker implies nothing about gender.
+card shows a people rather than a person and the picker implies nothing about gender. They
+are no longer shown: the race tab became a portrait picker, where the chosen face already
+says what the card was there to say. The files are kept in `public/races/` and credited here
+because they were made, not because anything reaches them.
 
 The adventure cards are places rather than people, and carry no figure close enough to
 read a face — the card describes the kind of game, not who you are in it.
