@@ -1,253 +1,303 @@
 {
- "_": "Face centre of each portrait as [x, y] percentages, optionally [x, y, zoom]. Placed by hand in /faces.html. Zoom buys legibility out of resolution: these are 256px, so 5x samples ~51px and is soft on a retina panel — re-slice at 512px from the source sheet if that ever matters.",
+ "_": "Face centre of each portrait as [x, y] percentages, optionally [x, y, zoom]. Placed by hand in /faces.html. These are 416px now, not 256: the sheets were regenerated three to a row rather than five, and the humanoids reframed chest-up, so a face no longer needs 3x to 5x zoom to read. Every entry here predates that and wants re-aiming.",
+ "ancient-black-dragon": [
+  67,
+  60,
+  1.8
+ ],
+ "ancient-blue-dragon": [
+  75,
+  43,
+  2.1
+ ],
+ "ancient-brass-dragon": [
+  47,
+  35,
+  2.2
+ ],
+ "ancient-bronze-dragon": [
+  56,
+  18,
+  3.1
+ ],
+ "ancient-copper-dragon": [
+  60,
+  27,
+  3.5
+ ],
+ "ancient-gold-dragon": [
+  49,
+  41,
+  2.2
+ ],
+ "ancient-green-dragon": [
+  22,
+  53,
+  1.5
+ ],
+ "ancient-red-dragon": [
+  80,
+  44,
+  1.9
+ ],
+ "ancient-silver-dragon": [
+  24,
+  13,
+  2.7
+ ],
+ "ancient-white-dragon": [
+  50,
+  40,
+  1.5
+ ],
  "animated-armour": [
-  52,
-  14,
-  3.7
+  57,
+  22,
+  2.8
  ],
  "bandit": [
-  57,
-  17,
-  3.6
+  50,
+  32,
+  2.3
  ],
  "bandit-captain": [
-  61,
-  10,
-  5
+  53,
+  25,
+  2.6
  ],
  "banshee": [
   68,
-  18,
-  3.8
+  25,
+  2.5
  ],
  "beholder": [
-  53,
-  59,
+  50,
+  51,
   1.8
  ],
  "bugbear": [
-  62,
-  25,
-  3.2
+  55,
+  32,
+  2.1
  ],
  "cultist": [
-  58,
-  18,
-  3.5
+  53,
+  24,
+  2.7
  ],
  "death-knight": [
   48,
-  19,
-  4.1
+  25,
+  2.9
  ],
  "dire-wolf": [
-  67,
-  54,
-  2
+  79,
+  46,
+  3.4
  ],
  "displacer-beast": [
-  72,
-  62,
+  71,
+  58,
   3.1
  ],
  "doppelganger": [
-  71,
-  16,
-  3.2
+  51,
+  20,
+  2.7
  ],
  "drow-priestess": [
-  51,
-  17,
-  3.9
+  48,
+  23,
+  2.6
  ],
  "drow-raider": [
-  60,
-  25,
-  5
+  47,
+  29,
+  2.6
  ],
  "duergar": [
-  61,
-  26,
+  54,
+  25,
   2.3
  ],
  "gargoyle": [
-  81,
-  38,
-  4.1
+  75,
+  37,
+  3
  ],
  "ghost": [
   69,
   13,
-  3.3
+  2.6
  ],
  "ghoul": [
-  65,
-  20,
+  69,
+  30,
   2.8
  ],
  "giant-rat": [
-  80,
-  54,
-  2.1
+  81,
+  57,
+  3
  ],
  "giant-spider": [
-  52,
-  60,
-  2.7
+  51,
+  54,
+  2.9
  ],
  "gnoll": [
-  70,
-  26,
-  3.1
+  66,
+  43,
+  2.5
  ],
  "goblin": [
-  61,
-  31,
+  52,
+  30,
   3
  ],
  "green-dragon": [
-  83,
-  45,
+  62,
+  24,
   3.6
  ],
  "harpy": [
-  73,
+  70,
   32,
   4.3
  ],
  "hell-hound": [
-  79,
-  60,
-  2.5
+  75,
+  44,
+  2
  ],
  "hill-giant": [
-  50,
-  17,
+  66,
+  9,
   5
  ],
  "hobgoblin": [
   51,
-  15,
-  3.7
+  30,
+  2
  ],
  "imp": [
-  65,
-  39,
+  70,
+  57,
   3.5
  ],
  "kobold": [
-  64,
-  23,
+  73,
+  20,
   3.3
  ],
  "kuo-toa": [
-  66,
-  30,
-  2.7
+  69,
+  32,
+  2.4
  ],
  "lich": [
-  53,
-  23,
-  3.9
+  43,
+  32,
+  3
  ],
  "lizardfolk": [
-  64,
+  51,
   20,
-  4
+  2.2
  ],
  "medusa": [
-  53,
-  28,
-  3.4
+  48,
+  29,
+  2.7
  ],
  "mind-flayer": [
-  54,
-  21,
-  3.1
+  53,
+  28,
+  2.4
  ],
  "minotaur": [
-  59,
-  28,
+  50,
+  19,
   4
  ],
  "mummy": [
-  60,
-  18,
-  3.3
+  59,
+  22,
+  2.7
  ],
  "ogre": [
-  57,
-  16,
+  55,
+  15,
   5
  ],
  "orc": [
-  58,
-  17,
-  3.5
+  51,
+  28,
+  1.7
  ],
  "owlbear": [
-  73,
-  24,
-  3.5
+  61,
+  15,
+  4.5
  ],
  "red-wyrmling": [
-  79,
-  44,
-  3.3
+  74,
+  33,
+  2.2
  ],
  "sahuagin": [
-  47,
-  29,
-  3.4
+  52,
+  36,
+  2.3
  ],
  "skeleton": [
-  50,
-  12,
-  3
+  59,
+  28,
+  3.1
  ],
  "troll": [
-  70,
-  27,
+  71,
+  21,
   4.1
  ],
  "vampire-spawn": [
-  64,
-  21,
-  2.8
+  62,
+  31,
+  2.9
  ],
  "wererat": [
-  83,
-  39,
+  73,
+  35,
   2.8
  ],
  "werewolf": [
-  76,
-  23,
+  67,
+  34,
   2.9
  ],
  "wight": [
-  57,
-  11,
-  5
+  60,
+  30,
+  2.7
  ],
  "will-o-wisp": [
   56,
-  28,
-  2.8
+  25,
+  3.5
  ],
  "wolf": [
-  69,
-  40,
-  2.5
+  67,
+  57,
+  2.2
  ],
  "yuan-ti": [
-  50,
-  15,
+  57,
+  14,
   3.7
  ],
  "zombie": [
-  67,
-  14,
-  3.9
+  68,
+  25,
+  3
  ]
 }

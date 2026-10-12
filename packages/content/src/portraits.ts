@@ -299,6 +299,21 @@ export const BESTIARY = {
   'animated-armour': 'Empty plate standing on its own, sword raised',
   'will-o-wisp': 'A pale drifting light with the faintest shape in it',
   'displacer-beast': 'Black panther, two barbed tentacles from its shoulders',
+
+  // The ancients. Gargantuan, and the only entries here rendered one to an
+  // image rather than cut from a sheet — at that size a cell is the wrong unit,
+  // and each of these is a whole frame. The ten colours are the SRD's: five
+  // chromatic, five metallic, and nothing in between.
+  'ancient-black-dragon': 'Oily black scales, horns curving forward, a gaunt skull-like face',
+  'ancient-blue-dragon': 'Deep blue scales, one great horn on the snout, static crawling over the hide',
+  'ancient-green-dragon': 'Emerald scales, a horned frill sweeping back from a narrow sly head',
+  'ancient-red-dragon': 'Crimson scales, great horns swept back, smoke curling from the nostrils',
+  'ancient-white-dragon': 'Ice-white scales, frost caked on the hide, a spined crest',
+  'ancient-brass-dragon': 'Warm brass scales, a wedge-shaped head, two long horns',
+  'ancient-bronze-dragon': 'Bronze scales, a flat ridged head, horns curving back like a bull',
+  'ancient-copper-dragon': 'Copper-red scales, backswept horns, a sardonic set to the jaw',
+  'ancient-gold-dragon': 'Gold scales, a whiskered chin and mane-like frill, a noble head',
+  'ancient-silver-dragon': 'Silver scales, a smooth swept frill, an elegant head and cold grey eyes',
 } as const
 
 export type BeastName = keyof typeof BESTIARY

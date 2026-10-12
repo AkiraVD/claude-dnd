@@ -75,12 +75,16 @@ export interface Face {
 /**
  * How close to crop when nothing says otherwise.
  *
- * Portraits are stored at 256px, so zoom buys legibility out of resolution: at 5×
- * only about 51px of source is sampled, which is near 1:1 for the 34px the cast
- * list draws and soft on a retina panel. A handful of creatures drawn large in
- * their cell sit at that ceiling. Re-slicing those few at 512px from the source
- * sheets would fix it — nothing here assumes every portrait is the same size —
- * and the trade is noted in `.claude/skills/make-art/SKILL.md`.
+ * Zoom buys legibility out of resolution, so the ceiling depends on what the
+ * file actually holds — and the two libraries no longer agree. Folk are 256px,
+ * cut five to a row; monsters are 416px, cut three to a row and reframed so the
+ * head is most of the cell rather than a tenth of it. At 256 a 5× crop sampled
+ * about 51px, which was near 1:1 for the 34px the cast list draws and soft on a
+ * retina panel; at 416, with the face already large, the same legibility needs
+ * closer to 1.5×.
+ *
+ * Nothing here assumes every portrait is the same size, which is what made that
+ * change a matter of recutting rather than rewriting.
  */
 export const DEFAULT_ZOOM = 2
 
